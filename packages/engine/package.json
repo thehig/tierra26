@@ -1,0 +1,12 @@
+{
+  "name": "@tierra26/engine",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "tierra26 simulation engine — headless, deterministic Tierra-derived virtual machine",
+  "scripts": {
+    "test": "node --experimental-strip-types --test \"test/**/*.test.ts\"",
+    "test:watch": "node --experimental-strip-types --test --watch \"test/**/*.test.ts\"",
+    "spec": "node --experimental-strip-types --test-reporter=spec --test \"test/**/*.test.ts\""
+  }
+}
