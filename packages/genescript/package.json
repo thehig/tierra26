@@ -1,0 +1,12 @@
+{
+  "name": "@tierra26/genescript",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "GeneScript — the kid-friendly surface language that compiles to the classic-32 Tierra ISA",
+  "scripts": {
+    "test": "node --experimental-strip-types --test \"test/**/*.test.ts\"",
+    "test:watch": "node --experimental-strip-types --test --watch \"test/**/*.test.ts\"",
+    "spec": "node --experimental-strip-types --test-reporter=spec --test \"test/**/*.test.ts\""
+  }
+}
