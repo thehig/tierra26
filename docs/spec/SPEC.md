@@ -164,10 +164,10 @@ Ref: [`01-cpu-model.md`](../original-tierra/01-cpu-model.md).
 Ref: [`02-instruction-set.md`](../original-tierra/02-instruction-set.md).
 - Original: **122-mnemonic** master dictionary; **default runtime set = 64**; **minimal
   set = 32** (`gb0..gb3`). The runtime set is a curated subset fitting in 5–6 bits.
-- **Decision (§17):** which set the 2026 engine targets. Recommendation: **implement the
-  ~64-op default set** as the authentic core (formidable, room for rich evolution), and
-  expose a **32-op "beginner set"** as an early-tutorial mode. The friendly language (§10)
-  targets whichever set a scenario enables.
+- **Decided (§17):** implement the **~64-op default set** as the authentic core
+  (formidable, room for rich evolution), and expose a **32-op "beginner set"** (Tierra's
+  `gb0` minimal set) that early tutorials/scenarios can restrict to. A scenario declares
+  which set is enabled; the friendly language (§10) targets whichever set is active.
 - Instruction families to implement: nop/template, arithmetic, bitwise, stack,
   register-move, address-find, jump/flow, conditional, register-flag toggles, reproduction
   (`mal`/`divide`), sync. I/O, ploidy-track, shadow, and network families are **[OPTIONAL]**.
@@ -275,7 +275,9 @@ The heart of the "approachable + formidable" promise.
   headline learning moment.
 - **Progressive disclosure:** beginner scenarios expose a small vocabulary (mapping to the
   32-op set); advanced scenarios unlock the full set and raw-opcode editing.
-- **[Decision §17]** exact surface syntax (worded/blocks/hybrid) — prototype a few.
+- **Form — hybrid (decided, §17):** a readable worded text language with **block/insert
+  assists**, autocomplete, and color-coded keywords. Youngest kids compose via assists;
+  teens free-type. Exact vocabulary/syntax prototyped during M2 (§17.7).
 
 ## 11. Content / tutorial system
 
@@ -312,14 +314,15 @@ The heart of the "approachable + formidable" promise.
 
 ## 14. Tech stack — candidates (open)
 
-- **Engine:** TypeScript (shared browser/server) or Rust→WASM (max performance + easy
-  determinism). *Recommendation:* prototype engine in **TypeScript** for velocity; keep the
-  module boundary clean so a Rust/WASM swap is possible if perf demands.
+- **Engine — TypeScript first (decided, §17).** Prototype the core in TS for velocity, run
+  it in a **Web Worker**, and keep the module boundary clean so a **Rust→WASM** swap is
+  possible if soup size/speed demands it. The same engine module must be reusable
+  server-side for future online Versus.
 - **UI:** a modern reactive framework; content in MDX-like format; canvas/WebGL for the
-  tank. Engine in a **Web Worker**.
+  tank.
 - **Packaging:** static build served from a container (own Docker environment); future
   online-Versus service reuses the engine module.
-- *(All tentative — see §17.)*
+- *(UI framework / content-format specifics still open — §17.6.)*
 
 ## 15. Phasing / milestones
 
@@ -342,15 +345,30 @@ deferred to rebuild kickoff). It may be mined for a few working ideas (a proven 
 reaper sketch, canvas soup rendering) but is **not** the foundation — the engine is rebuilt
 against [`docs/original-tierra/`](../original-tierra/00-README.md), not against it.
 
-## 17. Open decisions (for review)
+## 17. Decisions & open questions
 
-1. **Fidelity tagging** — confirm/adjust the CORE / MODERNIZE / OPTIONAL tags in §9
-   (deferred by request; let's finalize together).
-2. **Instruction-set scope** — target the ~64-op default set with a 32-op beginner mode? Or
-   a different cut?
-3. **GeneScript surface form** — worded lines, drag blocks, or hybrid; exact vocabulary.
-4. **Engine language** — TypeScript vs Rust/WASM for the core.
-5. **How literal to Tierra** — e.g. keep the exact `RanSlicerQueue`/0.7-divide/6-MalMode
-   details, or modernize where they don't affect the *observable* evolutionary dynamics.
-6. **Win conditions & scenario schema** for Versus.
-7. **Content authoring format** and how per-instruction data is structured.
+### Decided (locked 2026-08-30)
+
+1. **Fidelity philosophy — preserve dynamics, modernize the rest.** Reproduce exactly the
+   mechanics that shape *what evolves* (template addressing, write-protection, slicer =
+   energy, reaper, the 0.7 divide gate, the variation operators); freely modernize
+   implementation-only details (allocator internals, PRNG choice, memory layout). The §9
+   **CORE / MODERNIZE / OPTIONAL** tags stand as drafted.
+2. **Instruction-set scope — 64-op core + 32-op beginner mode.** Implement Tierra's
+   authentic ~64-op default runtime set as the real engine; expose a curated 32-op subset
+   (Tierra's `gb0` minimal set) that early tutorials/scenarios can restrict to. (§9.2)
+3. **Engine language — TypeScript first, swappable.** Prototype the core in TS, run it in a
+   Web Worker, keep the module boundary clean enough that a Rust→WASM swap is possible if
+   performance demands, and so the same module can run server-side for future online Versus.
+   (§14)
+4. **GeneScript form — hybrid.** A readable worded text language with block/insert assists,
+   autocomplete, and color-coded keywords; leans on assists for the youngest, free-typing
+   for teens. (§10)
+
+### Still open (later-phase)
+
+5. **Versus win-conditions & scenario schema** — M4; needs a design sketch once the engine
+   exists.
+6. **Content authoring format** and per-instruction data structure — M3; pin when building
+   the tutorial pipeline.
+7. **GeneScript exact vocabulary & syntax** — prototype a few during M2.
