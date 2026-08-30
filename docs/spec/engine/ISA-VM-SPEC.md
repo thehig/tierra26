@@ -140,15 +140,18 @@ is itself complete** — it is the exact ISA of Ray's 1990 Tierra and of the can
 ancestor `0080aaa`, and it produces the whole classic story (parasites → hyper-parasites →
 cheaters).
 
-**Decision (refines `SPEC.md` §17.2):**
-- **`classic32` is our canonical CORE set** — complete, famous, and the pedagogical spine.
-  It has **no register toggles, no threads, no networking, 4 registers** → a genuinely
-  simple VM a child can hold in their head.
-- **`extended64` is an OPTIONAL advanced set** — the fuller palette for older kids / harder
-  scenarios, layered on later. It is *not* required for any core phenomenon.
-- The engine's dictionary is the **union** (~66 distinct instructions); scenarios enable a
-  set. (This is the same refinement in spirit as "64 core + 32 beginner" — it just
-  recognizes the 32 as canonical-and-complete rather than a cut-down 64.)
+**Decision (locked; refines `SPEC.md` §17.2):**
+- **`classic32` is *the* ISA.** Complete, famous, and the pedagogical spine. It has **no
+  register toggles, no threads, no networking, 4 registers** → a genuinely simple VM a child
+  can hold in their head.
+- **`extended64` is reference-only and *not planned*.** Per the project owner, "64 will
+  probably never happen." It remains documented in §4 (marked `E`) purely so the reference
+  is complete; **no engine work targets it**. If it were ever revived it would be a separate
+  sibling set, not a core dependency.
+- The engine implements the **classic 32** as its dictionary. The **named-set/mask**
+  mechanism (§3.1) is retained for a different, now-primary purpose: **tutorials unlock
+  progressive *subsets* of the 32** (e.g. early chapters expose only `nop`/`mov`/`inc`;
+  later unlock `adr`/`mal`/`divide`). A scenario declares which subset is active.
 
 ### 3.3 Set `classic32` (CORE) — the 32 instructions
 Source of truth: `reference/tierra-v6.02/tierra/gb0/opcode.map`. Opcodes are the load order
@@ -197,13 +200,15 @@ Notes:
 - Arithmetic here uses Tierra's `math` execute fn (`gb0/opcode.map`), semantically identical
   to the `add`/subtract-form family in §4.
 
-### 3.4 Set `extended64` (OPTIONAL) — deltas from classic
+### 3.4 Set `extended64` (reference-only — NOT PLANNED) — deltas from classic
+> Documented for completeness; **no engine work targets this**. See §3.2.
+
 Source of truth: `reference/tierra-v6.02/tierra/opcode.map` (64 entries, 6-bit). Adds, over
 classic32: more subtract forms (`subBAC/subCAB/subCBA/subCCD`), `add mul div` and logic
 (`and ior xor notl`), `pushE/F popE/F`, `stup/stdn`, `movdi4`/`movid4` (direct copy modes),
 `offAACD/offBBCD`, `rand`, `ttime`, register toggles (`togdr/togsr`), threads
-(`split/join/csync/halt/slicexit`), and network (`surf/getipp` — **[OPTIONAL]**, off unless a
-scenario is networked). Full per-op detail in §4; membership/opcode order in `opcode.map`.
+(`split/join/csync/halt/slicexit`), and network (`surf/getipp`, off unless networked). Full
+per-op detail in §4 (rows marked `E`); membership/opcode order in `opcode.map`.
 **None of these are required for the core evolutionary phenomena.**
 
 ---
@@ -471,12 +476,10 @@ gate, flaw/copy/cosmic mutation, integer determinism) are preserved exactly.
 ## 11. Open items (for review)
 
 1. **Stack fault vs silent wrap** (§2.1) — confirm we want `E` on over/underflow.
-2. **`classic32` as canonical core** (§3.2) — confirm this refinement of `SPEC.md` §17.2
-   (core = complete classic 32; extended 64 optional), vs. treating 64 as the core.
+2. ~~`classic32` as canonical core~~ — **DECIDED**: classic32 is *the* ISA; extended64 is
+   reference-only and not planned (§3.2).
 3. **Provisional GeneScript names** (§3.3) — seeded here; finalized in the GeneScript spec (M2).
-4. **`subAAC`/`adro` in the core** — they're in classic32 but not extended64; if we later
-   want classic⊂extended, we'd add them to extended. Decide when specifying extended64.
-5. **`ifz` semantics** — classic "skip next unless C==0"; confirm we keep skip-one (not
+4. **`ifz` semantics** — classic "skip next unless C==0"; confirm we keep skip-one (not
    skip-to-label).
 
 ---

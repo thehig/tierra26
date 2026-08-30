@@ -160,17 +160,20 @@ Ref: [`01-cpu-model.md`](../original-tierra/01-cpu-model.md).
   memory-layout incidentals. Multi-CPU-per-cell and shadow registers are **[OPTIONAL]**
   (default Tierra builds ship single-CPU, `PLOIDY=1`, `SHADOW` off).
 
-### 9.2 Instruction set — [CORE], scope is a decision
-Ref: [`02-instruction-set.md`](../original-tierra/02-instruction-set.md).
-- Original: **122-mnemonic** master dictionary; **default runtime set = 64**; **minimal
-  set = 32** (`gb0..gb3`). The runtime set is a curated subset fitting in 5–6 bits.
-- **Decided (§17):** implement the **~64-op default set** as the authentic core
-  (formidable, room for rich evolution), and expose a **32-op "beginner set"** (Tierra's
-  `gb0` minimal set) that early tutorials/scenarios can restrict to. A scenario declares
-  which set is enabled; the friendly language (§10) targets whichever set is active.
-- Instruction families to implement: nop/template, arithmetic, bitwise, stack,
-  register-move, address-find, jump/flow, conditional, register-flag toggles, reproduction
-  (`mal`/`divide`), sync. I/O, ploidy-track, shadow, and network families are **[OPTIONAL]**.
+### 9.2 Instruction set — [CORE]
+Ref: [`02-instruction-set.md`](../original-tierra/02-instruction-set.md);
+full detail in [`engine/ISA-VM-SPEC.md`](engine/ISA-VM-SPEC.md).
+- Original: **122-mnemonic** master dictionary; **default runtime set = 64**; **classic
+  set = 32** (`gb0`). The 32 and 64 maps are *sibling* curated sets (the 64 is a later
+  network build), **not nested**.
+- **Decided (§17):** implement the **classic 32-op set** (`gb0`) as *the* ISA — canonical,
+  complete, and the ISA of the famous ancestor. The 64-op set is **reference-only, not
+  planned**. A scenario enables a **subset** of the 32 (tutorials unlock instructions
+  gradually); the friendly language (§10) targets whatever subset is active.
+- Families in the classic set: nop/template, arithmetic (`inc/dec/sub`), bitwise
+  (`not0/shl`), stack (`push/pop`), register-move (`movBA/movDC/movii`), address-find
+  (`adro/adrb/adrf`), jump/flow (`jmpo/jmpb/call/ret`), conditional (`ifz`), reproduction
+  (`mal/divide`). Toggles, threads, I/O, ploidy, shadow, network are **not in the core**.
 
 ### 9.3 Template addressing — [CORE]
 Ref: `02-instruction-set.md` §template.
@@ -354,9 +357,13 @@ against [`docs/original-tierra/`](../original-tierra/00-README.md), not against 
    energy, reaper, the 0.7 divide gate, the variation operators); freely modernize
    implementation-only details (allocator internals, PRNG choice, memory layout). The §9
    **CORE / MODERNIZE / OPTIONAL** tags stand as drafted.
-2. **Instruction-set scope — 64-op core + 32-op beginner mode.** Implement Tierra's
-   authentic ~64-op default runtime set as the real engine; expose a curated 32-op subset
-   (Tierra's `gb0` minimal set) that early tutorials/scenarios can restrict to. (§9.2)
+2. **Instruction-set scope — the classic 32-op set is *the* ISA.** Implement Tierra's
+   classic **32-op set** (`gb0` = Ray's 1990 canonical ISA, used by the famous ancestor).
+   It is complete and produces all the classic phenomena. The 64-op "extended" network
+   build is **reference-only, not planned** (refined from the earlier "64 core + 32
+   beginner" after finding the 32 is canonical-and-complete, and per user: "64 will
+   probably never happen"). Tutorials progressively unlock **subsets of the 32** via the
+   named-set/mask mechanism. (§9.2, and `engine/ISA-VM-SPEC.md` §3.)
 3. **Engine language — TypeScript first, swappable.** Prototype the core in TS, run it in a
    Web Worker, keep the module boundary clean enough that a Rust→WASM swap is possible if
    performance demands, and so the same module can run server-side for future online Versus.
