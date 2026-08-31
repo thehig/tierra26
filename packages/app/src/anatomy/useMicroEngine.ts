@@ -10,7 +10,13 @@ import { entry } from '@tierra26/genescript/vocab.ts';
 import { opcodeEmoji } from './opcodeEmoji.ts';
 import type { KeywordCategory } from '../design/palette.ts';
 
-export interface GenomeBlock { index: number; addr: number; text: string; emoji: string; category: KeywordCategory | 'value'; isLabel: boolean; isIp: boolean }
+export interface GenomeBlock {
+  index: number; addr: number; text: string; emoji: string;
+  category: KeywordCategory | 'value'; isLabel: boolean; isIp: boolean;
+  span: number;          // how many cells/bytes this instruction occupies
+  target: string;        // the label an addressing op points at (payload), '' otherwise
+  payload: string[];     // emoji per payload byte (the jump/find target template) — the extra cells
+}
 
 // The opcode emoji for a block: its GeneScript verb, or the mark for a label's template byte.
 function blockGene(verb: string | null, mnemonic: string | null): string | null {
@@ -83,37 +89,40 @@ export function useMicroEngine(source: string, soupSize = 256) {
     const e = engineRef.current;
     if (!e) return empty(soupSize, compiled.error);
     const c = e.world.creatures.get(idRef.current);
-    // Per-byte gene from the disassembly: a byte shows the emoji of the INSTRUCTION it belongs to, so
-    // a 2-byte op (jump/find + its template) reads as the same emoji twice — one instruction, two
-    // cells — instead of a mystery template mark that has no genome-block counterpart.
-    const lineGene = disasm.lines.map((_, li) => {
-      const f = disasm.annotations.find((an) => an.lineIndex === li);
-      return blockGene(f?.verb ?? null, f?.mnemonic ?? null);
-    });
-    const byteGene: (string | null)[] = disasm.annotations.map((an) => lineGene[an.lineIndex] ?? null);
-
+    // Each cell shows the emoji of its actual byte — so a jump/find's target template shows the red
+    // 🔴/🔵 "payload" mark, distinct from the ⏪/🔎 opcode cell. Genome + world both read byte-by-byte.
     const world: CellOwner[] = new Array(soupSize).fill(0);
     const worldGene: (string | null)[] = new Array(soupSize).fill(null);
     for (const cr of e.world.creatures.values()) {
-      const owner: CellOwner = cr.id === idRef.current ? 1 : 3; // every micro creature shares one genome (no mutation)
-      for (let i = 0; i < cr.size; i++) { const a = e.world.soup.ad(cr.start + i); if (a < soupSize) { world[a] = owner; worldGene[a] = byteGene[i] ?? geneOf(e.world.soup.read(cr.start + i)); } }
-      if (cr.dauStart >= 0) for (let j = 0; j < cr.dauSize; j++) {
-        const a = e.world.soup.ad(cr.dauStart + j);
-        if (a < soupSize && world[a] === 0) {
-          world[a] = 2;
-          const written = cr.dauWriteMask ? cr.dauWriteMask[j] : 0; // unwritten daughter cells stay blank (mark-0)
-          worldGene[a] = written ? (byteGene[j] ?? geneOf(e.world.soup.read(cr.dauStart + j))) : geneOf(e.world.soup.read(cr.dauStart + j));
-        }
-      }
+      const owner: CellOwner = cr.id === idRef.current ? 1 : 3;
+      for (let i = 0; i < cr.size; i++) { const a = e.world.soup.ad(cr.start + i); if (a < soupSize) { world[a] = owner; worldGene[a] = geneOf(e.world.soup.read(cr.start + i)); } }
+      if (cr.dauStart >= 0) for (let j = 0; j < cr.dauSize; j++) { const a = e.world.soup.ad(cr.dauStart + j); if (a < soupSize && world[a] === 0) { world[a] = 2; worldGene[a] = geneOf(e.world.soup.read(cr.dauStart + j)); } }
     }
     let ipLine = -1;
     if (c) { const rel = ((c.cpu.ip - c.start) % soupSize + soupSize) % soupSize; const a = disasm.annotations[rel]; if (a) ipLine = a.lineIndex; }
+    // Group the dense byte annotations by the line they belong to (for span + payload bytes).
+    const annsByLine: (typeof disasm.annotations)[] = [];
+    for (const an of disasm.annotations) (annsByLine[an.lineIndex] ??= []).push(an);
     const blocks: GenomeBlock[] = disasm.lines.map((ln, i) => {
-      const first = disasm.annotations.find((an) => an.lineIndex === i);
+      const anns = annsByLine[i] ?? [];
+      const first = anns[0];
       const isLabel = ln.kind === 'label';
+      // An addressing op (jump/find/call) is a verb byte followed by its target-template byte(s) — the
+      // "payload". Those extra bytes become extra cells/rows; split the target off the main text so the
+      // verb row shows the command and each payload row shows a 🔴/🔵 with the target it points at.
+      const payloadAnns = first?.role === 'verb' ? anns.slice(1).filter((a) => a.role === 'template') : [];
+      const payload = payloadAnns.map((a) => opcodeEmoji(blockGene(a.verb ?? null, a.mnemonic ?? null)));
+      const full = ln.text.trim();
+      const toks = full.split(/\s+/);
+      const hasTarget = payload.length > 0 && toks.length > 1;
       // The creature is injected at soup address 0, so a block's byte offset IS its address — the
       // number `find-back`/`jump` report and land on. That's what the gutter shows.
-      return { index: i, addr: first?.byteIndex ?? -1, text: ln.text.trim(), emoji: opcodeEmoji(blockGene(first?.verb ?? null, first?.mnemonic ?? null)), category: lineCategory(first?.verb ?? null, first?.mnemonic ?? null, first?.role ?? '', isLabel), isLabel, isIp: i === ipLine };
+      return {
+        index: i, addr: first?.byteIndex ?? -1, span: Math.max(1, anns.length),
+        text: hasTarget ? toks[0]! : full, target: hasTarget ? toks.slice(1).join(' ') : '', payload,
+        emoji: opcodeEmoji(blockGene(first?.verb ?? null, first?.mnemonic ?? null)),
+        category: lineCategory(first?.verb ?? null, first?.mnemonic ?? null, first?.role ?? '', isLabel), isLabel, isIp: i === ipLine,
+      };
     });
     return {
       blocks,

@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { categoryVar } from '../design/palette.ts';
 import { opcodeEmoji } from './opcodeEmoji.ts';
-import type { EntityState } from './useMicroEngine.ts';
+import type { EntityState, GenomeBlock } from './useMicroEngine.ts';
 
 export type Focus = 'whole' | 'world' | 'genome' | 'registers' | 'ip' | 'flags' | 'age' | 'daughter' | 'run';
 
@@ -28,9 +28,17 @@ export function EntityDiagram({
   const changed = { A: state.regs.A !== prevRegs.current.A, B: state.regs.B !== prevRegs.current.B, C: state.regs.C !== prevRegs.current.C, D: state.regs.D !== prevRegs.current.D };
   prevRegs.current = state.regs;
 
-  // Block ↔ cell bridge: hovering a genome block rings its world cell, and vice-versa. Because the
-  // creature sits at soup address 0, a block's address IS its world-cell index — they share a number.
-  const [hovered, setHovered] = useState<number | null>(null);
+  // Block ↔ cell bridge: hovering a genome block rings ALL the world cells it occupies, and hovering
+  // any of those cells rings the block — as a byte RANGE, so a 2-byte op (opcode + payload) links
+  // both cells to its rows. The creature sits at soup address 0, so cell index == byte address.
+  const [hovered, setHovered] = useState<{ start: number; end: number } | null>(null);
+  const rangeOfCell = (i: number) => {
+    const b = state.blocks.find((bl) => i >= bl.addr && i < bl.addr + bl.span);
+    return b ? { start: b.addr, end: b.addr + b.span } : { start: i, end: i + 1 };
+  };
+  const cellLit = (i: number) => hovered != null && i >= hovered.start && i < hovered.end;
+  const blockLit = (b: GenomeBlock) => hovered != null && hovered.start === b.addr;
+  const clearHover = () => setHovered(null);
   // Hovering the world raises a magnifier loupe: solid colours stay in the grid, but the cells under
   // the cursor are shown big, with each cell's opcode emoji inside its ownership-coloured border.
   const [loupe, setLoupe] = useState<{ cell: number; x: number; y: number } | null>(null);
@@ -66,10 +74,10 @@ export function EntityDiagram({
       <div className={`entity-world ${spot('world')}`} data-part="world">
         <div className="part-label">{small ? 'its world' : 'its world · hover to inspect 🔍'}</div>
         <div className={`world-grid ${small ? 'emoji' : ''}`} style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
-          onMouseLeave={() => { setHovered(null); setLoupe(null); }}>
+          onMouseLeave={() => { clearHover(); setLoupe(null); }}>
           {state.world.map((o, i) => (
-            <span key={i} className={`wcell ${OWNER_CLASS[o]} ${i === hovered ? 'link' : ''}`}
-              onMouseMove={(e) => { setHovered(i); if (!small) setLoupe({ cell: i, x: e.clientX, y: e.clientY }); }}>
+            <span key={i} className={`wcell ${OWNER_CLASS[o]} ${cellLit(i) ? 'link' : ''}`}
+              onMouseMove={(e) => { setHovered(rangeOfCell(i)); if (!small) setLoupe({ cell: i, x: e.clientX, y: e.clientY }); }}>
               {small ? opcodeEmoji(state.worldGene[i]) : null}
             </span>
           ))}
@@ -80,18 +88,34 @@ export function EntityDiagram({
       <div className={`entity-genome ${spot('genome')}`} data-part="genome">
         <div className="part-label">its genome — numbered instruction blocks</div>
         <div className="genome-blocks" ref={genomeRef}>
-          {state.blocks.map((b) => (
-            <div key={b.index} className="gline" ref={b.isIp ? ipRef : undefined}
-              onMouseEnter={() => b.addr >= 0 && setHovered(b.addr)} onMouseLeave={() => setHovered(null)}>
-              <span className="gaddr" title="this block's position in the code">{b.addr >= 0 ? b.addr : ''}</span>
-              <div className={`gblock ${b.isLabel ? 'is-label' : ''} ${b.isIp ? 'is-ip' : ''} ${b.addr === hovered ? 'link' : ''}`}
-                style={{ borderColor: categoryVar(b.category), color: categoryVar(b.category) }}>
-                <span className="gblock-head" aria-label={b.isIp ? 'reading head' : undefined}>{b.isIp ? '▶' : ''}</span>
-                <span className="gblock-emoji" aria-hidden="true">{b.emoji}</span>
-                <span className="gblock-text">{b.text}</span>
+          {state.blocks.map((b) => {
+            const lit = blockLit(b);
+            const setB = () => setHovered({ start: b.addr, end: b.addr + b.span });
+            const expand = small && b.payload.length > 0; // tutorial worlds split a 2-byte op into rows
+            const col = { borderColor: categoryVar(b.category), color: categoryVar(b.category) };
+            return (
+              <div key={b.index} className="gblockgroup">
+                <div className="gline" ref={b.isIp ? ipRef : undefined} onMouseEnter={setB} onMouseLeave={clearHover}>
+                  <span className="gaddr" title="this block's position in the code">{b.addr >= 0 ? b.addr : ''}</span>
+                  <div className={`gblock ${b.isLabel ? 'is-label' : ''} ${b.isIp ? 'is-ip' : ''} ${lit ? 'link' : ''}`} style={col}>
+                    <span className="gblock-head" aria-label={b.isIp ? 'reading head' : undefined}>{b.isIp ? '▶' : ''}</span>
+                    <span className="gblock-emoji" aria-hidden="true">{b.emoji}</span>
+                    <span className="gblock-text">{b.text}{!expand && b.target ? ' ' + b.target : ''}</span>
+                  </div>
+                </div>
+                {expand && b.payload.map((pe, k) => (
+                  <div className="gline" key={k} onMouseEnter={setB} onMouseLeave={clearHover}>
+                    <span className="gaddr">{b.addr + 1 + k}</span>
+                    <div className={`gblock is-payload ${lit ? 'link' : ''}`} style={col}>
+                      <span className="gblock-head gpay-arrow">↳</span>
+                      <span className="gblock-emoji" aria-hidden="true">{pe}</span>
+                      <span className="gblock-text gpay-text">{k === 0 ? `points at ${b.target}` : ''}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

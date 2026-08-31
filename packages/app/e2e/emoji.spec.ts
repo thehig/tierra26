@@ -41,13 +41,31 @@ test.describe('opcode emoji', () => {
     expect(overflow).toBeLessThanOrEqual(1);
   });
 
-  test('a multi-byte instruction fills every cell it occupies with its OWN emoji (no stray template mark)', async ({ page }) => {
-    await page.goto('/learn/loops'); // `jump-back top` is 2 bytes (opcode + template)
+  test('a 2-byte op shows a verb row + a payload row (its target), matching its two cells', async ({ page }) => {
+    await page.goto('/learn/loops'); // `jump-back top` is 2 bytes (opcode + target template)
     const ent = page.locator('.entity').first();
-    const jbEmoji = (await ent.locator('.gline', { hasText: 'jump-back' }).locator('.gblock-emoji').textContent())?.trim();
-    expect(jbEmoji && jbEmoji.length).toBeTruthy();
-    const worldEmojis = await ent.locator('.world-grid .wcell').evaluateAll((cs) => cs.map((c) => c.textContent));
-    expect(worldEmojis.filter((e) => e === jbEmoji).length).toBe(2); // both of jump-back's cells, not a lone mark
+    // the genome splits it: a jump-back row and a subordinate payload row naming its target
+    await expect(ent.locator('.gblock', { hasText: 'jump-back' })).toBeVisible();
+    await expect(ent.locator('.gblock.is-payload')).toBeVisible();
+    await expect(ent.locator('.gblock.is-payload .gpay-text')).toContainText(/points at/);
+  });
+
+  test('the block↔cell link spans a 2-byte op: hovering either cell lights both cells and both rows', async ({ page }) => {
+    await page.goto('/learn/loops');
+    const ent = page.locator('.entity').first();
+    // world cells: 0 mark, 1 grow-a, 2 jump-back opcode, 3 its payload, 4 clear
+    await ent.locator('.world-grid .wcell').nth(3).hover(); // the payload cell
+    await expect(ent.locator('.wcell.link')).toHaveCount(2);   // both of jump-back's cells
+    await expect(ent.locator('.gblock.link')).toHaveCount(2);  // verb row + payload row
+  });
+
+  test('the block↔cell link works both ways for a 1-byte op', async ({ page }) => {
+    await page.goto('/learn/count-up');
+    const ent = page.locator('.entity').first();
+    await ent.locator('.wcell.mother').first().hover();
+    await expect(ent.locator('.gblock.link')).toHaveCount(1);
+    await ent.locator('.gline').first().hover();
+    await expect(ent.locator('.wcell.link')).toHaveCount(1);
   });
 
   test('naming a block in explainer text renders an opcode chip (emoji + name)', async ({ page }) => {

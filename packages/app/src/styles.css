@@ -382,7 +382,7 @@ svg.spark { display: block; width: 100%; height: 54px; }
 .part-label { font-size: .66rem; text-transform: uppercase; letter-spacing: .09em; color: var(--faint); font-weight: 600; margin-bottom: 6px; }
 
 /* a scroll waypoint HIGHLIGHTS one part with a ring — it never dims/greys the others */
-.spot { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 50%, transparent); border-radius: 12px; transition: box-shadow .3s ease; }
+.spot { outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent); outline-offset: 6px; border-radius: 12px; transition: outline-color .3s ease; }
 
 /* the magnified world: one cell per soup byte, coloured by who owns it */
 .world-grid { display: grid; gap: 2px; width: 100%; max-width: 210px; margin: 0 auto; padding: 6px; border-radius: 12px;
@@ -391,8 +391,10 @@ svg.spark { display: block; width: 100%; height: 54px; }
 .wcell.mother { background: var(--accent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 50%, transparent); }
 .wcell.daughter { background: color-mix(in srgb, var(--accent) 38%, var(--surface)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent); }
 .wcell.baby { background: #8b7cf0; box-shadow: 0 0 0 1px color-mix(in srgb, #8b7cf0 55%, transparent); }
-.world-grid { cursor: zoom-in; }
-.wcell { cursor: zoom-in; }
+/* the magnifier cursor only where the magnifier actually appears (the big world); small emoji worlds
+   are already legible, so a plain cursor */
+.world-grid:not(.emoji), .world-grid:not(.emoji) .wcell { cursor: zoom-in; }
+.world-grid.emoji, .world-grid.emoji .wcell { cursor: default; }
 /* the world magnifier — a floating loupe of the cells under the cursor, opcodes as emoji */
 .wloupe { position: fixed; z-index: 60; pointer-events: none; padding: 8px; border-radius: 12px;
   background: var(--surface); border: 1px solid var(--line); box-shadow: 0 12px 34px -10px rgba(0,0,0,.4); }
@@ -434,6 +436,12 @@ svg.spark { display: block; width: 100%; height: 54px; }
 @keyframes rh-pulse { 0%,100% { opacity: .5; } 50% { opacity: 1; } }
 .gblock-emoji { flex: 0 0 1.3em; text-align: center; }
 .gblock-text { color: var(--ink); min-width: 0; word-break: break-word; }
+/* a block and its payload rows travel together; payload rows sit closer to their parent */
+.gblockgroup { display: flex; flex-direction: column; gap: 3px; }
+/* the payload row (a jump/find target) — subordinate: dashed, muted, a ↳ connector to its instruction */
+.gblock.is-payload { padding: 4px 12px; border-style: dashed; background: transparent; }
+.gpay-arrow { color: color-mix(in srgb, currentColor 65%, transparent); }
+.gblock-text.gpay-text { color: var(--ink-2); font-style: italic; font-weight: 400; font-size: .84rem; }
 
 /* small tutorial world: every cell shows its opcode emoji at a glance. Ownership outlines are off for
    now — occupied cells are crisp/solid, free cells are faint, and the daughter keeps a whisper of
