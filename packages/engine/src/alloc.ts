@@ -23,6 +23,13 @@ export class IntervalAllocator {
     return -1;
   }
 
+  /** True if [start, start+size) fits in the soup and overlaps no occupied interval. */
+  canPlaceAt(start: Addr, size: number): boolean {
+    if (size <= 0 || start < 0 || start + size > this.soupSize) return false;
+    for (const a of this.ivs) { if (start < a.start + a.size && a.start < start + size) return false; }
+    return true;
+  }
+
   reserve(start: Addr, size: number): void {
     let i = 0; while (i < this.ivs.length && this.ivs[i]!.start < start) i++;
     this.ivs.splice(i, 0, { start, size });

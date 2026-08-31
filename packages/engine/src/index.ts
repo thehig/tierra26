@@ -7,7 +7,7 @@ import { digest as statsDigest, live as statsLive, type RunDigest, type LiveStat
 import type { InstructionSet } from './runtime.ts';
 import type { CreatureId } from './types.ts';
 
-export interface Injection { atCycle: number; genome: Uint8Array; founderId?: number }
+export interface Injection { atCycle: number; genome: Uint8Array; founderId?: number; at?: number }
 export interface RunDescriptor { engineVersion: string; scenario: Scenario; injections: Injection[]; cycles: number }
 export interface Snapshot { engineVersion: string; scenario: Scenario; world: WorldSnapshot }
 
@@ -67,6 +67,8 @@ function toWorldConfig(s: Scenario): WorldConfig {
     minCellSize: s.limits.minCellSize,
     maxCellSize: s.limits.maxCellSize,
     searchLimitMult: s.limits.searchLimitMult,
+    // The divide gate as an integer per-1000 (fate-path integer math; API-SCEN-INTEGER).
+    movThrScaled: Math.round(s.limits.movPropThrDiv * 1000),
     sizeDependent: s.slicer.sizeDependent,
     slicePow: s.slicer.slicePow,
     sliceSize: s.slicer.sliceSize,
@@ -102,7 +104,7 @@ export class Engine {
     const e = new Engine(desc.scenario);
     for (const inj of [...desc.injections].sort((a, b) => a.atCycle - b.atCycle)) {
       if (inj.atCycle > e.cycles) e.run(inj.atCycle - e.cycles);
-      e.inject(inj.genome, { founderId: inj.founderId ?? 0 });
+      e.inject(inj.genome, { founderId: inj.founderId ?? 0, at: inj.at });
     }
     if (desc.cycles > e.cycles) e.run(desc.cycles - e.cycles);
     return e;
@@ -110,8 +112,8 @@ export class Engine {
 
   digest(atCycle: number): RunDigest { return statsDigest(this.world, atCycle); }
 
-  inject(genome: Uint8Array, opts?: { founderId?: number }): CreatureId {
-    return this.world.spawn(genome, opts?.founderId ?? 0);
+  inject(genome: Uint8Array, opts?: { founderId?: number; at?: number }): CreatureId {
+    return this.world.spawn(genome, opts?.founderId ?? 0, opts?.at);
   }
   step(): void { this.world.step(); }
   run(nInstructions: number): void { this.world.run(nInstructions); }

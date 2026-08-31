@@ -10,7 +10,12 @@ export interface LiveStats {
 }
 export interface HistBin { key: number; label: string; count: number }
 export interface Histograms { size: HistBin[]; genotype: HistBin[]; memory: HistBin[] }
-export interface FounderCensus { counts: Uint32Array; total: number }
+export interface FounderCensus {
+  counts: Uint32Array;   // per-founder LIVE population (index 0 = neutral)
+  total: number;         // Σ counts (== live population)
+  births: Uint32Array;   // per-founder CUMULATIVE births (Versus total-births tiebreaker)
+  avgSize: Uint32Array;  // per-founder integer avg genome size of live creatures (smaller-avg-size tiebreaker)
+}
 export interface TankView {
   width: number; height: number; bucketBytes: number;
   cells: Uint8Array; genotypeOf: Uint32Array; ips: Uint32Array;
@@ -66,7 +71,10 @@ export function observe(w: World, topK: number, tank: TankView): ObservationFram
   const S = w.config().soupSize;
   // per-address ownership index (O(S) per frame; frames are occasional, not per-instruction)
   const cls = new Uint8Array(S), geno = new Int32Array(S), ip = new Uint8Array(S), fnd = new Int32Array(S);
+  const nF = w.founders.length;
+  const fSizeSum = new Float64Array(nF), fSizeCnt = new Uint32Array(nF); // per-founder avg-size accumulators
   for (const c of w.creatures.values()) {
+    if (c.founderId >= 0 && c.founderId < nF) { fSizeSum[c.founderId]! += c.size; fSizeCnt[c.founderId]!++; }
     for (let i = 0; i < c.size; i++) { const a = w.soup.ad(c.start + i); cls[a] = 1; geno[a] = c.genotypeId; fnd[a] = c.founderId; }
     if (c.dauStart >= 0) for (let i = 0; i < c.dauSize; i++) { const a = w.soup.ad(c.dauStart + i); if (cls[a] === 0) { cls[a] = 2; geno[a] = c.genotypeId; fnd[a] = c.founderId; } }
     ip[w.soup.ad(c.cpu.ip)] = 1;
@@ -83,7 +91,12 @@ export function observe(w: World, topK: number, tank: TankView): ObservationFram
     tank.cells[g] = klass; tank.genotypeOf[g] = gid; tank.ips[g] = spark; tank.founderOf[g] = fid;
   }
   const counts = Uint32Array.from(w.founders);
-  const founders: FounderCensus = { counts, total: counts.reduce((s, x) => s + x, 0) };
+  const avgSize = new Uint32Array(nF);
+  for (let i = 0; i < nF; i++) avgSize[i] = fSizeCnt[i]! > 0 ? Math.floor(fSizeSum[i]! / fSizeCnt[i]!) : 0;
+  const founders: FounderCensus = {
+    counts, total: counts.reduce((s, x) => s + x, 0),
+    births: Uint32Array.from(w.founderBirths), avgSize,
+  };
   const h = histograms(w);
   const topGenotypes = [...h.genotype].sort((a, b) => b.count - a.count || a.key - b.key).slice(0, topK);
   const frame: ObservationFrame = { cycles: w.cycles, stats: live(w), topGenotypes, sizeHist: h.size, tank, founders };

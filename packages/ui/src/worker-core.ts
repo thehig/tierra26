@@ -125,7 +125,7 @@ export function createWorkerCore(): WorkerCore {
     const e = new Engine(scenario);
     for (const inj of [...injections].sort((a, b) => a.atCycle - b.atCycle)) {
       if (inj.atCycle > e.cycles) e.run(inj.atCycle - e.cycles);
-      e.inject(inj.genome, { founderId: inj.founderId ?? 0 });
+      e.inject(inj.genome, { founderId: inj.founderId ?? 0, at: inj.at });
     }
     return e;
   }
@@ -257,7 +257,7 @@ export function createWorkerCore(): WorkerCore {
           return [ackEvent(sessionId, 'disposeSession', cid)];
         }
         case 'init': {
-          const injs = (cmd.injections ?? []).map((i) => ({ atCycle: i.atCycle, genome: Uint8Array.from(i.genome), founderId: i.founderId }));
+          const injs = (cmd.injections ?? []).map((i) => ({ atCycle: i.atCycle, genome: Uint8Array.from(i.genome), founderId: i.founderId, at: i.at }));
           const engine = buildEngine(cmd.scenario, injs);   // invalid scenario throws → ENGINE_ERROR
           s.scenario = cmd.scenario;
           s.injections = injs;

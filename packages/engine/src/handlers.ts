@@ -59,6 +59,7 @@ export const HANDLERS: Record<string, H> = {
   mal(w, c) {
     const size = w.decoded.sval; // C
     if (size < w.minCellSize || size > w.maxCellSize) { w.raiseE(c); return; }
+    if (size > 3 * c.size) { w.raiseE(c); return; } // MaxMalMult: daughter ≤ 3× mother (ALLOC §4.3)
     if (c.dauStart >= 0) { w.allocFree(c.dauStart, c.dauSize); c.clearDaughter(); }
     const addr = w.allocFindRoom(size, c);
     if (addr < 0) { w.raiseE(c); return; }
@@ -67,7 +68,7 @@ export const HANDLERS: Record<string, H> = {
   },
 
   divide(w, c) {
-    if (c.dauStart < 0 || c.dauWritten * 10 < c.dauSize * 7) { w.raiseE(c); return; } // 0.7 gate (integer)
+    if (c.dauStart < 0 || c.dauWritten * 1000 < c.dauSize * w.movThrScaled) { w.raiseE(c); return; } // divide gate (integer, per-1000)
     w.birthDaughter(c);
   },
 };

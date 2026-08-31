@@ -20,6 +20,24 @@ describe('M0 acceptance — ancestor 0080aaa', () => {
     assert.equal(s.genotypes, 1, `breeds true: 1 genotype (got ${s.genotypes})`);
   });
 
+  it('matches the frozen golden oracle: instToFirstDivide + pinned digest (§12)', () => {
+    // The first daughter appears at a FIXED instruction count (M0-TECH-DESIGN oracle) — a
+    // trajectory-shifting engine change moves this, so it's a real guard, not self-comparison.
+    const e = sterile(1);
+    e.inject(ANC, { founderId: 1 });
+    let first = -1;
+    while (first < 0 && e.cycles < 5000) { e.step(); if (e.stats().births >= 2) first = e.cycles; }
+    assert.equal(first, 827, 'first divide at the declared oracle cycle');
+
+    // A pinned digest at a fixed cycle — the frozen golden the §12 spec asks for.
+    const g = sterile(1);
+    g.inject(ANC, { founderId: 1 });
+    g.run(500_000);
+    assert.deepEqual(g.digest(500_000), {
+      atCycle: 500_000, population: 342, genotypes: 1, births: 432, deaths: 90, soupChecksum: 3886968519,
+    });
+  });
+
   it('the first daughter is byte-identical (mov_daught=80, breed_true)', () => {
     const e = sterile(7);
     e.inject(ANC, { founderId: 1 });

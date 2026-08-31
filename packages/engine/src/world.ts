@@ -21,6 +21,7 @@ export interface WorldConfig {
   minCellSize: number;
   maxCellSize: number;
   searchLimitMult: number;
+  movThrScaled?: number; // divide gate per-1000 (default 700); wired from Scenario.limits.movPropThrDiv
   sizeDependent: boolean;
   slicePow: number;
   sliceSize: number;
@@ -41,6 +42,7 @@ export interface WorldSnapshot {
   rngState: Uint32Array; soup: Uint8Array;
   mutationState: import('./mutation.ts').MutationState;
   founders: Uint32Array;
+  founderBirths?: Uint32Array; // optional (older snapshots omit it)
   genebank: import('./genebank.ts').GenotypeInfo[];
   allocs: Interval[]; slicerQ: CreatureId[]; reaperQ: CreatureId[]; creatures: CreatureSnapshot[];
 }
@@ -59,7 +61,7 @@ export class World implements IWorld {
   activeSet: InstructionSet;
 
   minCellSize: number; maxCellSize: number;
-  movPropThrDivScaled = 7; // 0.7 as num/10
+  movThrScaled = 700; // the divide gate as per-1000 (0.7); wired from Scenario.limits.movPropThrDiv
   searchLimit = 1;
 
   creatures = new Map<CreatureId, Creature>();
@@ -72,7 +74,8 @@ export class World implements IWorld {
   genebank = new Genebank();
   generations = 0;
   private genAccum = 0;
-  founders = new Uint32Array(MAX_FOUNDERS); // per-founder live census (S1); index 0 = neutral
+  founders = new Uint32Array(MAX_FOUNDERS);      // per-founder LIVE census (S1); index 0 = neutral
+  founderBirths = new Uint32Array(MAX_FOUNDERS); // per-founder CUMULATIVE births (Versus tiebreaker)
   mutation: Mutation;
 
   private cfg: WorldConfig;
@@ -86,6 +89,7 @@ export class World implements IWorld {
     this.mutation = new Mutation(this.rng, cfg.rates, cfg.activeSet);
     this.minCellSize = cfg.minCellSize;
     this.maxCellSize = cfg.maxCellSize;
+    this.movThrScaled = cfg.movThrScaled ?? 700;
     this.recomputeSearchLimit();
   }
 
@@ -154,8 +158,10 @@ export class World implements IWorld {
   }
 
   // ---- lifecycle ----
-  spawn(genome: Uint8Array, founderId = 0): CreatureId {
-    const start = this.findFree(genome.length);
+  spawn(genome: Uint8Array, founderId = 0, at?: number): CreatureId {
+    // Honor an explicit placement address when the block is free (Versus symmetric placement);
+    // otherwise fall back to first-fit. Determinism is unaffected — placement is a fate input.
+    const start = (at !== undefined && this.alloc.canPlaceAt(at, genome.length)) ? at : this.findFree(genome.length);
     if (start < 0) return -1;
     for (let i = 0; i < genome.length; i++) this.soup.write(start + i, genome[i]!);
     this.occupy(start, genome.length);
@@ -174,7 +180,7 @@ export class World implements IWorld {
     const g = this.genebank.register(this.sampleBytes(start, size), this.cycles, parentGenotypeId);
     c.genotypeId = g.id;
     this.creatures.set(id, c);
-    if (founderId >= 0 && founderId < MAX_FOUNDERS) this.founders[founderId]!++;
+    if (founderId >= 0 && founderId < MAX_FOUNDERS) { this.founders[founderId]!++; this.founderBirths[founderId]!++; }
     this.enqueueSlicer(id);
     this.enqueueReaper(id);
     this.births++;
@@ -319,7 +325,7 @@ export class World implements IWorld {
       cycles: this.cycles, nextId: this.nextId, births: this.births, deaths: this.deaths,
       generations: this.generations, genAccum: this.genAccum, avgSizeVal: this.avgSizeVal, cursor: this.cursor,
       rngState: this.rng.state(), soup: Uint8Array.from(this.soup.bytes),
-      mutationState: this.mutation.state(), founders: Uint32Array.from(this.founders),
+      mutationState: this.mutation.state(), founders: Uint32Array.from(this.founders), founderBirths: Uint32Array.from(this.founderBirths),
       genebank: this.genebank.toRecords(), allocs: this.alloc.raw().map((a) => ({ ...a })),
       slicerQ: this.slicerQ.slice(), reaperQ: this.reaperQ.slice(), creatures,
     };
@@ -331,6 +337,7 @@ export class World implements IWorld {
     w.generations = s.generations; w.genAccum = s.genAccum; w.avgSizeVal = s.avgSizeVal; w.cursor = s.cursor;
     w.rng.setState(s.rngState); w.soup.bytes.set(s.soup);
     w.mutation.setState(s.mutationState); w.founders = Uint32Array.from(s.founders);
+    if (s.founderBirths) w.founderBirths = Uint32Array.from(s.founderBirths);
     w.genebank = Genebank.fromRecords(s.genebank);
     w.alloc.setRaw(s.allocs);
     w.slicerQ = s.slicerQ.slice(); w.reaperQ = s.reaperQ.slice();
