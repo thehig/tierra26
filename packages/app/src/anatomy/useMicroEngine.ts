@@ -83,12 +83,28 @@ export function useMicroEngine(source: string, soupSize = 256) {
     const e = engineRef.current;
     if (!e) return empty(soupSize, compiled.error);
     const c = e.world.creatures.get(idRef.current);
+    // Per-byte gene from the disassembly: a byte shows the emoji of the INSTRUCTION it belongs to, so
+    // a 2-byte op (jump/find + its template) reads as the same emoji twice — one instruction, two
+    // cells — instead of a mystery template mark that has no genome-block counterpart.
+    const lineGene = disasm.lines.map((_, li) => {
+      const f = disasm.annotations.find((an) => an.lineIndex === li);
+      return blockGene(f?.verb ?? null, f?.mnemonic ?? null);
+    });
+    const byteGene: (string | null)[] = disasm.annotations.map((an) => lineGene[an.lineIndex] ?? null);
+
     const world: CellOwner[] = new Array(soupSize).fill(0);
     const worldGene: (string | null)[] = new Array(soupSize).fill(null);
     for (const cr of e.world.creatures.values()) {
-      const owner: CellOwner = cr.id === idRef.current ? 1 : 3;
-      for (let i = 0; i < cr.size; i++) { const a = e.world.soup.ad(cr.start + i); if (a < soupSize) { world[a] = owner; worldGene[a] = geneOf(e.world.soup.read(cr.start + i)); } }
-      if (cr.dauStart >= 0) for (let i = 0; i < cr.dauSize; i++) { const a = e.world.soup.ad(cr.dauStart + i); if (a < soupSize && world[a] === 0) { world[a] = 2; worldGene[a] = geneOf(e.world.soup.read(cr.dauStart + i)); } }
+      const owner: CellOwner = cr.id === idRef.current ? 1 : 3; // every micro creature shares one genome (no mutation)
+      for (let i = 0; i < cr.size; i++) { const a = e.world.soup.ad(cr.start + i); if (a < soupSize) { world[a] = owner; worldGene[a] = byteGene[i] ?? geneOf(e.world.soup.read(cr.start + i)); } }
+      if (cr.dauStart >= 0) for (let j = 0; j < cr.dauSize; j++) {
+        const a = e.world.soup.ad(cr.dauStart + j);
+        if (a < soupSize && world[a] === 0) {
+          world[a] = 2;
+          const written = cr.dauWriteMask ? cr.dauWriteMask[j] : 0; // unwritten daughter cells stay blank (mark-0)
+          worldGene[a] = written ? (byteGene[j] ?? geneOf(e.world.soup.read(cr.dauStart + j))) : geneOf(e.world.soup.read(cr.dauStart + j));
+        }
+      }
     }
     let ipLine = -1;
     if (c) { const rel = ((c.cpu.ip - c.start) % soupSize + soupSize) % soupSize; const a = disasm.annotations[rel]; if (a) ipLine = a.lineIndex; }

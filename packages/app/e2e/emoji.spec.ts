@@ -41,6 +41,15 @@ test.describe('opcode emoji', () => {
     expect(overflow).toBeLessThanOrEqual(1);
   });
 
+  test('a multi-byte instruction fills every cell it occupies with its OWN emoji (no stray template mark)', async ({ page }) => {
+    await page.goto('/learn/loops'); // `jump-back top` is 2 bytes (opcode + template)
+    const ent = page.locator('.entity').first();
+    const jbEmoji = (await ent.locator('.gline', { hasText: 'jump-back' }).locator('.gblock-emoji').textContent())?.trim();
+    expect(jbEmoji && jbEmoji.length).toBeTruthy();
+    const worldEmojis = await ent.locator('.world-grid .wcell').evaluateAll((cs) => cs.map((c) => c.textContent));
+    expect(worldEmojis.filter((e) => e === jbEmoji).length).toBe(2); // both of jump-back's cells, not a lone mark
+  });
+
   test('naming a block in explainer text renders an opcode chip (emoji + name)', async ({ page }) => {
     await page.goto('/learn/count-up'); // "The block `grow-a` adds one…"
     const chip = page.locator('.op-chip', { hasText: 'grow-a' }).first();
