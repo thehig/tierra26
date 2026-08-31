@@ -5,12 +5,14 @@ import type { PlaygroundConfig, Goal } from '@tierra26/content/types.ts';
 import { Playground } from '../playground/Playground.tsx';
 
 export function LazyPlayground({
-  config, dark, goal, onGoalMet,
+  config, dark, goal, onGoalMet, prompt, editable = true,
 }: {
   config: PlaygroundConfig;
   dark: boolean;
   goal?: Goal;
   onGoalMet?: () => void;
+  prompt?: string;         // wiki "try it" scenarios carry a one-line challenge
+  editable?: boolean;      // lessons + wiki embeds get an inline editor (on by default)
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
   const [show, setShow] = useState(false);
@@ -29,8 +31,9 @@ export function LazyPlayground({
 
   return (
     <div className="lazy-pg" ref={ref}>
+      {prompt && <div className="pg-prompt">{prompt}</div>}
       {show
-        ? <Playground config={config} dark={dark} compact goal={goal} onGoalMet={onGoalMet} />
+        ? <Playground config={config} dark={dark} compact editable={editable} goal={goal} onGoalMet={onGoalMet} />
         : <div className="pg-placeholder">▸ scroll here to load the playground</div>}
     </div>
   );

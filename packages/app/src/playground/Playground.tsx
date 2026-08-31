@@ -20,17 +20,19 @@ function initialSource(cfg: PlaygroundConfig): string {
 }
 
 export function Playground({
-  config, dark, compact = false, goal, onGoalMet,
+  config, dark, compact = false, editable = false, goal, onGoalMet,
 }: {
   config: PlaygroundConfig;
   dark: boolean;
   compact?: boolean;
+  editable?: boolean; // compact embeds: reveal a collapsible editor that injects into THIS soup
   goal?: Goal;
   onGoalMet?: () => void;
 }) {
   const boot = useMemo(() => resolvePlaygroundBoot(config), [config]);
   const session = useSession(boot);
   const [editorSource, setEditorSource] = useState<string>(() => initialSource(config));
+  const [editing, setEditing] = useState(false);
 
   const status = goal ? liveGoalStatus(goal, session.state.frame) : null;
   const firedRef = useRef(false);
@@ -52,6 +54,25 @@ export function Playground({
             <span className="gs-mark">{status.passed ? '✓' : '◦'}</span>
             <span className="gs-title">{goal.title}</span>
             {status.label && <span className="gs-measure">{status.measured} {status.label}</span>}
+          </div>
+        )}
+        {editable && (
+          <div className="pg-try">
+            <button
+              className="try-toggle"
+              aria-expanded={editing}
+              onClick={() => setEditing((e) => !e)}
+            >
+              {editing ? '▾' : '▸'} ✎ Try editing this creature
+            </button>
+            {editing && (
+              <GeneEditor
+                title="Try editing this creature"
+                value={editorSource}
+                onChange={setEditorSource}
+                onInject={(b) => session.injectGenome(b)}
+              />
+            )}
           </div>
         )}
       </div>

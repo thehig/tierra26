@@ -1,13 +1,14 @@
-// The gene editor: a CodeMirror surface with live coloring + completions, plus the
-// diagnostics strip and the compile-gated Inject button. The view-model is the single
-// source for coloring, diagnostics, and the compiled bytes.
-import { useEffect, useMemo, useRef } from 'react';
+// The gene editor: a CodeMirror surface with live coloring + completions + keyword hover cards,
+// plus the diagnostics strip, the compile-gated Inject button, and an optional "peek under the
+// hood" pane. The view-model is the single source for coloring, diagnostics, and compiled bytes.
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { EditorView, keymap } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { completionKeymap } from '@codemirror/autocomplete';
 import { viewModel } from '@tierra26/ui/editor.ts';
-import { keywordColoring, geneCompletions, geneState } from './cm.ts';
+import { keywordColoring, geneCompletions, geneState, keywordHover } from './cm.ts';
+import { buildPeekModel } from './peek.ts';
 
 export function GeneEditor({
   value, onChange, onInject, title = 'Gene editor',
@@ -21,6 +22,7 @@ export function GeneEditor({
   const viewRef = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+  const [peek, setPeek] = useState(false);
 
   useEffect(() => {
     const view = new EditorView({
@@ -31,6 +33,7 @@ export function GeneEditor({
           history(),
           keymap.of([...defaultKeymap, ...historyKeymap, ...completionKeymap]),
           keywordColoring,
+          keywordHover,
           geneCompletions,
           EditorView.lineWrapping,
           EditorView.updateListener.of((u) => { if (u.docChanged) onChangeRef.current(u.state.doc.toString()); }),
@@ -52,6 +55,7 @@ export function GeneEditor({
 
   const vm = useMemo(() => viewModel(geneState(value)), [value]);
   const errors = vm.diagnostics.filter((d) => d.severity === 'error');
+  const peekModel = useMemo(() => (peek ? buildPeekModel(value) : null), [peek, value]);
 
   return (
     <div className="editor">
@@ -63,6 +67,13 @@ export function GeneEditor({
             Inject ▸
           </button>
         )}
+        <button
+          className={`btn ghost peek-toggle ${peek ? 'on' : ''}`}
+          aria-pressed={peek}
+          onClick={() => setPeek((p) => !p)}
+        >
+          👁 peek
+        </button>
         <span className="editor-status">
           {vm.compiled.injectable
             ? `${vm.compiled.bytes.length} bytes ready`
@@ -76,6 +87,43 @@ export function GeneEditor({
           ))}
         </ul>
       )}
+      {peekModel && <PeekPane model={peekModel} />}
+    </div>
+  );
+}
+
+// The peek pane: each source line that emitted bytes, with the byte range and the opcodes it
+// compiled to. Hover a row to light up its line ↔ its bytes together. Pure presentation over
+// the source map — no opcode/label facts of its own.
+function PeekPane({ model }: { model: ReturnType<typeof buildPeekModel> }) {
+  if (!model.ok) {
+    return <div className="peek empty">Fix the problems above, then peek at the compiled genome.</div>;
+  }
+  if (model.rows.length === 0) {
+    return <div className="peek empty">Nothing compiled yet — write a line to see its bytes.</div>;
+  }
+  return (
+    <div className="peek">
+      <div className="peek-head">
+        <span>source line</span>
+        <span className="peek-total">{model.totalBytes} bytes</span>
+      </div>
+      <ul className="peek-rows">
+        {model.rows.map((r) => (
+          <li key={r.stmt} className="peek-row">
+            <span className="peek-line" title={`line ${r.line}`}>{r.line}</span>
+            <code className="peek-src">{r.text || '·'}</code>
+            <span className="peek-range">{r.start}–{r.end}</span>
+            <span className="peek-bytes">
+              {r.bytes.map((b) => (
+                <span key={b.offset} className="peek-byte" title={`byte ${b.offset} · opcode ${b.opcode}`}>
+                  {b.label}
+                </span>
+              ))}
+            </span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
