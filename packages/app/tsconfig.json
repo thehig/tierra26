@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
+    "jsx": "react-jsx",
+    "strict": true,
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+    "types": ["vite/client"],
+    "paths": {
+      "@tierra26/engine": ["../engine/src/index.ts"],
+      "@tierra26/engine/*": ["../engine/src/*"],
+      "@tierra26/genescript/*": ["../genescript/src/*"],
+      "@tierra26/content/*": ["../content/src/*"],
+      "@tierra26/ui/*": ["../ui/src/*"],
+      "@tierra26/versus/*": ["../versus/src/*"]
+    }
+  },
+  "include": ["src", "vite.config.ts", "test"]
+}

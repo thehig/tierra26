@@ -1,0 +1,35 @@
+/* tierra26 design tokens — the "design pass" seam. The view-models emit abstract roles
+   (KeywordCategory, ColorIndex, CellClass); this is where they become real color.
+   Three theme states: bare :root = light; prefers-color-scheme dark (guarded); explicit data-theme. */
+:root {
+  --ground:#F1F5F1; --surface:#FFFFFF; --surface-2:#E9EFEA;
+  --ink:#15211D; --ink-2:#46554E; --faint:#6C7A73;
+  --line:#DAE3DC; --line-2:#C7D3CB;
+  --accent:#0B9B8A; --accent-ink:#06463F; --accent-tint:#E0F1EE;
+  --kw-action:#D9532F; --kw-register:#2F6DE0; --kw-marker:#8A4FD6;
+  --kw-control:#1E9A56; --kw-value:#BC841B; --kw-concept:#0B9B8A;
+  --good:#1E9A56; --warn:#BC841B; --crit:#CF4029;
+  --fd:'Bricolage Grotesque', system-ui, sans-serif;
+  --fb:'IBM Plex Sans', system-ui, sans-serif;
+  --fm:'IBM Plex Mono', ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground:#0B1512; --surface:#10201B; --surface-2:#15271F;
+    --ink:#E6EFEA; --ink-2:#9DB1A8; --faint:#6E827A;
+    --line:#20332B; --line-2:#2A4136;
+    --accent:#37C9B6; --accent-ink:#BCEFE6; --accent-tint:#0E2A25;
+    --kw-action:#FF7C55; --kw-register:#6396FF; --kw-marker:#B98BF1;
+    --kw-control:#3BC57D; --kw-value:#E6B24D; --kw-concept:#37C9B6;
+    --good:#3BC57D; --warn:#E6B24D; --crit:#F26A50;
+  }
+}
+:root[data-theme="dark"] {
+  --ground:#0B1512; --surface:#10201B; --surface-2:#15271F;
+  --ink:#E6EFEA; --ink-2:#9DB1A8; --faint:#6E827A;
+  --line:#20332B; --line-2:#2A4136;
+  --accent:#37C9B6; --accent-ink:#BCEFE6; --accent-tint:#0E2A25;
+  --kw-action:#FF7C55; --kw-register:#6396FF; --kw-marker:#B98BF1;
+  --kw-control:#3BC57D; --kw-value:#E6B24D; --kw-concept:#37C9B6;
+  --good:#3BC57D; --warn:#E6B24D; --crit:#F26A50;
+}
