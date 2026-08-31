@@ -56,11 +56,10 @@ export function EntityDiagram({
   }, [ipAddr]);
 
   // A scroll waypoint HIGHLIGHTS one part (a ring) rather than dimming the rest — nothing ever looks
-  // greyed-out/disabled. 'genome' covers the 'ip' focus; 'controls' covers the 'run' focus.
+  // greyed-out/disabled. 'controls' covers the 'run' focus; 'ip' rings only the reading-head ▶ marker
+  // (below), not the whole genome panel.
   const spot = (part: string) => {
-    const on = part === 'genome' ? (focus === 'genome' || focus === 'ip')
-      : part === 'controls' ? focus === 'run'
-      : focus === part;
+    const on = part === 'controls' ? focus === 'run' : focus === part;
     return on ? 'spot' : '';
   };
   const cols = Math.max(1, Math.round(Math.sqrt(state.worldSize)));
@@ -97,7 +96,7 @@ export function EntityDiagram({
               <div className="gline" key={b.addr} ref={b.isIp ? ipRef : undefined} onMouseEnter={setB} onMouseLeave={clearHover}>
                 <span className="gaddr" title="this cell’s position in the code">{b.addr >= 0 ? b.addr : ''}</span>
                 <div className={`gblock ${b.isLabel ? 'is-label' : ''} ${b.isIp ? 'is-ip' : ''} ${b.isCont ? 'is-payload' : ''} ${lit ? 'link' : ''}`} style={col}>
-                  <span className={`gblock-head ${b.isCont ? 'gpay-arrow' : ''}`} aria-label={b.isIp ? 'reading head' : undefined}>{b.isIp ? '▶' : b.isCont ? '↳' : ''}</span>
+                  <span className={`gblock-head ${b.isCont ? 'gpay-arrow' : ''} ${b.isIp && focus === 'ip' ? 'spot' : ''}`} aria-label={b.isIp ? 'reading head' : undefined}>{b.isIp ? '▶' : b.isCont ? '↳' : ''}</span>
                   <span className="gblock-emoji" aria-hidden="true">{b.emoji}</span>
                   <span className={`gblock-text ${b.isCont ? 'gpay-text' : ''}`}>{b.text}</span>
                 </div>

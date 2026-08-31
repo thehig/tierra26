@@ -11,14 +11,26 @@ const meta = {
 } satisfies Meta<typeof LiveEntity>;
 export default meta;
 
-// 'ip' rings the genome (the reading head lives there); 'run' rings the controls bar.
+// 'run' rings the controls bar; 'ip' narrows the ring to just the reading-head ▶ marker (below).
 export const World: Story = spotlight('world', '.entity-world');
 export const Genome: Story = spotlight('genome', '.entity-genome');
-export const ReadingHead: Story = spotlight('ip', '.entity-genome');
 export const Registers: Story = spotlight('registers', '.entity-regs');
 export const Flags: Story = spotlight('flags', '.entity-flags');
 export const Age: Story = spotlight('age', '.entity-vitals');
 export const Controls: Story = spotlight('run', '.entity-controls');
+
+// 'ip' rings ONLY the reading-head ▶ marker (a tight round halo), not the whole genome panel — so it
+// reads as distinct from the Genome spotlight above.
+export const ReadingHead: Story = {
+  args: { source: SPOT_SRC, soup: 36, focus: 'ip' },
+  play: async ({ canvasElement: c }) => {
+    await expect(c.querySelector('.entity-genome')!.className).not.toMatch(/spot/);
+    const head = c.querySelector('.gblock.is-ip .gblock-head');
+    await expect(head).toBeTruthy();
+    await expect(head!.className).toMatch(/spot/);
+    await expect(c.querySelectorAll('.spot').length).toBe(1);
+  },
+};
 
 // the daughter panel only exists once a creature has reserved its copy-patch, so drive the ancestor
 // far enough to allocate one (~step 20), then the 'daughter' focus has something to ring.
