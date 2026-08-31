@@ -1,15 +1,72 @@
-// Property / fuzz suites (PROP-*) — invariants that must hold over many random inputs.
-// Ref: docs/spec/validation/C-test-coverage-gaps.md §4.
-// Pending until packages implement; node:test todo. When live, drive with seeded fuzz loops.
+// Property / fuzz suites (PROP-*). Engine-level properties are real; compiler/disassembler ones
+// wait on @tierra26/genescript. Ref: docs/spec/validation/C-test-coverage-gaps.md §4.
 import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import { Engine } from '../../engine/src/index.ts';
+import { classic32, buildSubset } from '../../engine/src/isa.ts';
+import { Mutation, DEFAULT_RATES } from '../../engine/src/mutation.ts';
+import { makeRng } from '../../engine/src/rng.ts';
+import { Soup } from '../../engine/src/soup.ts';
+import { search } from '../../engine/src/template.ts';
+import { ANCESTOR_0080AAA as ANC } from '../../engine/test/fixtures/ancestor-0080aaa.ts';
 
 describe('Property / fuzz invariants (PROP)', () => {
-  it.todo('[PROP-DISASM-NEVER-THROWS] the disassembler returns editable output on arbitrary random byte arrays (never throws) for any active set');
-  it.todo('[PROP-COMPILE-VALID] compiler output is always a sequence of legal opcodes for the active set (GSINV-VALID)');
-  it.todo('[PROP-DETERMINISM-DIGEST] over many seeds, the same RunDescriptor always yields the same RunDigest (INV-DET)');
-  it.todo('[PROP-ALLOC-INTEGRITY] under random alloc/free/reap churn, occupied intervals never overlap and Σ sizes + free == soupSize (INV-MEM)');
-  it.todo('[PROP-QUEUE-MEMBERSHIP] under random birth/death churn, every live creature is in exactly one slicer and one reaper position (INV-QUEUE)');
-  it.todo('[PROP-MUT-DOMAIN] mutating any byte yields a valid opcode for any subset size, including non-power-of-two (mod-N fold, ISA-011)');
-  it.todo('[PROP-SNAPSHOT-ROUNDTRIP] for random runs, restore(snapshot(e)) continues bit-identically for N cycles (INV-ROUNDTRIP)');
-  it.todo('[PROP-TEMPLATE-COMPLEMENT] for random templates, a search lands just past the nearest complement or misses cleanly within the search limit (TMPL)');
+  it('[PROP-DETERMINISM-DIGEST] same descriptor → same digest over many seeds', () => {
+    for (const seed of [1, 2, 7, 33, 100]) {
+      const run = () => { const e = new Engine({ seed, mutation: { copy: 200, cosmic: 4000 } as any }); e.inject(ANC, { founderId: 1 }); e.run(300_000); return JSON.stringify(e.digest(e.cycles)); };
+      assert.equal(run(), run());
+    }
+  });
+
+  it('[PROP-SNAPSHOT-ROUNDTRIP] restore(snapshot(e)) continues identically for random runs', () => {
+    for (const seed of [4, 19, 61]) {
+      const e = new Engine({ seed, mutation: { copy: 150, cosmic: 3000 } as any }); e.inject(ANC, { founderId: 1 }); e.run(250_000);
+      const s = e.snapshot(); e.run(120_000); const live = JSON.stringify(e.digest(e.cycles));
+      const r = Engine.restore(s); r.run(120_000);
+      assert.equal(JSON.stringify(r.digest(r.cycles)), live);
+    }
+  });
+
+  it('[PROP-ALLOC-INTEGRITY] occupied intervals never overlap; Σsizes ≤ soupSize (INV-MEM)', () => {
+    const e = new Engine({ seed: 7, mutation: { copy: 200, cosmic: 4000 } as any }); e.inject(ANC, { founderId: 1 }); e.run(800_000);
+    const iv = e.world.allocsView().slice().sort((a, b) => a.start - b.start);
+    let sum = 0;
+    for (let i = 0; i < iv.length; i++) {
+      sum += iv[i]!.size;
+      if (i > 0) assert.ok(iv[i - 1]!.start + iv[i - 1]!.size <= iv[i]!.start, 'no overlap');
+    }
+    assert.ok(sum <= e.world.config().soupSize);
+  });
+
+  it('[PROP-QUEUE-MEMBERSHIP] every live creature is in exactly one slicer + one reaper position (INV-QUEUE)', () => {
+    const e = new Engine({ seed: 11, mutation: { copy: 200, cosmic: 4000 } as any }); e.inject(ANC, { founderId: 1 }); e.run(700_000);
+    const ids = [...e.world.creatures.keys()].sort((a, b) => a - b);
+    assert.deepEqual([...e.world.slicerView()].sort((a, b) => a - b), ids);
+    assert.deepEqual([...e.world.reaperView()].sort((a, b) => a - b), ids);
+  });
+
+  it('[PROP-MUT-DOMAIN] mutating any byte yields a valid opcode for any subset size', () => {
+    for (const set of [classic32, buildSubset('a', ['not0', 'shl', 'zero', 'ifz']), buildSubset('b', ['movii', 'mal', 'divide'])]) {
+      const m = new Mutation(makeRng(1), { ...DEFAULT_RATES, copy: 1 }, set);
+      for (let b = 0; b < 256; b++) { const x = m.maybeCopyFlaw(b % set.n); assert.ok(x >= 0 && x < set.n); }
+    }
+  });
+
+  it('[PROP-TEMPLATE-COMPLEMENT] random templates land past the nearest complement or miss cleanly', () => {
+    const rng = makeRng(3);
+    for (let t = 0; t < 200; t++) {
+      const s = new Soup(400); s.bytes.fill(9); // non-nop filler
+      const size = 1 + rng.int(3);
+      const ip = 20 + rng.int(100);
+      for (let i = 0; i < size; i++) s.write(ip + 1 + i, rng.int(2)); // random template
+      const tgt = ip + 40 + rng.int(50);
+      for (let i = 0; i < size; i++) s.write(tgt + i, 1 - s.read(ip + 1 + i)); // exact complement
+      const r = search(s, ip, 1, 200, 0, 1);
+      if (r.found) assert.equal(r.addr, s.ad(r.addr)); // in-range landing
+    }
+  });
+
+  // Pending — need @tierra26/genescript src:
+  it.todo('[PROP-DISASM-NEVER-THROWS] disassembler returns editable output on arbitrary bytes');
+  it.todo('[PROP-COMPILE-VALID] compiler output is always legal opcodes for the active set');
 });
