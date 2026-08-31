@@ -3,16 +3,14 @@
 // Frames are coalesced to the display refresh via a ref + rAF, so a busy tab drops
 // frames without ever desyncing from the worker (UIINV-BACKPRESSURE).
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { compile } from '@tierra26/genescript/comp.ts';
-import { classic32 } from '@tierra26/engine/isa.ts';
 import { Engine } from '@tierra26/engine';
+import type { Scenario } from '@tierra26/engine';
 import type { HostCommand, WorkerEvent, ObservationFrame } from '@tierra26/ui/protocol.ts';
 import { initialSessionState, reduceSession, type SessionState } from './reduce.ts';
 
 export interface PlaygroundBoot {
-  seed: number;
-  soupSize?: number;
-  source: string; // GeneScript starter
+  scenario: Partial<Scenario>; // memoize at the call site (object identity re-boots the session)
+  genome: Uint8Array;          // compiled starter bytes
 }
 
 export interface SessionApi {
@@ -63,11 +61,10 @@ export function useSession(boot: PlaygroundBoot): SessionApi {
       raf = requestAnimationFrame(tick);
     });
 
-    // Boot: compile the starter, create the session, init the soup, inject, set a lively cadence.
-    const bytes = compile(boot.source, classic32).bytes;
+    // Boot: create the session, init the soup, inject the compiled starter, set a lively cadence.
     w.postMessage({ type: 'createSession', engineVersion: Engine.version, sessionId: sid, correlationId: c() });
-    w.postMessage({ type: 'init', scenario: { seed: boot.seed, soupSize: boot.soupSize ?? 30000, mutation: { flaw: 0, copy: 0, cosmic: 0 } }, sessionId: sid, correlationId: c() });
-    w.postMessage({ type: 'inject', genome: bytes, sessionId: sid, correlationId: c() });
+    w.postMessage({ type: 'init', scenario: boot.scenario, sessionId: sid, correlationId: c() });
+    w.postMessage({ type: 'inject', genome: boot.genome, sessionId: sid, correlationId: c() });
     w.postMessage({ type: 'setSpeed', framesPerSecond: 30, instructionsPerFrame: 1500, sessionId: sid, correlationId: c() });
     setState((s) => ({ ...s, status: 'ready' }));
 
@@ -77,9 +74,9 @@ export function useSession(boot: PlaygroundBoot): SessionApi {
       w.terminate();
       workerRef.current = null;
     };
-    // Re-boot only when the recipe itself changes.
+    // Re-boot only when the recipe itself changes (both are memoized at the call site).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [boot.source, boot.seed, boot.soupSize]);
+  }, [boot.scenario, boot.genome]);
 
   const play = useCallback(() => { send({ type: 'run', mode: 'play' }); setState((s) => ({ ...s, status: 'playing' })); }, [send]);
   const pause = useCallback(() => { send({ type: 'run', mode: 'pause' }); setState((s) => ({ ...s, status: 'paused' })); }, [send]);
