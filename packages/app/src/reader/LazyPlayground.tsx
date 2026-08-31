@@ -1,10 +1,17 @@
 // mount: 'lazy' — the embedded playground instantiates its worker session only when it
-// scrolls into view, and disposes when unmounted (useSession cleanup). Matches READER-005/012.
+// scrolls into view, and disposes when unmounted. Carries the lesson's goal for live ticking.
 import { useEffect, useRef, useState } from 'react';
-import type { PlaygroundConfig } from '@tierra26/content/types.ts';
+import type { PlaygroundConfig, Goal } from '@tierra26/content/types.ts';
 import { Playground } from '../playground/Playground.tsx';
 
-export function LazyPlayground({ config, dark, prompt }: { config: PlaygroundConfig; dark: boolean; prompt?: string }) {
+export function LazyPlayground({
+  config, dark, goal, onGoalMet,
+}: {
+  config: PlaygroundConfig;
+  dark: boolean;
+  goal?: Goal;
+  onGoalMet?: () => void;
+}) {
   const ref = useRef<HTMLDivElement | null>(null);
   const [show, setShow] = useState(false);
 
@@ -22,9 +29,8 @@ export function LazyPlayground({ config, dark, prompt }: { config: PlaygroundCon
 
   return (
     <div className="lazy-pg" ref={ref}>
-      {prompt && <div className="pg-prompt"><span className="goaltag">Goal</span> {prompt}</div>}
       {show
-        ? <Playground config={config} dark={dark} compact />
+        ? <Playground config={config} dark={dark} compact goal={goal} onGoalMet={onGoalMet} />
         : <div className="pg-placeholder">▸ scroll here to load the playground</div>}
     </div>
   );

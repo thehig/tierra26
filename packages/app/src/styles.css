@@ -216,5 +216,23 @@ svg.spark { display: block; width: 100%; height: 54px; }
 .winner .wtb { font-size: .78rem; color: var(--ink-2); }
 .score-note { font-size: .82rem; color: var(--faint); text-align: center; }
 
+/* live goal status (lesson embeds) */
+.goalstatus { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-radius: 11px;
+  background: var(--surface-2); border: 1px solid var(--line); font-size: .95rem; }
+.goalstatus.met { background: var(--accent-tint); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+.goalstatus .gs-mark { font-weight: 700; color: var(--faint); }
+.goalstatus.met .gs-mark { color: var(--good); }
+.goalstatus .gs-title { flex: 1; }
+.goalstatus .gs-measure { font-family: var(--fm); font-size: .82rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+/* progress badges */
+.done-badge { margin-left: 10px; font-size: .74rem; font-weight: 600; color: var(--good); }
+.lesson-card.done { border-color: color-mix(in srgb, var(--good) 45%, var(--line)); }
+.lesson-card.locked { opacity: .58; }
+.lc-ch { display: flex; align-items: center; gap: 6px; }
+.lc-check { color: var(--good); font-weight: 700; }
+.lc-lock { filter: grayscale(1); }
+
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+:root[data-reduced-motion] * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }

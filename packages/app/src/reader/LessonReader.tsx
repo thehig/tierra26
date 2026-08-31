@@ -1,20 +1,31 @@
-// Renders a lesson: parse its source (content), project to the reader model, and lay out
-// the ordered blocks — prose, lazy playgrounds, goals.
+// Renders a lesson by walking its parsed AST: prose (with resolved keyword spans), lazy
+// playgrounds (carrying the block's full goal for live ticking), and goal cards. Walking the
+// AST (rather than the render model) keeps the goals' params for live evaluation.
 import { useMemo } from 'react';
 import { parse } from '@tierra26/content/content.ts';
-import { toRenderModel } from '@tierra26/ui/reader.ts';
+import { resolveProseSpans } from '@tierra26/ui/reader.ts';
 import { Prose } from './Prose.tsx';
 import { LazyPlayground } from './LazyPlayground.tsx';
 
-export function LessonReader({ source, dark }: { source: string; dark: boolean }) {
-  const model = useMemo(() => toRenderModel(parse(source).ast), [source]);
+export function LessonReader({ source, dark, onGoalMet }: { source: string; dark: boolean; onGoalMet: (goalId: string) => void }) {
+  const ast = useMemo(() => parse(source).ast, [source]);
   return (
     <article className="reader">
-      {model.blocks.map((b, i) => {
-        if (b.kind === 'prose') return <Prose key={i} spans={b.spans} />;
-        if (b.kind === 'playground') return <LazyPlayground key={i} config={b.config} dark={dark} prompt={b.goal?.title} />;
-        if (b.kind === 'goal') return <div key={i} className="goalcard"><span className="goaltag">Goal</span> {b.goal.title}</div>;
-        return <div key={i} className="diag error">{b.message}</div>;
+      {ast.body.map((node, i) => {
+        if (node.kind === 'prose') return <Prose key={i} spans={resolveProseSpans(node)} />;
+        if (node.kind === 'playground') {
+          return (
+            <LazyPlayground
+              key={i}
+              config={node.config}
+              goal={node.goal}
+              dark={dark}
+              onGoalMet={node.goal ? () => onGoalMet(node.goal!.id) : undefined}
+            />
+          );
+        }
+        if (node.kind === 'goal') return <div key={i} className="goalcard"><span className="goaltag">Goal</span> {node.goal.title}</div>;
+        return <div key={i} className="diag error">{node.diagnostic.message}</div>;
       })}
     </article>
   );

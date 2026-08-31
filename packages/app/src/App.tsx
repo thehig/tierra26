@@ -1,28 +1,13 @@
-// The app shell: nav + theme + a router that dispatches on the current surface.
-import { useEffect, useState } from 'react';
+// The app shell: nav + theme/motion (persisted via the prefs store) + a router that
+// dispatches on the current surface.
 import type { Route } from '@tierra26/ui/shell.ts';
 import { RouterProvider, useRouter, Link } from './router/router.tsx';
+import { PrefsProvider, usePrefs } from './store/prefs.tsx';
 import { Home } from './pages/Home.tsx';
 import { LessonPage } from './pages/LessonPage.tsx';
 import { WikiIndex, WikiPage } from './pages/Wiki.tsx';
 import { SandboxPage } from './pages/Sandbox.tsx';
 import { VersusPage } from './pages/Versus.tsx';
-
-type Theme = 'system' | 'light' | 'dark';
-
-function useDark(theme: Theme): boolean {
-  const [dark, setDark] = useState(() =>
-    theme === 'dark' || (theme === 'system' &&
-      typeof matchMedia !== 'undefined' && matchMedia('(prefers-color-scheme: dark)').matches));
-  useEffect(() => {
-    if (theme !== 'system') { setDark(theme === 'dark'); return; }
-    const mq = matchMedia('(prefers-color-scheme: dark)');
-    const on = () => setDark(mq.matches);
-    on(); mq.addEventListener('change', on);
-    return () => mq.removeEventListener('change', on);
-  }, [theme]);
-  return dark;
-}
 
 function Surface({ route, dark }: { route: Route | null; dark: boolean }) {
   if (!route) return <Home />;
@@ -35,9 +20,10 @@ function Surface({ route, dark }: { route: Route | null; dark: boolean }) {
   }
 }
 
-function Chrome({ dark, theme, setTheme }: { dark: boolean; theme: Theme; setTheme: (t: Theme) => void }) {
+function Chrome() {
   const { route } = useRouter();
-  const order: Theme[] = ['system', 'light', 'dark'];
+  const { theme, dark, setTheme, reducedMotion, setReducedMotion } = usePrefs();
+  const order: ('system' | 'light' | 'dark')[] = ['system', 'light', 'dark'];
   const nextTheme = () => setTheme(order[(order.indexOf(theme) + 1) % order.length]!);
 
   return (
@@ -49,6 +35,9 @@ function Chrome({ dark, theme, setTheme }: { dark: boolean; theme: Theme; setThe
           <Link to={{ surface: 'wiki' }}>Instructions</Link>
           <Link to={{ surface: 'versus' }}>Versus</Link>
         </nav>
+        <button className="btn ghost" onClick={() => setReducedMotion(!reducedMotion)} title="reduce motion">
+          {reducedMotion ? '❄ still' : '≈ motion'}
+        </button>
         <button className="btn ghost" onClick={nextTheme}>◐ {theme}</button>
       </header>
       <Surface route={route} dark={dark} />
@@ -57,16 +46,11 @@ function Chrome({ dark, theme, setTheme }: { dark: boolean; theme: Theme; setThe
 }
 
 export default function App() {
-  const [theme, setTheme] = useState<Theme>('system');
-  const dark = useDark(theme);
-  useEffect(() => {
-    const el = document.documentElement;
-    if (theme === 'system') el.removeAttribute('data-theme');
-    else el.setAttribute('data-theme', theme);
-  }, [theme]);
   return (
-    <RouterProvider>
-      <Chrome dark={dark} theme={theme} setTheme={setTheme} />
-    </RouterProvider>
+    <PrefsProvider>
+      <RouterProvider>
+        <Chrome />
+      </RouterProvider>
+    </PrefsProvider>
   );
 }

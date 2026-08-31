@@ -1,9 +1,9 @@
 // A live playground for any PlaygroundConfig. `compact` (lesson/wiki embeds) shows
 // tank + controls + readouts; the full form (sandbox) adds the editor and inspector.
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { loadFromGenome } from '@tierra26/ui/editor.ts';
 import { classic32 } from '@tierra26/engine/isa.ts';
-import type { PlaygroundConfig } from '@tierra26/content/types.ts';
+import type { PlaygroundConfig, Goal } from '@tierra26/content/types.ts';
 import { STARTERS } from '@tierra26/content/lessons.ts';
 import { useSession } from '../session/useSession.ts';
 import { TankCanvas } from '../ui/TankCanvas.tsx';
@@ -13,22 +13,47 @@ import { Charts } from '../ui/Charts.tsx';
 import { Inspector } from '../ui/Inspector.tsx';
 import { GeneEditor } from '../editor/GeneEditor.tsx';
 import { resolvePlaygroundBoot } from './resolve.ts';
+import { liveGoalStatus } from '../goal/liveGoal.ts';
 
 function initialSource(cfg: PlaygroundConfig): string {
   return cfg.starter.kind === 'genescript' ? cfg.starter.source : (STARTERS[cfg.starter.id]?.source ?? '');
 }
 
-export function Playground({ config, dark, compact = false }: { config: PlaygroundConfig; dark: boolean; compact?: boolean }) {
+export function Playground({
+  config, dark, compact = false, goal, onGoalMet,
+}: {
+  config: PlaygroundConfig;
+  dark: boolean;
+  compact?: boolean;
+  goal?: Goal;
+  onGoalMet?: () => void;
+}) {
   const boot = useMemo(() => resolvePlaygroundBoot(config), [config]);
   const session = useSession(boot);
   const [editorSource, setEditorSource] = useState<string>(() => initialSource(config));
+
+  const status = goal ? liveGoalStatus(goal, session.state.frame) : null;
+  const firedRef = useRef(false);
+  useEffect(() => {
+    if (status?.passed && !firedRef.current) { firedRef.current = true; onGoalMet?.(); }
+  }, [status?.passed, onGoalMet]);
 
   if (compact) {
     return (
       <div className="playground compact">
         <Controls api={session} />
         <div className="tankwrap"><TankCanvas frame={session.state.frame} dark={dark} onPick={(a) => session.inspect(a)} /></div>
-        <div className="pg-side"><Hud state={session.state} /><Charts frame={session.state.frame} /></div>
+        <div className="pg-side">
+          <Hud state={session.state} />
+          <Charts frame={session.state.frame} />
+        </div>
+        {goal && status && (
+          <div className={`goalstatus ${status.passed ? 'met' : ''}`}>
+            <span className="gs-mark">{status.passed ? '✓' : '◦'}</span>
+            <span className="gs-title">{goal.title}</span>
+            {status.label && <span className="gs-measure">{status.measured} {status.label}</span>}
+          </div>
+        )}
       </div>
     );
   }

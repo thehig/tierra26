@@ -2,8 +2,10 @@ import { LESSONS } from '@tierra26/content/lessons.ts';
 import { CURRICULUM } from '@tierra26/content/progress.ts';
 import { LessonReader } from '../reader/LessonReader.tsx';
 import { Link } from '../router/router.tsx';
+import { usePrefs } from '../store/prefs.tsx';
 
 export function LessonPage({ lessonId, dark }: { lessonId: string; dark: boolean }) {
+  const { completeLesson, isCompleted } = usePrefs();
   const lesson = LESSONS.find((l) => l.id === lessonId);
   const meta = CURRICULUM.lessons[lessonId];
   if (!lesson) {
@@ -17,11 +19,15 @@ export function LessonPage({ lessonId, dark }: { lessonId: string; dark: boolean
   }
   const idx = LESSONS.findIndex((l) => l.id === lessonId);
   const next = LESSONS[idx + 1];
+  const done = isCompleted(lessonId);
 
   return (
     <div className="page reader-page">
-      <div className="crumb"><Link to="home">Lessons</Link> <span>/</span> {meta?.title ?? lessonId}</div>
-      <LessonReader source={lesson.source} dark={dark} />
+      <div className="crumb">
+        <Link to="home">Lessons</Link> <span>/</span> {meta?.title ?? lessonId}
+        {done && <span className="done-badge">✓ done</span>}
+      </div>
+      <LessonReader source={lesson.source} dark={dark} onGoalMet={(goalId) => completeLesson(lessonId, goalId)} />
       <div className="reader-nav">
         {next
           ? <Link className="btn primary" to={{ surface: 'lesson', lessonId: next.id }}>Next: {CURRICULUM.lessons[next.id]?.title} →</Link>
