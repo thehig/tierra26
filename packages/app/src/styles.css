@@ -384,6 +384,11 @@ svg.spark { display: block; width: 100%; height: 54px; }
 .wcell.mother { background: var(--accent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 50%, transparent); }
 .wcell.daughter { background: color-mix(in srgb, var(--accent) 38%, var(--surface)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent); }
 .wcell.baby { background: #8b7cf0; box-shadow: 0 0 0 1px color-mix(in srgb, #8b7cf0 55%, transparent); }
+.wcell { cursor: default; }
+/* block ↔ cell bridge: hovering either rings the matching one */
+.wcell.link { box-shadow: 0 0 0 2px var(--ink), 0 0 0 4px color-mix(in srgb, var(--accent) 60%, transparent); z-index: 1; }
+.gblock.link { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 55%, transparent); }
+.gline { cursor: default; }
 
 /* the daughter (a reserved patch of world filling up into a copy) */
 .entity-daughter .dfill { height: 14px; border-radius: 8px; overflow: hidden; background: var(--surface); border: 1px solid var(--line); }

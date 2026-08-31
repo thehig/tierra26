@@ -18,6 +18,7 @@ function solves(source: string, goal: MicroGoal, budget: number): boolean {
     const c = e.world.creatures.get(id);
     const s: EntityStateLike = {
       regs: { A: c ? c.cpu.reg[0]! : 0, B: c ? c.cpu.reg[1]! : 0, C: c ? c.cpu.reg[2]! : 0, D: c ? c.cpu.reg[3]! : 0 },
+      size: c ? c.size : 0,
       hasDaughter: !!c && c.dauStart >= 0,
       daughterFillPct: c && c.dauStart >= 0 && c.dauSize > 0 ? Math.floor((c.dauWritten / c.dauSize) * 100) : 0,
       population: e.world.creatures.size,
@@ -36,6 +37,7 @@ const SOLUTIONS: Record<string, { source: string; budget: number }> = {
   'count-down': { source: 'grow-c\ngrow-c\ngrow-c\nshrink-c\nshrink-c', budget: 20 },
   'zero-flip':  { source: 'clear\nflip-bit', budget: 20 },
   'doubling':   { source: 'flip-bit\ndouble\ndouble', budget: 20 },
+  'body-is-code': { source: 'grow-a\ngrow-b\ngrow-c\ngrow-a\ngrow-b\ngrow-c', budget: 5 },
   'loops':      { source: 'top:\ngrow-a\njump-back top\nclear', budget: 60 },
   'sums':       { source: 'grow-a\ngrow-a\ngrow-a\ngrow-b\nsubtract', budget: 20 },
   'find':       { source: 'spot:\ngrow-a\nfind-back spot\ngrow-b', budget: 20 },

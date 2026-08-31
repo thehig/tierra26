@@ -1,7 +1,7 @@
 // The oversized "anatomy of a creature" in its magnified world: the world grid (the creature, its
 // daughter, its babies), the genome blocks (with the reading head), the four notebooks, flags,
 // save-pile, daughter, and age. A `focus` (from scroll waypoints) spotlights one part at a time.
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { categoryVar } from '../design/palette.ts';
 import type { EntityState } from './useMicroEngine.ts';
 
@@ -27,6 +27,10 @@ export function EntityDiagram({
   const changed = { A: state.regs.A !== prevRegs.current.A, B: state.regs.B !== prevRegs.current.B, C: state.regs.C !== prevRegs.current.C, D: state.regs.D !== prevRegs.current.D };
   prevRegs.current = state.regs;
 
+  // Block ↔ cell bridge: hovering a genome block rings its world cell, and vice-versa. Because the
+  // creature sits at soup address 0, a block's address IS its world-cell index — they share a number.
+  const [hovered, setHovered] = useState<number | null>(null);
+
   const dim = (part: Focus) => (focus !== 'whole' && focus !== 'run' && focus !== part ? 'dim' : '');
   const cols = Math.max(1, Math.round(Math.sqrt(state.worldSize)));
 
@@ -35,7 +39,10 @@ export function EntityDiagram({
       <div className={`entity-world ${dim('world')} ${focus === 'world' ? 'lit' : ''}`} data-part="world">
         <div className="part-label">its world</div>
         <div className="world-grid" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
-          {state.world.map((o, i) => <span key={i} className={`wcell ${OWNER_CLASS[o]}`} />)}
+          {state.world.map((o, i) => (
+            <span key={i} className={`wcell ${OWNER_CLASS[o]} ${i === hovered ? 'link' : ''}`}
+              onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(null)} />
+          ))}
         </div>
       </div>
 
@@ -43,9 +50,10 @@ export function EntityDiagram({
         <div className="part-label">its genome — numbered instruction blocks</div>
         <div className="genome-blocks">
           {state.blocks.map((b) => (
-            <div key={b.index} className="gline">
+            <div key={b.index} className="gline"
+              onMouseEnter={() => b.addr >= 0 && setHovered(b.addr)} onMouseLeave={() => setHovered(null)}>
               <span className="gaddr" title="this block's position in the code">{b.addr >= 0 ? b.addr : ''}</span>
-              <div className={`gblock ${b.isLabel ? 'is-label' : ''} ${b.isIp ? 'is-ip' : ''}`}
+              <div className={`gblock ${b.isLabel ? 'is-label' : ''} ${b.isIp ? 'is-ip' : ''} ${b.addr === hovered ? 'link' : ''}`}
                 style={{ borderColor: categoryVar(b.category), color: categoryVar(b.category) }}>
                 {b.isIp && <span className="reading-head" aria-label="reading head">▶</span>}
                 <span className="gblock-text">{b.text}</span>

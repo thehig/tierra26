@@ -9,6 +9,7 @@ import type { EntityState } from '../anatomy/useMicroEngine.ts';
 export type MicroGoal =
   | { kind: 'regAtLeast'; reg: 'A' | 'B' | 'C' | 'D'; value: number; label: string }
   | { kind: 'regEquals'; reg: 'A' | 'B' | 'C' | 'D'; value: number; label: string }
+  | { kind: 'sizeEquals'; value: number; label: string }
   | { kind: 'daughter'; label: string }
   | { kind: 'daughterFill'; pct: number; label: string }
   | { kind: 'born'; label: string };
@@ -17,6 +18,7 @@ export type MicroGoal =
 // minimal object without building the whole thing.
 export interface EntityStateLike {
   regs: { A: number; B: number; C: number; D: number };
+  size: number; // how many cells the body fills (== block count while every verb is 1 byte)
   hasDaughter: boolean;
   daughterFillPct: number;
   population: number;
@@ -32,6 +34,7 @@ export function checkMicroGoal(g: MicroGoal, s: EntityStateLike): boolean {
   switch (g.kind) {
     case 'regAtLeast': return s.regs[g.reg] >= g.value;
     case 'regEquals': return s.halted && s.regs[g.reg] === g.value;
+    case 'sizeEquals': return s.size === g.value; // static — true as soon as the body is the right length, no stepping
     case 'daughter': return s.hasDaughter;
     case 'daughterFill': return s.daughterFillPct >= g.pct || s.population > 1; // filled, or already split off
     case 'born': return s.population >= 2;
@@ -111,7 +114,28 @@ const CHAPTERS_DATA: Chapter[] = [
     challenge: { prompt: 'Make notebook C reach 4.', starter: 'flip-bit\ndouble', goal: { kind: 'regAtLeast', reg: 'C', value: 4, label: 'C reaches 4' } },
   },
   {
-    id: 'landmarks', no: '5', title: 'Landmarks', phase: 'change', prevId: 'doubling', ready: true,
+    id: 'world', no: '5', title: 'The world', phase: 'change', prevId: 'doubling', ready: true,
+    lede: 'Meet the place your creature lives.',
+    demo: 'grow-a\ngrow-b\ngrow-c\ngrow-a\ngrow-b',
+    waypoints: [
+      { focus: 'world', title: 'This is the world', body: 'That big grid up top is the *world* — the space every creature lives in. Think of it as a huge sheet of graph paper, one *cell* per square.' },
+      { focus: 'world', title: 'Your creature is in there', body: 'See the little patch of *bright* cells? That’s your creature — its *whole body* sits in the world, right there. It doesn’t wander around; it stays put and does its thinking on the spot. Step it and watch: the notebooks change, but the patch stays.' },
+      { focus: 'world', title: 'Empty space', body: 'All the *faint* cells are *free space* — empty world with nobody in it yet. That’s the room a creature’s babies will need later.' },
+    ],
+  },
+  {
+    id: 'body-is-code', no: '6', title: 'Your body is your code', phase: 'change', prevId: 'world', ready: true,
+    lede: 'Where does your code actually live? In the world.',
+    demo: 'grow-a\ngrow-b\ngrow-c\ngrow-a\ngrow-b',
+    waypoints: [
+      { focus: 'genome', title: 'Code lives in the world', body: 'Your genome isn’t kept somewhere separate — every *block* of it sits in one *cell* of the world. Your code and your body are the *same thing*.' },
+      { focus: 'whole', title: 'Block 0 is cell 0', body: 'The numbers beside your blocks are their spots in the world. *Block 0* is the first bright cell, *block 1* the next, and so on. Hover a block to light up its cell — count the bright cells, then count your blocks. Same number.' },
+      { focus: 'genome', title: 'That’s your size', body: 'How many cells your body fills is your *size*. More blocks means a bigger body that takes up more of the world.' },
+    ],
+    challenge: { prompt: 'Add blocks until your body fills exactly 6 cells. (Any `grow`/`flip-bit`/`double` block is one cell.)', starter: 'grow-a\ngrow-b\ngrow-c\ngrow-a', goal: { kind: 'sizeEquals', value: 6, label: 'your body fills 6 cells' } },
+  },
+  {
+    id: 'landmarks', no: '7', title: 'Landmarks', phase: 'change', prevId: 'body-is-code', ready: true,
     lede: 'Signposts inside your own code.',
     demo: 'grow-a\nhere:\ngrow-b',
     waypoints: [
@@ -120,7 +144,7 @@ const CHAPTERS_DATA: Chapter[] = [
     ],
   },
   {
-    id: 'loops', no: '6', title: 'Go in circles', phase: 'change', prevId: 'landmarks', ready: true,
+    id: 'loops', no: '8', title: 'Go in circles', phase: 'change', prevId: 'landmarks', ready: true,
     lede: 'Send the reading head back to a signpost, and blocks repeat.',
     demo: 'top:\ngrow-a\njump-back top\nclear',
     waypoints: [
@@ -130,7 +154,7 @@ const CHAPTERS_DATA: Chapter[] = [
     challenge: { prompt: 'Add a `jump-back top` line just above `clear` to make a loop, and push notebook A to 5.', starter: 'top:\ngrow-a\nclear', goal: { kind: 'regAtLeast', reg: 'A', value: 5, label: 'A reaches 5' } },
   },
   {
-    id: 'deciding', no: '7', title: 'Know when to stop', phase: 'change', prevId: 'loops', ready: true,
+    id: 'deciding', no: '9', title: 'Know when to stop', phase: 'change', prevId: 'loops', ready: true,
     lede: 'A loop that never ends is stuck. This is how a creature decides.',
     demo: 'flip-bit\nif-zero\nclear\ngrow-a',
     waypoints: [
@@ -139,7 +163,7 @@ const CHAPTERS_DATA: Chapter[] = [
     ],
   },
   {
-    id: 'sums', no: '8', title: 'Doing sums', phase: 'change', prevId: 'deciding', ready: true,
+    id: 'sums', no: '10', title: 'Doing sums', phase: 'change', prevId: 'deciding', ready: true,
     lede: 'Creatures do arithmetic to work things out — like their own size.',
     demo: 'grow-a\ngrow-a\ngrow-a\ngrow-b\nsubtract',
     waypoints: [
@@ -149,7 +173,7 @@ const CHAPTERS_DATA: Chapter[] = [
     challenge: { prompt: 'A is 3 and B is 1. Add `subtract` to put A − B into C (that’s 2).', starter: 'grow-a\ngrow-a\ngrow-a\ngrow-b', goal: { kind: 'regEquals', reg: 'C', value: 2, label: 'C becomes 2' } },
   },
   {
-    id: 'find', no: '9', title: 'Finding a signpost', phase: 'change', prevId: 'sums', ready: true,
+    id: 'find', no: '11', title: 'Finding a signpost', phase: 'change', prevId: 'sums', ready: true,
     lede: 'A creature reads its own code to find a signpost by name.',
     demo: 'spot:\ngrow-a\ngrow-a\nfind-back spot\ngrow-b',
     waypoints: [
@@ -159,7 +183,7 @@ const CHAPTERS_DATA: Chapter[] = [
     challenge: { prompt: 'Add a `find-back spot` line just above `grow-b`, so the creature finds its own signpost — its length lands in C.', starter: 'spot:\ngrow-a\ngrow-b', goal: { kind: 'regAtLeast', reg: 'C', value: 1, label: 'C holds the signpost’s length' } },
   },
   {
-    id: 'measure', no: '10', title: 'Measuring', phase: 'change', prevId: 'find', ready: true,
+    id: 'measure', no: '12', title: 'Measuring', phase: 'change', prevId: 'find', ready: true,
     lede: 'Two signposts and a subtraction tell a creature how big it is.',
     demo: 'start:\ngrow-a\ngrow-a\ngrow-b\nend:',
     waypoints: [
@@ -168,17 +192,17 @@ const CHAPTERS_DATA: Chapter[] = [
     ],
   },
   {
-    id: 'make-room', no: '11', title: 'Make room', phase: 'daughter', prevId: 'measure', ready: true,
+    id: 'make-room', no: '13', title: 'Make room', phase: 'daughter', prevId: 'measure', ready: true,
     lede: 'Before copying itself, a creature reserves a patch of the world for its baby.',
     demo: 'flip-bit\ndouble\ndouble\ndouble\ndouble\nmake-space',
     waypoints: [
-      { focus: 'world', title: 'A patch of world', body: '`make-space` asks the soup for a block of empty world — the *daughter*. Notebook C says how big to make it.' },
-      { focus: 'daughter', title: 'The daughter appears', body: 'Watch a new region light up in the world — the daughter, empty and waiting. Only the mother may write there.' },
+      { focus: 'world', title: 'A patch of world', body: '`make-space` asks the world for a patch of *empty cells* — the free space you met earlier — and reserves it as the *daughter*. Notebook C says how many cells to grab.' },
+      { focus: 'daughter', title: 'The daughter appears', body: 'Watch those free cells light up as the daughter — empty and waiting. Only the mother may write there.' },
     ],
     challenge: { prompt: 'C is built up to 16. Add `make-space` to reserve room for a daughter.', starter: 'flip-bit\ndouble\ndouble\ndouble\ndouble', goal: { kind: 'daughter', label: 'a daughter is reserved' } },
   },
   {
-    id: 'copy-byte', no: '12', title: 'Copy one byte', phase: 'daughter', prevId: 'make-room', ready: true,
+    id: 'copy-byte', no: '14', title: 'Copy one byte', phase: 'daughter', prevId: 'make-room', ready: true,
     lede: 'The most important block of all — but one at a time.',
     demo: 'flip-bit\ndouble\ndouble\ndouble\ndouble\nmake-space\ncopy-byte',
     waypoints: [
@@ -187,7 +211,7 @@ const CHAPTERS_DATA: Chapter[] = [
     ],
   },
   {
-    id: 'copy-loop', no: '13', title: 'The copy loop', phase: 'daughter', prevId: 'copy-byte', ready: true,
+    id: 'copy-loop', no: '15', title: 'The copy loop', phase: 'daughter', prevId: 'copy-byte', ready: true,
     lede: 'Everything so far, together: a creature that copies its whole self.',
     demo: ANCESTOR_GS,
     waypoints: [
@@ -197,7 +221,7 @@ const CHAPTERS_DATA: Chapter[] = [
     challenge: { prompt: 'Press ▶ Run and watch the daughter fill up.', starter: ANCESTOR_GS, goal: { kind: 'daughterFill', pct: 60, label: 'the daughter is copied' } },
   },
   {
-    id: 'give-birth', no: '14', title: 'Give birth', phase: 'daughter', prevId: 'copy-loop', ready: true,
+    id: 'give-birth', no: '16', title: 'Give birth', phase: 'daughter', prevId: 'copy-loop', ready: true,
     lede: 'The moment it all leads to.',
     demo: ANCESTOR_GS,
     waypoints: [
@@ -208,11 +232,11 @@ const CHAPTERS_DATA: Chapter[] = [
   },
   // ── stubs — building next (still listed + gated) ──────────────────────────
   ...([
-    ['tank', '15', 'A living tank', 'life', 'give-birth'],
-    ['mutation', '16', 'Copy errors', 'evolve', 'tank'],
-    ['selection', '17', 'Survival', 'evolve', 'mutation'],
-    ['parasites', '18', 'Parasites', 'evolve', 'selection'],
-    ['versus', '19', 'Versus', 'versus', 'parasites'],
+    ['tank', '17', 'A living tank', 'life', 'give-birth'],
+    ['mutation', '18', 'Copy errors', 'evolve', 'tank'],
+    ['selection', '19', 'Survival', 'evolve', 'mutation'],
+    ['parasites', '20', 'Parasites', 'evolve', 'selection'],
+    ['versus', '21', 'Versus', 'versus', 'parasites'],
   ] as const).map(([id, no, title, phase, prevId]) => ({
     id, no, title, phase: phase as Chapter['phase'], prevId, ready: false,
     lede: 'Coming next.', waypoints: [] as Waypoint[],
