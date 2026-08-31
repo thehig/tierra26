@@ -3,6 +3,7 @@
 // folder comes from the meta `title` and a file has exactly one title. This module is NOT a
 // `*.stories.*` file, so Storybook's indexer ignores it; it just holds the pieces those files share.
 import { expect, userEvent, within } from 'storybook/test';
+import type { CSSProperties } from 'react';
 import type { StoryObj } from '@storybook/react-vite';
 import { useMicroEngine } from './useMicroEngine.ts';
 import { EntityDiagram, type Focus } from './EntityDiagram.tsx';
@@ -11,11 +12,14 @@ import { ANCESTOR_GS } from '@tierra26/genescript/ancestor.gs.ts';
 // A live wrapper: drives the real micro-engine so stories are interactive (Step/Run work) and the
 // assertions run against the real component + engine — exactly what the app renders. The entity
 // reflows on its OWN width (a container query), NOT the viewport, so `width` is the exact width the
-// panel is given — a fixed px reproduces each breakpoint tier deterministically.
+// panel is given — a fixed px reproduces each breakpoint tier deterministically. `--genome-max` pins
+// the genome list to a fixed height so it doesn't jump when the Storybook canvas iframe resizes (the
+// app leaves it unset, keeping the viewport-relative default that fits its sticky scrolly stage).
 export function LiveEntity({ source, soup, focus = 'whole', width = 680 }: { source: string; soup?: number; focus?: Focus; width?: number }) {
   const m = useMicroEngine(source, soup);
+  const wrap: CSSProperties = { width, padding: '16px 0', '--genome-max': '400px' } as CSSProperties;
   return (
-    <div style={{ width, padding: '16px 0' }}>
+    <div style={wrap}>
       <EntityDiagram state={m.state} focus={focus} onStep={m.step} onReset={m.reset}
         onRun={m.run} onPause={m.pause} running={m.running} steps={m.steps} />
     </div>
