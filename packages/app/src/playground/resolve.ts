@@ -5,7 +5,7 @@
 import { compile } from '@tierra26/genescript/comp.ts';
 import { classic32, buildSubset } from '@tierra26/engine/isa.ts';
 import type { InstructionSet } from '@tierra26/engine/runtime.ts';
-import type { Scenario } from '@tierra26/engine';
+import type { Scenario, Injection } from '@tierra26/engine';
 import { STARTERS } from '@tierra26/content/lessons.ts';
 import type { PlaygroundConfig } from '@tierra26/content/types.ts';
 
@@ -17,7 +17,7 @@ const SCENARIO_PRESETS: Record<string, Partial<Scenario>> = {
 
 export interface Boot {
   scenario: Partial<Scenario>;
-  genome: Uint8Array;
+  injections: Injection[];
 }
 
 function starterSource(cfg: PlaygroundConfig): string {
@@ -38,7 +38,7 @@ export function resolvePlaygroundBoot(cfg: PlaygroundConfig): Boot {
   const preset = typeof cfg.scenario === 'string' ? (SCENARIO_PRESETS[cfg.scenario] ?? {}) : (cfg.scenario ?? {});
   return {
     scenario: { ...preset, seed: cfg.seed, mutation: { flaw: 0, copy: 0, cosmic: 0 } },
-    genome,
+    injections: [{ atCycle: 0, genome, founderId: 1 }],
   };
 }
 

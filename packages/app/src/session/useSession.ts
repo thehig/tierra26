@@ -4,13 +4,13 @@
 // frames without ever desyncing from the worker (UIINV-BACKPRESSURE).
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Engine } from '@tierra26/engine';
-import type { Scenario } from '@tierra26/engine';
+import type { Scenario, Injection } from '@tierra26/engine';
 import type { HostCommand, WorkerEvent, ObservationFrame } from '@tierra26/ui/protocol.ts';
 import { initialSessionState, reduceSession, type SessionState } from './reduce.ts';
 
 export interface PlaygroundBoot {
   scenario: Partial<Scenario>; // memoize at the call site (object identity re-boots the session)
-  genome: Uint8Array;          // compiled starter bytes
+  injections: Injection[];     // creatures placed at cycle 0 (one per founder — simultaneous)
 }
 
 export interface SessionApi {
@@ -61,10 +61,9 @@ export function useSession(boot: PlaygroundBoot): SessionApi {
       raf = requestAnimationFrame(tick);
     });
 
-    // Boot: create the session, init the soup, inject the compiled starter, set a lively cadence.
+    // Boot: create the session, init the soup with all founders placed at cycle 0, set a cadence.
     w.postMessage({ type: 'createSession', engineVersion: Engine.version, sessionId: sid, correlationId: c() });
-    w.postMessage({ type: 'init', scenario: boot.scenario, sessionId: sid, correlationId: c() });
-    w.postMessage({ type: 'inject', genome: boot.genome, sessionId: sid, correlationId: c() });
+    w.postMessage({ type: 'init', scenario: boot.scenario, injections: boot.injections, sessionId: sid, correlationId: c() });
     w.postMessage({ type: 'setSpeed', framesPerSecond: 30, instructionsPerFrame: 1500, sessionId: sid, correlationId: c() });
     setState((s) => ({ ...s, status: 'ready' }));
 
@@ -76,7 +75,7 @@ export function useSession(boot: PlaygroundBoot): SessionApi {
     };
     // Re-boot only when the recipe itself changes (both are memoized at the call site).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [boot.scenario, boot.genome]);
+  }, [boot.scenario, boot.injections]);
 
   const play = useCallback(() => { send({ type: 'run', mode: 'play' }); setState((s) => ({ ...s, status: 'playing' })); }, [send]);
   const pause = useCallback(() => { send({ type: 'run', mode: 'pause' }); setState((s) => ({ ...s, status: 'paused' })); }, [send]);

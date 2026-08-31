@@ -10,11 +10,12 @@ import { viewModel } from '@tierra26/ui/editor.ts';
 import { keywordColoring, geneCompletions, geneState } from './cm.ts';
 
 export function GeneEditor({
-  value, onChange, onInject,
+  value, onChange, onInject, title = 'Gene editor',
 }: {
   value: string;
   onChange: (source: string) => void;
-  onInject: (bytes: Uint8Array) => void;
+  onInject?: (bytes: Uint8Array) => void; // omit → a plain colored editor (no inject-into-soup)
+  title?: string;
 }) {
   const host = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -54,12 +55,14 @@ export function GeneEditor({
 
   return (
     <div className="editor">
-      <div className="editor-head">Gene editor</div>
+      <div className="editor-head">{title}</div>
       <div className="editor-cm" ref={host} />
       <div className="editor-bar">
-        <button className="btn primary" disabled={!vm.compiled.injectable} onClick={() => onInject(vm.compiled.bytes)}>
-          Inject ▸
-        </button>
+        {onInject && (
+          <button className="btn primary" disabled={!vm.compiled.injectable} onClick={() => onInject(vm.compiled.bytes)}>
+            Inject ▸
+          </button>
+        )}
         <span className="editor-status">
           {vm.compiled.injectable
             ? `${vm.compiled.bytes.length} bytes ready`

@@ -6,6 +6,7 @@ import { Home } from './pages/Home.tsx';
 import { LessonPage } from './pages/LessonPage.tsx';
 import { WikiIndex, WikiPage } from './pages/Wiki.tsx';
 import { SandboxPage } from './pages/Sandbox.tsx';
+import { VersusPage } from './pages/Versus.tsx';
 
 type Theme = 'system' | 'light' | 'dark';
 
@@ -29,7 +30,7 @@ function Surface({ route, dark }: { route: Route | null; dark: boolean }) {
     case 'lesson': return <LessonPage lessonId={route.lessonId} dark={dark} />;
     case 'wiki': return route.verb ? <WikiPage verb={route.verb} dark={dark} /> : <WikiIndex />;
     case 'sandbox': return <SandboxPage dark={dark} />;
-    case 'versus': return <div className="page"><h1>Versus</h1><p>Local matches are coming next.</p></div>;
+    case 'versus': return <VersusPage dark={dark} />;
     default: return <Home />;
   }
 }
@@ -46,6 +47,7 @@ function Chrome({ dark, theme, setTheme }: { dark: boolean; theme: Theme; setThe
         <nav className="mainnav">
           <Link to={{ surface: 'sandbox' }}>Sandbox</Link>
           <Link to={{ surface: 'wiki' }}>Instructions</Link>
+          <Link to={{ surface: 'versus' }}>Versus</Link>
         </nav>
         <button className="btn ghost" onClick={nextTheme}>◐ {theme}</button>
       </header>

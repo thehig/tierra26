@@ -15,6 +15,7 @@ export function Home() {
         <div className="hero-cta">
           {LESSONS[0] && <Link className="btn primary" to={{ surface: 'lesson', lessonId: LESSONS[0].id }}>Start learning</Link>}
           <Link className="btn" to={{ surface: 'sandbox' }}>Free play</Link>
+          <Link className="btn" to={{ surface: 'versus' }}>Versus</Link>
           <Link className="btn" to={{ surface: 'wiki' }}>Instructions</Link>
         </div>
       </section>
