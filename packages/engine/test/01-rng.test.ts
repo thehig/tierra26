@@ -34,4 +34,5 @@ describe('Determinism & RNG (RNG)', () => {
   it.todo('[RNG-013] float01() returns a double in [0,1) and is non-simulation-only (no simulation-path source references it)');
   it.todo('[RNG-014] no forbidden globals: module uses no Math.random and no Date.now / wall clock');
   it.todo('[RNG-015] integer-only state advance: next() uses only 32-bit ops (Math.imul + shifts + >>>); no float01 / `/` / `*` on the advance path');
+  it.todo("[RNG-016] int(1) returns 0 with the documented draw; int(n) is bias-free (rejection); no stray draws (S13)");
 });

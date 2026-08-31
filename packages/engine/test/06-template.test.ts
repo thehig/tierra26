@@ -26,4 +26,5 @@ describe('Template Addressing (TMPL)', () => {
   it.todo('[TMPL-008] adr* writes A:=addr, C:=size (+distance to 3rd reg if bound); jmp* loads addr into IP (ipWasSet); call additionally pushes the return address');
   it.todo('[TMPL-009] Template size respects MinTemplSize=1 (a single nop is legal) and s==0 is treated as "no template" (source address returned, no E)');
   it.todo('[TMPL-010] Adjacent-template MERGE behavior documented: two back-to-back nop runs are read as ONE longer template (raw VM semantics preserved)');
+  it.todo("[TMPL-011] searchLimit = floor(mult * integer avgSize), no float on the path; stable across snapshot/restore (S13)");
 });

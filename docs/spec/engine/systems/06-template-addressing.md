@@ -226,6 +226,8 @@ append-only.
 
 ---
 
+- **TMPL-011** — `searchLimit` is computed as `floor(searchLimitMult * avgSize)` from the INTEGER running `avgSize` (no float on the path) — identical across runs and across a snapshot/restore boundary (S13 determinism edge).
+
 ## 9. Open questions
 
 1. **`avgSize` cadence.** How often `World` recomputes the integer running mean (every divide?

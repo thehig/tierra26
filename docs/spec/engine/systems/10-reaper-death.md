@@ -264,6 +264,8 @@ append-only; never renumber.
   move is one deterministic step, so an identical event order yields an identical queue
   (C-DET / INV-DET); `ReapRndProp` random-top is a later [MOD] toggle, off in M0.
 
+- **REAP-009** — The soup-fullness reap trigger compares integer-scaled occupancy to `reaper.threshold` (per-1000), never a float ratio (S13 determinism edge) — the trigger cycle is identical across runs.
+
 ## 9. Open questions
 
 1. **Conditional vs unconditional moves** — adopt Tierra's `UpRprIf`/`DownReperIf` `>=`/`<=`

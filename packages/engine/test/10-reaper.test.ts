@@ -15,4 +15,5 @@ describe('Reaper / Death (REAP)', () => {
   it.todo('[REAP-006] soup fullness crossing the configured threshold triggers reaping of the head, and stops once fullness ≤ threshold');
   it.todo('[REAP-007] reapUntilRoom is bounded: reaps the head until room exists or the queue empties, ≤ size kills, terminates (false) when the soup empties');
   it.todo('[REAP-008] the base reaper uses NO RNG: victim is always the head and moves are one deterministic step, so identical event order yields an identical queue (ReapRndProp random-top is a later [MOD] toggle, off in M0)');
+  it.todo("[REAP-009] fullness reap trigger uses integer-scaled occupancy vs threshold (per-1000), never a float (S13)");
 });

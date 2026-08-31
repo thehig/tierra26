@@ -19,4 +19,6 @@ describe('Instruction Set & Dispatch (ISA)', () => {
   it.todo('[ISA-007] dispatch is keyed on InstrId: an op in both classic32 and a subset (at different opcodes) resolves to the same InstrId and same exec handler');
   it.todo('[ISA-008] register binding lives on the set: each classic32 opcode binding references only registers A-D (indices 0..3); reg->reg ops carry 2, nops carry none');
   it.todo('[ISA-009] the dictionary has no duplicate mnemonic and no duplicate gene, and each InstrId equals its index in DICTIONARY');
+  it.todo("[ISA-010] a SubsetSpec assigns opcodes by the canonical rule (nop0=0,nop1=1, then classic-32 load order) — identical bytes everywhere (S10)");
+  it.todo("[ISA-011] mutation-domain fold (low bitWidth bits mod N) yields a valid opcode for every N incl. non-power-of-two (S13)");
 });

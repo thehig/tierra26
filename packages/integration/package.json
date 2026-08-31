@@ -1,0 +1,11 @@
+{
+  "name": "@tierra26/integration",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Cross-package integration + property/fuzz tests — the invariants that span engine, genescript, content, ui, versus (spec-as-checklist until the packages implement)",
+  "scripts": {
+    "test": "node --experimental-strip-types --test \"test/**/*.test.ts\"",
+    "spec": "node --experimental-strip-types --test-reporter=spec --test \"test/**/*.test.ts\""
+  }
+}

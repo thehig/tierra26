@@ -43,6 +43,15 @@ mutation domain (§8 of ISA-VM) — the low `bitWidth` bits of a byte taken `mod
 valid opcode**. It does **not** own operand resolution, template search, flag setting, or the IP
 advance; it only supplies the entry the exec cycle ([`07`](07-cpu-and-execution-cycle.md)) drives.
 
+**Canonical subset ordering (S10) — a genome is portable only if the same subset yields the same
+opcode bytes everywhere.** A subset's opcodes are assigned by a **single deterministic rule**:
+`nop0`→0, `nop1`→1, then the remaining included mnemonics in **canonical dictionary order** (the
+classic-32 load order of `gb0/opcode.map` = ISA-VM §3.3), each taking the next opcode. This rule is
+owned here; GeneScript's compiler ([genescript/04]) and disassembler ([05]), the content active
+subset ([content/05 PROGRESS]), and the editor palette all consume THIS assignment — none invents
+its own order. Two layers given the same `SubsetSpec.include` therefore agree byte-for-byte, so an
+authored/evolved genome is reproducible and portable across the content→engine boundary.
+
 ---
 
 ## 2. Interfaces (TS surface it exposes; who imports it)
@@ -309,6 +318,9 @@ IDs are append-only.
   `InstrId` equals its index in `DICTIONARY` (stable-id invariant).
 
 ---
+
+- **ISA-010** — A `SubsetSpec` assigns opcodes by the canonical rule (nop0=0, nop1=1, then included mnemonics in classic-32 load order); the SAME `include` set yields byte-identical opcode assignments on every call and in every layer (S10 portability).
+- **ISA-011** — The mutation-domain fold (low `bitWidth` bits `mod N`) yields a valid opcode for EVERY subset size N, including non-power-of-two (S13/PROP-MUT-DOMAIN) — no byte ever decodes out of range.
 
 ## 9. Open questions
 

@@ -291,6 +291,8 @@ IDs are append-only.
 
 ---
 
+- **RNG-016** — `int(1)` returns 0 without consuming extra RNG state beyond the documented draw, and `int(n)` never introduces modulo bias (rejection) — a stray/degenerate draw would silently break replay (S13 determinism edge).
+
 ## 9. Open questions
 
 1. **Golden-vector seed & length (RNG-004).** Which fixed seed and how many outputs to freeze?
