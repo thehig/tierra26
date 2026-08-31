@@ -5,12 +5,13 @@ import { EntityDiagram, type Focus } from './EntityDiagram.tsx';
 import { ANCESTOR_GS } from '@tierra26/genescript/ancestor.gs.ts';
 
 // A live wrapper: drives the real micro-engine so stories are interactive (Step/Run work) and the
-// assertions run against the real component + engine — exactly what the app renders. `width` sizes
-// the container the entity reflows within (it uses container queries, not the viewport).
+// assertions run against the real component + engine — exactly what the app renders. The entity
+// reflows on its OWN width (a container query), NOT the viewport, so `width` is the exact width the
+// panel is given — set it to a fixed px so each breakpoint tier is reproduced deterministically.
 function LiveEntity({ source, soup, focus = 'whole', width = 680 }: { source: string; soup?: number; focus?: Focus; width?: number }) {
   const m = useMicroEngine(source, soup);
   return (
-    <div style={{ maxWidth: width, padding: 16 }}>
+    <div style={{ width, padding: '16px 0' }}>
       <EntityDiagram state={m.state} focus={focus} onStep={m.step} onReset={m.reset}
         onRun={m.run} onPause={m.pause} running={m.running} steps={m.steps} />
     </div>
@@ -27,6 +28,34 @@ type Story = StoryObj<typeof meta>;
 
 const stepBtn = (c: HTMLElement) => within(c).getByRole('button', { name: /Step/ });
 const step = async (c: HTMLElement, n: number) => { for (let i = 0; i < n; i++) await userEvent.click(stepBtn(c)); };
+
+// The entity reflows on its OWN width (a container query), independent of the viewport: 3 columns on
+// desktop, 2 on tablet, 1 on phone. The active tier is exactly the number of resolved grid tracks.
+const columnCount = (c: HTMLElement) => getComputedStyle(c.querySelector('.entity') as HTMLElement).gridTemplateColumns.trim().split(/\s+/).length;
+const hOverflow = (c: HTMLElement) => { const e = c.querySelector('.entity') as HTMLElement; return e.scrollWidth - e.clientWidth; };
+
+// A small tutorial creature (5 one-byte ops) — enough to populate every panel so a spotlight ring has
+// something to frame, without the ancestor's bulk. Used by all the single-part spotlight stories.
+const SPOT_SRC = 'grow-a\ngrow-b\ngrow-c\ngrow-a\ngrow-b';
+// One spotlight story per focus mode: the named part wears the ring, and it is the ONLY part that does
+// (a waypoint highlights one thing — it never dims the rest, so nothing else is ringed or greyed).
+const spotlight = (focus: Focus, spotSelector: string): Story => ({
+  args: { source: SPOT_SRC, soup: 36, focus },
+  play: async ({ canvasElement: c }) => {
+    await expect(c.querySelector(spotSelector)!.className).toMatch(/spot/);
+    await expect(c.querySelectorAll('.spot').length).toBe(1);
+  },
+});
+
+// One responsive story per breakpoint tier: assert the layout reflowed to the expected column count
+// and that the panel never scrolls sideways at that width.
+const responsive = (width: number, columns: number): Story => ({
+  args: { source: ANCESTOR_GS, soup: 256, width },
+  play: async ({ canvasElement: c }) => {
+    await expect(columnCount(c)).toBe(columns);
+    await expect(hOverflow(c)).toBeLessThanOrEqual(1);
+  },
+});
 
 // ── the spacious tutorial viewer: a small 6×6 world showing every opcode emoji ──────────────────
 export const SimpleTutorial: Story = {
@@ -129,29 +158,39 @@ export const ReadingHeadFollows: Story = {
   },
 };
 
-// ── the scroll spotlight: a focus HIGHLIGHTS one part (ring), never dims the rest ────────────────
-export const SpotlightRegisters: Story = {
-  args: { source: 'grow-a\ngrow-a\ngrow-a', soup: 36, focus: 'registers' },
+// ── the scroll spotlight: a focus HIGHLIGHTS one part (a ring), never dims/greys the rest ─────────
+// One story per Focus mode. 'ip' rings the genome (it lives there); 'run' rings the controls bar.
+export const SpotlightWorld: Story = spotlight('world', '.entity-world');
+export const SpotlightGenome: Story = spotlight('genome', '.entity-genome');
+export const SpotlightReadingHead: Story = spotlight('ip', '.entity-genome');
+export const SpotlightRegisters: Story = spotlight('registers', '.entity-regs');
+export const SpotlightFlags: Story = spotlight('flags', '.entity-flags');
+export const SpotlightAge: Story = spotlight('age', '.entity-vitals');
+export const SpotlightControls: Story = spotlight('run', '.entity-controls');
+
+// the daughter panel only exists once a creature has reserved its copy-patch, so drive the ancestor
+// far enough to allocate one (~step 20), then the 'daughter' focus has something to ring.
+export const SpotlightDaughter: Story = {
+  args: { source: ANCESTOR_GS, soup: 256, focus: 'daughter' },
   play: async ({ canvasElement: c }) => {
-    await expect(c.querySelector('.entity-regs')!.className).toMatch(/spot/);
-    await expect(c.querySelector('.entity-genome')!.className).not.toMatch(/spot/);
-    await expect(c.querySelector('.entity-genome')!.className).not.toMatch(/dim/); // dimming no longer exists
+    await step(c, 25);
+    await expect(c.querySelector('.entity-daughter')).toBeTruthy();
+    await expect(c.querySelector('.entity-daughter')!.className).toMatch(/spot/);
+    await expect(c.querySelectorAll('.spot').length).toBe(1);
   },
 };
 
-export const NoSpotlight: Story = {
-  args: { source: 'grow-a\ngrow-a\ngrow-a', soup: 36, focus: 'whole' },
+// 'whole' is the resting focus: nothing is ringed, and (crucially) nothing is dimmed either.
+export const SpotlightNone: Story = {
+  args: { source: SPOT_SRC, soup: 36, focus: 'whole' },
   play: async ({ canvasElement: c }) => {
-    await expect(c.querySelectorAll('.spot').length).toBe(0); // nothing highlighted, nothing greyed
+    await expect(c.querySelectorAll('.spot').length).toBe(0);
   },
 };
 
-// ── mobile: in a phone-width container the panel reflows and never scrolls sideways ─────────────
-export const Mobile: Story = {
-  args: { source: ANCESTOR_GS, soup: 256, width: 390 },
-  play: async ({ canvasElement: c }) => {
-    // container queries put the entity into its single-column layout at this width — no h-overflow
-    const entity = c.querySelector('.entity') as HTMLElement;
-    await expect(entity.scrollWidth - entity.clientWidth).toBeLessThanOrEqual(1);
-  },
-};
+// ── responsive: the panel reflows on its container width (3 → 2 → 1 column) and never scrolls sideways
+export const Mobile: Story = responsive(360, 1);       // phone portrait — single column
+export const Tablet: Story = responsive(480, 2);       // narrow column — world | side, genome below
+export const Laptop: Story = responsive(900, 3);       // full three-column layout
+export const Desktop: Story = responsive(1280, 3);     // roomier, same three columns
+export const HugeDesktop: Story = responsive(1680, 3); // very wide — the genome column stretches
