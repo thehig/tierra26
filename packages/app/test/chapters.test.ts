@@ -38,7 +38,7 @@ const SOLUTIONS: Record<string, { source: string; budget: number }> = {
   'doubling':   { source: 'flip-bit\ndouble\ndouble', budget: 20 },
   'loops':      { source: 'top:\ngrow-a\njump-back top\nclear', budget: 60 },
   'sums':       { source: 'grow-a\ngrow-a\ngrow-a\ngrow-b\nsubtract', budget: 20 },
-  'find':       { source: 'spot:\nfind-back spot\ngrow-b', budget: 20 },
+  'find':       { source: 'spot:\ngrow-a\nfind-back spot\ngrow-b', budget: 20 },
   'make-room':  { source: 'flip-bit\ndouble\ndouble\ndouble\ndouble\nmake-space', budget: 20 },
   'copy-loop':  { source: ANCESTOR_GS, budget: 8000 },
   'give-birth': { source: ANCESTOR_GS, budget: 8000 },

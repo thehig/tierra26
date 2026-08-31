@@ -112,11 +112,11 @@ const CHAPTERS_DATA: Chapter[] = [
   },
   {
     id: 'landmarks', no: '5', title: 'Landmarks', phase: 'change', prevId: 'doubling', ready: true,
-    lede: 'Signposts you can jump to.',
-    demo: 'here:\ngrow-a\ngrow-b',
+    lede: 'Signposts inside your own code.',
+    demo: 'grow-a\nhere:\ngrow-b',
     waypoints: [
-      { focus: 'genome', title: 'A signpost', body: '`mark-0` and `mark-1` make a *landmark* — a signpost in your code, written like `here:`. On its own it does nothing; the reading head walks right past it.' },
-      { focus: 'ip', title: 'Why bother?', body: 'Landmarks are places you can *jump to*. Next chapter you’ll send the reading head back to one — and make your first loop.' },
+      { focus: 'genome', title: 'A signpost', body: '`mark-0` and `mark-1` make a *landmark* — a signpost you write like `here:`. It marks a *spot in your list of blocks* (see the numbers down the left side), not a square in the world up above. On its own it does nothing; the reading head walks straight past it.' },
+      { focus: 'ip', title: 'Why bother?', body: 'A landmark is a place you can *jump to* or *search for* by name. Next chapter you’ll send the reading head back to one — and make your first loop.' },
     ],
   },
   {
@@ -149,22 +149,22 @@ const CHAPTERS_DATA: Chapter[] = [
     challenge: { prompt: 'A is 3 and B is 1. Add `subtract` to put A − B into C (that’s 2).', starter: 'grow-a\ngrow-a\ngrow-a\ngrow-b', goal: { kind: 'regEquals', reg: 'C', value: 2, label: 'C becomes 2' } },
   },
   {
-    id: 'find', no: '9', title: 'Finding yourself', phase: 'change', prevId: 'sums', ready: true,
-    lede: 'A creature searches for its own landmarks to work out where it is.',
-    demo: 'spot:\nfind-back spot\ngrow-b',
+    id: 'find', no: '9', title: 'Finding a signpost', phase: 'change', prevId: 'sums', ready: true,
+    lede: 'A creature reads its own code to find a signpost by name.',
+    demo: 'spot:\ngrow-a\ngrow-a\nfind-back spot\ngrow-b',
     waypoints: [
-      { focus: 'genome', title: 'Search', body: '`find-back` searches *backwards* for a landmark and remembers it — the address in A, its size in C. (`find` looks both ways; `find-forward` looks ahead.)' },
-      { focus: 'registers', title: 'Found it', body: 'Step through: after `find-back spot`, notebook C holds the landmark’s size. That’s how a creature measures its own parts.' },
+      { focus: 'genome', title: 'Search by name', body: '`find-back` looks *backwards* through your own blocks for a signpost. This searches your *code*, not the world — it’s how a creature finds a spot inside itself. (`find` looks both ways; `find-forward` looks ahead.)' },
+      { focus: 'registers', title: 'Where, and how long', body: 'When it finds the `spot` signpost it fills two notebooks: *A* = the position right after it (here that’s *1* — check the numbers on the blocks), and *C* = how many blocks long the signpost itself is (here, *1*).' },
     ],
-    challenge: { prompt: 'Add a `find-back spot` line just above `grow-b`, so the creature finds its landmark (its size lands in C).', starter: 'spot:\ngrow-b', goal: { kind: 'regAtLeast', reg: 'C', value: 1, label: 'C holds a found size' } },
+    challenge: { prompt: 'Add a `find-back spot` line just above `grow-b`, so the creature finds its own signpost — its length lands in C.', starter: 'spot:\ngrow-a\ngrow-b', goal: { kind: 'regAtLeast', reg: 'C', value: 1, label: 'C holds the signpost’s length' } },
   },
   {
     id: 'measure', no: '10', title: 'Measuring', phase: 'change', prevId: 'find', ready: true,
-    lede: 'Put it together: find your start and end, subtract, and you know your size.',
-    demo: 'start:\ngrow-a\ngrow-a\nfind-back start\nsubtract\ngrow-b',
+    lede: 'Two signposts and a subtraction tell a creature how big it is.',
+    demo: 'start:\ngrow-a\ngrow-a\ngrow-b\nend:',
     waypoints: [
-      { focus: 'genome', title: 'How big am I?', body: 'Find the landmark at your *start* and the one at your *end*, then `subtract` their addresses. The answer is your *size* — how many blocks make up your body.' },
-      { focus: 'age', title: 'Ready to copy', body: 'Knowing your size is the last thing a creature needs before it can copy *itself*. Next: making room for a baby.' },
+      { focus: 'genome', title: 'How big is a piece of me?', body: 'Put a signpost at the *start* of a stretch and one at the *end* (see them at positions 0 and 5). `find` each to get its position, then `subtract` the two. The answer is the *size* of everything in between — the number of blocks in that piece of your body.' },
+      { focus: 'age', title: 'Ready to copy', body: 'Measuring itself from start to end is the last thing a creature needs before it can copy *itself*. Next: making room for a baby.' },
     ],
   },
   {

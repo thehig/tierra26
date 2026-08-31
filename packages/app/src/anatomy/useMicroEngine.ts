@@ -9,7 +9,7 @@ import { disassemble } from '@tierra26/genescript/disasm.ts';
 import { entry } from '@tierra26/genescript/vocab.ts';
 import type { KeywordCategory } from '../design/palette.ts';
 
-export interface GenomeBlock { index: number; text: string; category: KeywordCategory | 'value'; isLabel: boolean; isIp: boolean }
+export interface GenomeBlock { index: number; addr: number; text: string; category: KeywordCategory | 'value'; isLabel: boolean; isIp: boolean }
 
 // World-cell owner: 0 free · 1 this creature (mother) · 2 its daughter · 3 a baby (other creature)
 export type CellOwner = 0 | 1 | 2 | 3;
@@ -82,7 +82,9 @@ export function useMicroEngine(source: string, soupSize = 256) {
     const blocks: GenomeBlock[] = disasm.lines.map((ln, i) => {
       const first = disasm.annotations.find((an) => an.lineIndex === i);
       const isLabel = ln.kind === 'label';
-      return { index: i, text: ln.text.trim(), category: lineCategory(first?.verb ?? null, first?.mnemonic ?? null, first?.role ?? '', isLabel), isLabel, isIp: i === ipLine };
+      // The creature is injected at soup address 0, so a block's byte offset IS its address — the
+      // number `find-back`/`jump` report and land on. That's what the gutter shows.
+      return { index: i, addr: first?.byteIndex ?? -1, text: ln.text.trim(), category: lineCategory(first?.verb ?? null, first?.mnemonic ?? null, first?.role ?? '', isLabel), isLabel, isIp: i === ipLine };
     });
     return {
       blocks,

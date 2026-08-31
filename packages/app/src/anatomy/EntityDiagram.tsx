@@ -40,13 +40,16 @@ export function EntityDiagram({
       </div>
 
       <div className={`entity-genome ${dim('genome')} ${focus === 'ip' ? 'lit' : ''}`} data-part="genome">
-        <div className="part-label">its genome — instruction blocks</div>
+        <div className="part-label">its genome — numbered instruction blocks</div>
         <div className="genome-blocks">
           {state.blocks.map((b) => (
-            <div key={b.index} className={`gblock ${b.isLabel ? 'is-label' : ''} ${b.isIp ? 'is-ip' : ''}`}
-              style={{ borderColor: categoryVar(b.category), color: categoryVar(b.category) }}>
-              {b.isIp && <span className="reading-head" aria-label="reading head">▶</span>}
-              <span className="gblock-text">{b.text}</span>
+            <div key={b.index} className="gline">
+              <span className="gaddr" title="this block's position in the code">{b.addr >= 0 ? b.addr : ''}</span>
+              <div className={`gblock ${b.isLabel ? 'is-label' : ''} ${b.isIp ? 'is-ip' : ''}`}
+                style={{ borderColor: categoryVar(b.category), color: categoryVar(b.category) }}>
+                {b.isIp && <span className="reading-head" aria-label="reading head">▶</span>}
+                <span className="gblock-text">{b.text}</span>
+              </div>
             </div>
           ))}
         </div>
