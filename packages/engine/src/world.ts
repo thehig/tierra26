@@ -9,6 +9,7 @@ import { DICTIONARY, classic32 } from './isa.ts';
 import { HANDLERS } from './handlers.ts';
 import { makeCreature } from './creature.ts';
 import { Genebank } from './genebank.ts';
+import { Mutation, type MutationRates } from './mutation.ts';
 
 export const MAX_FOUNDERS = 16;
 
@@ -23,7 +24,7 @@ export interface WorldConfig {
   slicePow: number;
   sliceSize: number;
   reaperThreshold: number; // per-1000
-  copyMutRate: number;     // 0 = off (M0)
+  rates: MutationRates;    // all 0 = off (M0 breed-true)
 }
 
 interface Interval { start: Addr; size: number; }
@@ -56,6 +57,7 @@ export class World implements IWorld {
   generations = 0;
   private genAccum = 0;
   founders = new Uint32Array(MAX_FOUNDERS); // per-founder live census (S1); index 0 = neutral
+  mutation: Mutation;
 
   private cfg: WorldConfig;
 
@@ -64,19 +66,14 @@ export class World implements IWorld {
     this.soup = new Soup(cfg.soupSize);
     this.rng = makeRng(cfg.seed);
     this.activeSet = cfg.activeSet;
+    this.mutation = new Mutation(this.rng, cfg.rates, cfg.activeSet);
     this.minCellSize = cfg.minCellSize;
     this.maxCellSize = cfg.maxCellSize;
     this.recomputeSearchLimit();
   }
 
-  // ---- mutation seam (M0 identity unless copyMutRate>0) ----
-  maybeCopyFlaw(byte: Opcode): Opcode {
-    if (this.cfg.copyMutRate > 0 && this.rng.float01() < this.cfg.copyMutRate) {
-      const bit = this.rng.int(this.activeSet.bitWidth);
-      return (byte ^ (1 << bit)) % this.activeSet.n;
-    }
-    return byte;
-  }
+  // ---- mutation seam ----
+  maybeCopyFlaw(byte: Opcode): Opcode { return this.mutation.maybeCopyFlaw(byte); }
 
   // ---- errors ----
   raiseE(c: Creature): void {
@@ -190,10 +187,23 @@ export class World implements IWorld {
   }
 
   birthDaughter(mother: Creature): void {
-    const start = mother.dauStart, size = mother.dauSize;
+    let start = mother.dauStart, size = mother.dauSize;
     // the daughter block is already occupied (from mal); it now belongs to the child.
     const parentGenotypeId = mother.genotypeId;
     mother.clearDaughter();
+    // divide-time variation operators (M1; no-op when all divide rates are 0)
+    const bytes = this.sampleBytes(start, size);
+    const mutated = this.mutation.divideOps(bytes);
+    if (mutated !== bytes) {
+      if (mutated.length !== size) {
+        this.allocFree(start, size);
+        const na = this.allocFindRoom(mutated.length, mother);
+        if (na < 0) { this.occupy(start, size); } // no room: keep the original block/size
+        else { start = na; size = mutated.length; for (let i = 0; i < size; i++) this.soup.write(start + i, mutated[i]!); }
+      } else {
+        for (let i = 0; i < size; i++) this.soup.write(start + i, mutated[i]!);
+      }
+    }
     this.register(start, size, mother.id, mother.founderId, parentGenotypeId);
     this.reaperMoveDown(mother);
   }
@@ -222,7 +232,7 @@ export class World implements IWorld {
       case 'NONE': break;
       case 'DST1': case 'INC': case 'DEC': d.dstIdx = b[0]!; break;
       case 'COND': d.sval = reg[b[0]!]!; break;
-      case 'SUB3': d.dstIdx = b[0]!; d.sval = reg[b[1]!]!; d.sval2 = reg[b[2]!]!; break;
+      case 'SUB3': d.dstIdx = b[0]!; d.sval = this.mutation.maybeFlaw(reg[b[1]!]!); d.sval2 = this.mutation.maybeFlaw(reg[b[2]!]!); break;
       case 'MOV2': d.dstIdx = b[0]!; d.sval = reg[b[1]!]!; break;
       case 'PUSH': d.sval = reg[b[0]!]!; break;
       case 'POP': d.dstIdx = b[0]!; break;
@@ -241,6 +251,7 @@ export class World implements IWorld {
 
     if (!d.ipWasSet) c.cpu.ip = this.soup.ad(c.cpu.ip + d.iip);
     this.cycles++;
+    this.mutation.cosmicTick(this.soup, this.cfg.soupSize);
   }
 
   private sliceSizeFor(c: Creature): number {

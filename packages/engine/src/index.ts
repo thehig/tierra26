@@ -2,6 +2,7 @@
 // Ref: docs/spec/engine/systems/15-engine-api-and-scenarios.md.
 import { World, type WorldConfig } from './world.ts';
 import { classic32, buildSubset } from './isa.ts';
+import { DEFAULT_RATES, type MutationRates } from './mutation.ts';
 import type { InstructionSet } from './runtime.ts';
 import type { CreatureId } from './types.ts';
 
@@ -65,7 +66,7 @@ function toWorldConfig(s: Scenario): WorldConfig {
     slicePow: s.slicer.slicePow,
     sliceSize: s.slicer.sliceSize,
     reaperThreshold: s.reaper.threshold,
-    copyMutRate: s.mutation.copy,
+    rates: { ...DEFAULT_RATES, ...(s.mutation as Partial<MutationRates>) } as MutationRates,
   };
 }
 
