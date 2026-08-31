@@ -1,6 +1,7 @@
 // Renders one brick-by-brick chapter: a short scroll-driven explainer over a steppable demo
 // creature, then the "your turn" micro-challenge. Reuses the anatomy stage + micro-engine.
 import { entry } from '@tierra26/genescript/vocab.ts';
+import { opcodeEmoji } from '../anatomy/opcodeEmoji.ts';
 import { Scrolly, type ScrollyStep } from '../anatomy/Scrolly.tsx';
 import { EntityDiagram } from '../anatomy/EntityDiagram.tsx';
 import { useMicroEngine } from '../anatomy/useMicroEngine.ts';
@@ -17,8 +18,19 @@ function RichText({ text }: { text: string }) {
       {parts.map((p, i) => {
         if (p.startsWith('`') && p.endsWith('`')) {
           const t = p.slice(1, -1);
-          const cat = entry(t)?.category;
-          return <code key={i} className="rt-code" style={cat ? { color: `var(--kw-${cat})` } : undefined}>{t}</code>;
+          // If it names a real block, render it as a mini genome-block chip (emoji + category outline)
+          // so the text ties back to the genome viewer and the world.
+          const verb = t.split(/\s+/)[0]!;
+          const e = entry(verb);
+          if (e) {
+            return (
+              <span key={i} className="op-chip" style={{ color: `var(--kw-${e.category})` }}>
+                <span className="op-chip-emoji" aria-hidden="true">{opcodeEmoji(verb)}</span>
+                <span className="op-chip-name">{t}</span>
+              </span>
+            );
+          }
+          return <code key={i} className="rt-code">{t}</code>;
         }
         if (p.startsWith('*') && p.endsWith('*')) return <strong key={i}>{p.slice(1, -1)}</strong>;
         return <span key={i}>{p}</span>;

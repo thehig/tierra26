@@ -33,4 +33,18 @@ test.describe('opcode emoji', () => {
     await page.locator('.wcell.mother').first().hover();
     await expect(page.locator('.wloupe')).toBeVisible();
   });
+
+  test('the emoji world grid does not overflow its container (no clipping)', async ({ page }) => {
+    await page.goto('/learn/copy-byte'); // dense 6×6 world (mother + daughter)
+    const grid = page.locator('.world-grid.emoji').first();
+    const overflow = await grid.evaluate((g) => g.scrollWidth - g.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(1);
+  });
+
+  test('naming a block in explainer text renders an opcode chip (emoji + name)', async ({ page }) => {
+    await page.goto('/learn/count-up'); // "The block `grow-a` adds one…"
+    const chip = page.locator('.op-chip', { hasText: 'grow-a' }).first();
+    await expect(chip).toBeVisible();
+    await expect(chip.locator('.op-chip-emoji')).not.toBeEmpty();
+  });
 });

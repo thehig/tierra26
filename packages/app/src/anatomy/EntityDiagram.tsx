@@ -58,7 +58,7 @@ export function EntityDiagram({
     <div className={`entity focus-${focus}`}>
       <div className={`entity-world ${dim('world')} ${focus === 'world' ? 'lit' : ''}`} data-part="world">
         <div className="part-label">{small ? 'its world' : 'its world · hover to inspect 🔍'}</div>
-        <div className={`world-grid ${small ? 'emoji' : ''}`} style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
+        <div className={`world-grid ${small ? 'emoji' : ''}`} style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
           onMouseLeave={() => { setHovered(null); setLoupe(null); }}>
           {state.world.map((o, i) => (
             <span key={i} className={`wcell ${OWNER_CLASS[o]} ${i === hovered ? 'link' : ''}`}
@@ -79,7 +79,7 @@ export function EntityDiagram({
               <span className="gaddr" title="this block's position in the code">{b.addr >= 0 ? b.addr : ''}</span>
               <div className={`gblock ${b.isLabel ? 'is-label' : ''} ${b.isIp ? 'is-ip' : ''} ${b.addr === hovered ? 'link' : ''}`}
                 style={{ borderColor: categoryVar(b.category), color: categoryVar(b.category) }}>
-                {b.isIp && <span className="reading-head" aria-label="reading head">▶</span>}
+                <span className="gblock-head" aria-label={b.isIp ? 'reading head' : undefined}>{b.isIp ? '▶' : ''}</span>
                 <span className="gblock-emoji" aria-hidden="true">{b.emoji}</span>
                 <span className="gblock-text">{b.text}</span>
               </div>
