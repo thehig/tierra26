@@ -150,14 +150,20 @@ export function buildDescriptor(cfg: MatchConfig): MatchDescriptor {
 export function toRunDescriptor(m: MatchDescriptor): RunDescriptor {
   const active = activeSetOf(m.scenario.instructionSet);
   const order = seededPermutation(m.players.length, m.scenario.seed);
+  // Symmetric placement (RUNNER-003): evenly-spaced founder offsets around the circular soup.
+  // Assign one offset per injection IN EMITTED ORDER — even spacing holds regardless of order, so
+  // this de-biases BOTH position and injection order in one step. The engine honors Injection.at.
+  const offsets = placements(m.players.length, m.scenario.soupSize, m.placement);
   const injections: Injection[] = [];
+  let k = 0;
   for (const i of order) {
     const p = m.players[i]!;
     const { bytes, diagnostics } = compile(p.genome, active);
     if (hasErrors(diagnostics)) {
       throw new Error(`genome for founder ${p.founderId} failed to compile`);
     }
-    injections.push({ atCycle: 0, genome: bytes, founderId: p.founderId });
+    injections.push({ atCycle: 0, genome: bytes, founderId: p.founderId, at: offsets[k] });
+    k++;
   }
   const cycles =
     m.threshold.kind === 'cycles' ? m.threshold.value : runBudgetForGenerations(m.threshold.value);
@@ -283,14 +289,22 @@ function observeOnce(core: WorkerCore, nInstructions: number): ObservationFrame 
 }
 
 // Record one observed frame → a LiveStanding, and fold it into the running MatchHistory.
-function record(standings$: LiveStanding[], history: MatchHistory, frame: ObservationFrame, players: Player[]): void {
+// Exported so tests can drive the REAL record path over a real engine census (RUNNER-009): it is the
+// single place the four tiebreaker observables are captured from a frame.
+export function record(standings$: LiveStanding[], history: MatchHistory, frame: ObservationFrame, players: Player[]): void {
   const pop = attribute(frame); // per-founder live population (neutral 0 included; score ignores it)
   const standings = score(pop, players);
   standings$.push({ cycle: frame.cycles, generation: frame.stats.generations, standings });
+  const census = frame.founders; // per-founder cumulative births + integer avg live genome size
   for (const p of players) {
     if (p.founderId === 0) continue;
     const v = pop.get(p.founderId) ?? 0;
     history.peakPopulation.set(p.founderId, Math.max(history.peakPopulation.get(p.founderId) ?? 0, v));
+    // total-births is CUMULATIVE — the latest frame carries the running total (monotonic).
+    history.totalBirths.set(p.founderId, census.births[p.founderId] ?? 0);
+    // avgSize is the avg LIVE genome size — record the last frame a founder was actually alive so
+    // the smaller-avg-size tiebreaker reads a real size, not the 0 the census reports once extinct.
+    if (v > 0) history.avgSize.set(p.founderId, census.avgSize[p.founderId] ?? 0);
   }
   const leaders = standings.filter((s) => s.rank === 1 && s.population > 0);
   if (leaders.length === 1) {

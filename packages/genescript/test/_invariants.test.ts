@@ -7,7 +7,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { compile } from '../src/comp.ts';
 import { disassemble } from '../src/disasm.ts';
-import { ANCESTOR_GS } from '../src/ancestor.gs.ts';
+import { ANCESTOR_GS, ANCESTOR_LABELED_GS } from '../src/ancestor.gs.ts';
 import { classic32 } from '../../engine/src/isa.ts';
 import { Engine } from '../../engine/src/index.ts';
 import { hasErrors } from '../src/types.ts';
@@ -51,6 +51,27 @@ describe('GeneScript cross-layer invariants (GSINV)', () => {
     const s = e.stats();
     assert.ok(s.births > 20, `expected replication (births=${s.births})`);
     assert.equal(s.genotypes, 1, `breeds true: exactly 1 genotype (got ${s.genotypes})`);
+  });
+
+  it('[GSINV-ANCESTOR-LABELED] a LABEL-AUTHORED replicator breeds true through the label->template->complementary-search path', () => {
+    // ANCESTOR_LABELED_GS uses real `label:` defs + `find-back`/`find-forward`/`jump`/`call <label>`
+    // references (no `raw nop*`), so the compiler ALLOCATES the templates and their complements. If it
+    // breeds true, the whole headline path — label -> unique complementary template -> the engine's
+    // complementary search -> self-replication -> breed-true — is exercised end to end.
+    const src = ANCESTOR_LABELED_GS;
+    // sanity: it really is label-authored (defs + label references, not raw templates).
+    assert.ok(/^label\d+:$/m.test(src), 'has label definitions');
+    assert.ok(/\b(find-back|find-forward|jump|call)\s+label\d+/.test(src), 'has label references');
+    assert.ok(!/\braw nop[01]\b/.test(src), 'no raw nop templates — the label path, not the raw path');
+
+    const r = compile(src, classic32);
+    assert.equal(hasErrors(r.diagnostics), false, 'label-authored replicator compiles');
+    const e = new Engine({ seed: 7, mutation: { flaw: 0, copy: 0, cosmic: 0 } });
+    e.inject(r.bytes, { founderId: 1 });
+    e.run(500_000);
+    const s = e.stats();
+    assert.ok(s.births > 20, `expected replication via labels (births=${s.births})`);
+    assert.equal(s.genotypes, 1, `breeds true through the label path: exactly 1 genotype (got ${s.genotypes})`);
   });
 
   it('[GSINV-SOURCEMAP] every emitted byte maps to exactly one statement; each statement a contiguous range', () => {

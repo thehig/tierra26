@@ -15,7 +15,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { disassemble } from '../src/disasm.ts';
-import type { DisasmResult } from '../src/disasm.ts';
+import type { DisasmResult, Annotation } from '../src/disasm.ts';
 import {
   mnemonicAtOpcode, mnemonicToVerb, verbToMnemonic, takesTarget, opcodeOf,
 } from '../src/vocab.ts';
@@ -79,6 +79,23 @@ function assertTiles(res: DisasmResult, len: number): void {
     cursor = line.bytes[1];
   }
   assert.equal(cursor, len, 'lines cover the whole genome');
+}
+
+/** Assert the annotation stream is DENSE and 1:1 with the genome (the byte-wise inverse of the
+ *  compiler source map): one record per byte, byteIndex === i, opcode == the byte, a known role,
+ *  and a lineIndex whose line's byte-range actually contains i. */
+function assertAnnotationsAlign(res: DisasmResult, g: Uint8Array): void {
+  assert.equal(res.annotations.length, g.length, 'one annotation per genome byte');
+  const roles = new Set(['verb', 'template', 'raw-op', 'raw-byte']);
+  for (let i = 0; i < g.length; i++) {
+    const a = res.annotations[i]!;
+    assert.equal(a.byteIndex, i, `annotation ${i} is index-aligned`);
+    assert.equal(a.opcode, g[i], `annotation ${i} carries the literal byte`);
+    assert.ok(roles.has(a.role), `annotation ${i} has a known role (${a.role})`);
+    const line = res.lines[a.lineIndex];
+    assert.ok(line !== undefined, `annotation ${i} points at a real line`);
+    assert.ok(i >= line!.bytes[0] && i < line!.bytes[1], `annotation ${i} lies in its line's range`);
+  }
 }
 
 // A tiny deterministic PRNG so the fuzz tests are reproducible (C-GS-DET-friendly test).
@@ -219,40 +236,75 @@ describe('Disassembler (DISASM)', () => {
     }
   });
 
-  it('[DISASM-012] The line/byte annotation aligns 1:1 with bytes across verbs, templates and raw fallbacks', () => {
+  it('[DISASM-012] The per-byte annotation stream aligns 1:1 with bytes across verbs, templates and raw fallbacks', () => {
     const g = Uint8Array.of(
       op(classic32, 'nop0'), op(classic32, 'divide'), op(classic32, 'adrb'), op(classic32, 'nop1'),
       classic32.n + 2, op(classic32, 'incA'),
     );
     const res = disassemble(g, classic32);
-    assertTiles(res, g.length); // dense, ordered, gap-free, no overlap
+    assertTiles(res, g.length);          // lines still tile bytes gap-free
+    assertAnnotationsAlign(res, g);      // AND a dense annotation per byte, index-aligned
+    // annotations.length === genome.length and byteIndex === i for every byte (the reverse of the source map).
+    assert.equal(res.annotations.length, g.length);
+    // stats summary is dense too: every byte counted under exactly one role.
+    const { verbs, templates, rawOps, rawBytes } = res.stats;
+    assert.equal(verbs + templates + rawOps + rawBytes, g.length);
+    assert.equal(res.stats.bytes, g.length);
   });
 
-  it('[DISASM-013] Each line carries a well-formed text/verb (or raw form) consistent with its bytes', () => {
+  it('[DISASM-013] Each annotation carries the correct role + resolved mnemonic/verb (or null) and a consistent lineIndex', () => {
+    // grow-a (verb), out-of-range byte (raw-byte), then a nop0/nop1 landmark run (template).
     const g = Uint8Array.of(op(classic32, 'incA'), classic32.n + 1, op(classic32, 'nop0'), op(classic32, 'nop1'));
     const res = disassemble(g, classic32);
-    for (const line of res.lines) {
-      const [s, e] = line.bytes;
-      assert.ok(s >= 0 && e <= g.length && s < e);
-      const ok = /^label\d+:$/.test(line.text)
-        || /^raw byte \d+$/.test(line.text)
-        || /^raw \S+$/.test(line.text)
-        || mnemonicToVerb(verbToMnemonic(line.text.split(' ')[0]!) ?? '') !== undefined
-        || line.text.split(' ').length >= 1;
-      assert.ok(ok, `well-formed line: ${line.text}`);
+    assertAnnotationsAlign(res, g);
+
+    const [verbA, rawA, tpl0, tpl1] = res.annotations as [Annotation, Annotation, Annotation, Annotation];
+    // a clean compute verb: role 'verb', real mnemonic + verb, no labelRef.
+    assert.equal(verbA.role, 'verb');
+    assert.equal(verbA.mnemonic, 'incA');
+    assert.equal(verbA.verb, 'grow-a');
+    assert.equal(verbA.labelRef, undefined);
+    assert.equal(res.lines[verbA.lineIndex]!.text, 'grow-a');
+    // an out-of-range byte: role 'raw-byte', null mnemonic + null verb (not folded mod N).
+    assert.equal(rawA.role, 'raw-byte');
+    assert.equal(rawA.mnemonic, null);
+    assert.equal(rawA.verb, null);
+    assert.equal(res.lines[rawA.lineIndex]!.text, `raw byte ${classic32.n + 1}`);
+    // the landmark run: both nop bytes are role 'template' with the mark verb and a shared labelRef.
+    for (const t of [tpl0, tpl1]) {
+      assert.equal(t.role, 'template');
+      assert.ok(t.mnemonic === 'nop0' || t.mnemonic === 'nop1');
+      assert.ok(t.verb === 'mark-0' || t.verb === 'mark-1');
+      assert.equal(res.lines[t.lineIndex]!.kind, 'label');
     }
-    // the grow-a byte -> verb; the out-of-range byte -> raw byte
+    assert.equal(tpl0.labelRef, tpl1.labelRef); // one run -> one label
+    assert.match(tpl0.labelRef!, /^label\d+$/);
+    // the emitted lines are consistent with the annotations that point at them.
     assert.equal(res.lines[0]!.text, 'grow-a');
     assert.equal(res.lines[1]!.text, `raw byte ${classic32.n + 1}`);
   });
 
-  it('[DISASM-014] A paired reference and its defining landmark share the SAME label name', () => {
+  it('[DISASM-014] A paired reference and its defining landmark share the SAME labelRef (both ends of the jump)', () => {
     const g = Uint8Array.of(op(classic32, 'nop0'), op(classic32, 'divide'), op(classic32, 'adrb'), op(classic32, 'nop1'));
     const res = disassemble(g, classic32);
+    assertAnnotationsAlign(res, g);
+    // byte 0 defines the landmark; byte 3 is the addressing instruction's reference template.
+    const defAnn = res.annotations[0]!;
+    const refAnn = res.annotations[3]!;
+    assert.equal(defAnn.role, 'template');
+    assert.equal(refAnn.role, 'template');
+    assert.ok(defAnn.labelRef !== undefined);
+    assert.equal(refAnn.labelRef, defAnn.labelRef); // both template ends carry the SAME label
+    // and it is a real inferred label whose defining run is byte 0 and whose ref includes byte 3.
+    const label = res.labels.find((l) => l.name === defAnn.labelRef)!;
+    assert.equal(label.definedAt, 0);
+    assert.deepEqual(label.bits, [0]);
+    assert.deepEqual(label.refs, [3]);
+    // the text still names both ends with that label.
     const def = res.lines.find((l) => /^label\d+:$/.test(l.text))!;
     const ref = res.lines.find((l) => l.text.startsWith('find-back'))!;
-    const name = def.text.slice(0, -1); // strip ':'
-    assert.equal(ref.text, `find-back ${name}`); // both ends carry the same label
+    assert.equal(def.text, `${defAnn.labelRef}:`);
+    assert.equal(ref.text, `find-back ${defAnn.labelRef}`);
   });
 
   it('[DISASM-015] Determinism (C-GS-DET): same genome + set twice yields identical text + lines', () => {

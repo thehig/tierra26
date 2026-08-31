@@ -33,6 +33,9 @@ import type {
   ActiveSubset,
 } from './types.ts';
 import { isVerb } from '../../genescript/src/vocab.ts';
+// Per-kind goal-param validation lives in the goal package (single-sourced rules — spec 06 §4/§5).
+// content.validate() reuses it so a malformed authored goal is caught at authoring, not at check time.
+import { validateGoal as validateGoalParams } from './goal.ts';
 
 // ---------------------------------------------------------------------------
 // Small declarative value parser (scalars, string lists, one level of nested map).
@@ -762,5 +765,12 @@ function validateGoal(goal: Goal, at: Loc, out: Diagnostic[]): void {
         at,
       ),
     );
+    return; // unknown kind: per-kind param rules don't apply until the kind is fixed
+  }
+  // Kind is known → validate the params-per-kind (missing kind-required param, non-integer/<=0
+  // deadline, …) via the goal package's rules. No ctx: the soft cross-layer mutation check is a
+  // GOAL-layer concern, not a content authoring error.
+  for (const d of validateGoalParams(goal)) {
+    out.push(diag('invalid-goal', 'error', d.message, at));
   }
 }

@@ -19,3 +19,43 @@ const LINES: string[] = [
 
 /** The GeneScript ancestor source (compiles to the 80-byte 0080aaa genome; breeds true). */
 export const ANCESTOR_GS: string = LINES.join('\n') + '\n';
+
+// A LABEL-AUTHORED self-replicator that exercises GeneScript's headline path end to end:
+// real `label:` definitions -> unique complementary nop templates ([03] assignTemplates) ->
+// the engine's complementary template search -> breed-true. Unlike ANCESTOR_GS (which pins the
+// exact reference bytes via `raw nop*`/`raw <addr>`), this fixture names its landmarks and
+// addresses them through `find-back`/`find-forward`/`jump`/`call <label>`, so compilation allocates
+// the templates and their complements itself. It is the disassembler's own labelled rendering of the
+// ancestor's 80 bytes (the DISASM label path), and it BREEDS TRUE under sterile settings — proving
+// label -> template -> complementary-search -> replication through the label machinery.
+const LABELED_LINES: string[] = [
+  'label1:',
+  'clear', 'flip-bit', 'double', 'double', 'copy-c-to-d',
+  'find-back label1',
+  'subtract-into-a', 'copy-a-to-b',
+  'find-forward label6',
+  'grow-a', 'subtract',
+  'label2:',
+  'make-space',
+  'call label3',
+  'divide',
+  'jump label2',
+  'if-zero',
+  'label3:',
+  'save-a', 'save-b', 'save-c',
+  'label4:',
+  'copy-byte', 'shrink-c', 'if-zero',
+  'jump label5',
+  'grow-a', 'grow-b',
+  'jump label4',
+  'if-zero',
+  'label5:',
+  'load-c', 'load-b', 'load-a', 'return',
+  'label6:',
+  'if-zero',
+];
+
+/** Label-authored self-replicator (real `label:` defs + `find`/`jump`/`call <label>` refs). Compiles
+ *  under classic-32 and breeds true, exercising the label->template->complementary-search->breed-true
+ *  path GeneScript is built around. */
+export const ANCESTOR_LABELED_GS: string = LABELED_LINES.join('\n') + '\n';

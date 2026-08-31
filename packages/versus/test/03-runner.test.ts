@@ -11,7 +11,7 @@ import { Engine } from '../../engine/src/index.ts';
 import { ANCESTOR_GS } from '../../genescript/src/ancestor.gs.ts';
 import { createWorkerCore } from '../../ui/src/worker-core.ts';
 
-import type { MatchConfig, MatchDescriptor, Placement, VersusLink } from '../src/types.ts';
+import type { MatchConfig, MatchDescriptor, MatchHistory, ObservationFrame, Placement, Player, VersusLink } from '../src/types.ts';
 import {
   placements,
   buildDescriptor,
@@ -19,10 +19,25 @@ import {
   serializeVersusLink,
   parseVersusLink,
   runMatch,
+  record,
   validateMatch,
   seededPermutation,
   engineHasGenerationCounter,
 } from '../src/runner.ts';
+import { score, rank } from '../src/match.ts';
+
+function emptyHistory(): MatchHistory {
+  return {
+    peakPopulation: new Map(),
+    totalBirths: new Map(),
+    earliestThresholdLead: new Map(),
+    avgSize: new Map(),
+  };
+}
+
+function frameOf(evs: unknown[]): ObservationFrame {
+  return (evs.find((e) => (e as { type: string }).type === 'frame') as unknown as { frame: ObservationFrame }).frame;
+}
 
 // ---- shared fixtures -------------------------------------------------------
 
@@ -305,5 +320,76 @@ describe('Match Runner & Fairness (RUNNER)', () => {
     return runMatch(gDesc).result.then((r) => {
       assert.ok(r.atGeneration >= 2);
     });
+  });
+
+  it('[RUNNER-003b] toRunDescriptor APPLIES symmetric placement — injections carry `at` offsets and land founders there', () => {
+    const cfg: MatchConfig = {
+      scenario: scenarioWith({ seed: 9 }),
+      seed: 4,
+      players: [
+        { founderId: 1, name: 'Breeder', genome: BREEDER },
+        { founderId: 2, name: 'Inert', genome: INERT },
+      ],
+      rules: { threshold: { kind: 'cycles', value: 10_000 }, tiebreakers: ['peak-population'] },
+    };
+    const m = buildDescriptor(cfg);                 // placement defaults to { kind: 'even' }
+    const rd = toRunDescriptor(m);
+    const offsets = placements(m.players.length, m.scenario.soupSize, m.placement);
+    assert.deepEqual(offsets, [0, 10_000]);         // even spacing over the 20k soup
+
+    // Each injection carries an `at` (no longer inert): the offsets, assigned in emitted order.
+    assert.deepEqual(rd.injections.map((i) => i.at), offsets);
+    // Even spacing holds regardless of the (permuted) emission order — the set of `at`s IS the offset set.
+    assert.deepEqual([...rd.injections.map((i) => i.at!)].sort((a, b) => a - b), offsets);
+
+    // Injecting them into a fresh Engine lands the founders exactly at those addresses (blocks free at cycle 0).
+    const e = new Engine(rd.scenario);
+    const starts: number[] = [];
+    for (const inj of rd.injections) {
+      const id = e.inject(inj.genome, { founderId: inj.founderId, at: inj.at });
+      starts.push(e.world.creatures.get(id)!.start);
+    }
+    assert.deepEqual(starts, rd.injections.map((i) => i.at)); // founders start match the placement offsets
+  });
+
+  it('[RUNNER-009b] the record path captures LIVE totalBirths + avgSize per founder; a total-births tie resolves via the recorded observable', () => {
+    // Drive the REAL record() over a real engine census (the same worker path runMatch uses).
+    const desc = descriptor();
+    const rd = toRunDescriptor(desc);
+    const core = createWorkerCore();
+    core.handle({ type: 'createSession', engineVersion: Engine.version, sessionId: 's' } as never);
+    core.handle({ type: 'init', scenario: rd.scenario, injections: rd.injections, sessionId: 's' } as never);
+
+    const players: Player[] = [
+      { founderId: 1, name: 'Breeder', genome: BREEDER },
+      { founderId: 2, name: 'Inert', genome: INERT },
+    ];
+    const history = emptyHistory();
+    const standings$: never[] = [];
+
+    // Cycle-0 frame (both founders alive) then a threshold frame (breeder has bred). Both fold in.
+    const f0 = frameOf(core.handle({ type: 'run', mode: 'budget', nInstructions: 0, sessionId: 's' } as never));
+    record(standings$ as unknown as never, history, f0, players);
+    const fN = frameOf(core.handle({ type: 'run', mode: 'budget', nInstructions: 40_000, sessionId: 's' } as never));
+    record(standings$ as unknown as never, history, fN, players);
+
+    // Non-zero, per founder, straight from the census — not hand-filled.
+    assert.ok((history.totalBirths.get(1) ?? 0) > 1, 'breeder recorded many cumulative births');
+    assert.ok((history.totalBirths.get(2) ?? 0) >= 1, 'the inert seed itself is one recorded birth');
+    assert.ok((history.avgSize.get(1) ?? 0) > 0, 'breeder recorded a live avg genome size');
+    assert.ok((history.avgSize.get(2) ?? 0) > 0, 'inert recorded a live avg genome size');
+    // The breeder out-breeds the inert rival (a real, ordered observable).
+    assert.ok((history.totalBirths.get(1) ?? 0) > (history.totalBirths.get(2) ?? 0));
+
+    // A population tie now resolves via the RECORDED total-births — the history came from record(), not a literal.
+    const tied = score(new Map<number, number>([[1, 5], [2, 5]]), players);
+    assert.deepEqual(tied.map((s) => s.rank), [1, 1]); // genuine tie on population
+    const decided = rank(tied, { threshold: desc.threshold, tiebreakers: ['total-births'] }, history, {
+      atCycle: fN.cycles,
+      atGeneration: fN.stats.generations,
+      descriptor: desc,
+    });
+    assert.equal(decided.winner, 1);
+    assert.equal(decided.tiebreakerUsed, 'total-births');
   });
 });

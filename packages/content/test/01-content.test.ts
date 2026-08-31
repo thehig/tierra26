@@ -530,4 +530,41 @@ x`);
     assert.deepEqual(empty!.ast.body, []);
     assert.ok(empty!.diagnostics.find((d) => d.code === 'frontmatter-required'));
   });
+
+  it('[CONTENT-023] per-kind goal params are validated: a :::goal with a KNOWN kind but a missing kind-required param (replicates with no `within`) yields an invalid-goal error; a well-formed goal validates clean (spec 06 §4/§5)', () => {
+    const mk = (goalLine: string) => `---
+id: l
+chapter: 1
+title: t
+unlocks: { verbs: [], concepts: [] }
+requires: []
+mutation: off
+---
+:::goal ${goalLine}
+Do the thing.
+:::`;
+
+    // replicates needs `within` — omitting it is now a content error (was clean before the fix).
+    const missing = parse(mk('{ kind: replicates }'));
+    const dsMissing = validate(missing.ast, makeResolver({}));
+    const bad = dsMissing.find((d) => d.code === 'invalid-goal');
+    assert.ok(bad, 'a missing kind-required param is an invalid-goal error');
+    assert.equal(bad!.severity, 'error');
+    assert.ok(typeof bad!.loc.line === 'number');
+
+    // a non-integer / <= 0 deadline is likewise rejected.
+    const badDeadline = parse(mk('{ kind: survive, cycles: 0 }'));
+    assert.ok(
+      validate(badDeadline.ast, makeResolver({})).some((d) => d.code === 'invalid-goal'),
+      'a <=0 deadline is an invalid-goal error',
+    );
+
+    // a well-formed goal validates clean (no invalid-goal error).
+    const good = parse(mk('{ kind: replicates, within: 5000 }'));
+    assert.equal(
+      validate(good.ast, makeResolver({})).filter((d) => d.code === 'invalid-goal').length,
+      0,
+      'a well-formed goal is clean',
+    );
+  });
 });

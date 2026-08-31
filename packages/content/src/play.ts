@@ -44,9 +44,15 @@ export const OBS = { topK: 16, width: 64, height: 48 } as const;
 const DEFAULT_CYCLES = 1000;
 
 // A tiny built-in scenario registry for string ids (real ids are resolved by [01]).
+// The shipped-lesson soups (soup-small/soup-standard/soup-evolve) mirror the app's playground
+// presets (packages/app/src/playground/resolve.ts) so the content bridge and the worker agree:
+// design-phase soups run mutation-off; the emergence "evolve" soup turns copy/cosmic mutation on.
 const SCENARIOS: Readonly<Record<string, Partial<Scenario>>> = {
   default: {},
   small: { soupSize: 8000 },
+  'soup-small': { soupSize: 30000, mutation: { flaw: 0, copy: 0, cosmic: 0 } },
+  'soup-standard': { soupSize: 60000, mutation: { flaw: 0, copy: 0, cosmic: 0 } },
+  'soup-evolve': { soupSize: 60000, mutation: { flaw: 0, copy: 200, cosmic: 4000 } },
 };
 
 // ---- a typed, kid-friendly failure carrying compile/subset diagnostics --------
@@ -176,6 +182,14 @@ export function deserializeConfig(s: string): PlaygroundConfig {
   return JSON.parse(s) as PlaygroundConfig;
 }
 
+// Smallest LIVE genome size in the soup (matches goal.ts minLiveGenomeSize — the same "smallest
+// live descendant" reading spec 06 §4.2 uses for shrink-genome). 0 when the soup is empty.
+function minLiveGenomeSize(e: Engine): number {
+  let min = Infinity;
+  for (const c of e.world.creatures.values()) if (c.size < min) min = c.size;
+  return min === Infinity ? 0 : min;
+}
+
 // ---- live goal evaluation (deterministic per seed; a pure fn of engine stats) --
 interface Countable {
   cycles: number;
@@ -183,6 +197,7 @@ interface Countable {
   genotypes: number;
   births: number;
   deaths: number;
+  minLiveSize: number; // smallest live genome size in the soup at this cycle (shrink-genome)
 }
 function evaluateGoal(goal: GoalSpec, s: Countable): GoalStatus {
   const p = goal.params;
@@ -219,15 +234,23 @@ function evaluateGoal(goal: GoalSpec, s: Countable): GoalStatus {
       break;
     }
     case 'out-populate': {
-      measured = s.population; // no rival lineage in a single-config playground
+      // A single-config playground has no rival lineage, so this cannot be decided live here —
+      // out-populate is a comparative Versus goal ([06] rankVersus / checkOutPopulate runs both
+      // genomes in one shared soup). We surface this lineage's live population as `measured` and
+      // stay inconclusive (passed:false) rather than fake a verdict.
+      measured = s.population;
       passed = false;
       progress = 0;
       break;
     }
     case 'shrink-genome': {
-      measured = 0; // per-creature size is a UI/[06] concern; live status is best-effort
-      passed = false;
-      progress = 0;
+      // Live status from the engine's smallest live genome size (spec 06 §4.2). Passes once some
+      // living creature is under the byte threshold; guarded on a non-empty soup so an empty tank
+      // (minLiveSize 0) never spuriously passes.
+      const target = p.size ?? 1;
+      measured = s.minLiveSize;
+      passed = s.population > 0 && measured < target;
+      progress = passed ? 1 : measured > 0 && target > 0 ? Math.min(1, target / measured) : 0;
       break;
     }
     default: {
@@ -295,7 +318,8 @@ export function createPlayground(cfg: PlaygroundConfig): Playground {
 
   function currentGoal(): GoalStatus | undefined {
     if (!normalized.goal) return undefined;
-    return evaluateGoal(normalized.goal, engine.stats());
+    const s = engine.stats();
+    return evaluateGoal(normalized.goal, { ...s, minLiveSize: minLiveGenomeSize(engine) });
   }
 
   build();

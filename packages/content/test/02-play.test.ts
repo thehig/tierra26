@@ -14,7 +14,9 @@ import {
   PlaygroundError,
   OBS,
 } from '../src/play.ts';
-import type { PlaygroundConfig } from '../src/types.ts';
+import type { PlaygroundConfig, PlaygroundNode } from '../src/types.ts';
+import { parse } from '../src/content.ts';
+import { LESSONS, STARTERS } from '../src/lessons.ts';
 import { Engine, classic32, buildSubset } from '../../engine/src/index.ts';
 import { observe, makeTank } from '../../engine/src/stats.ts';
 import { disassemble } from '../../genescript/src/disasm.ts';
@@ -282,5 +284,63 @@ describe('Playground Component (PLAY)', () => {
     assert.equal(typeof pg.stepInstruction, 'function');
     assert.equal(typeof pg.injectEdited, 'function');
     assert.equal(typeof pg.state.frame, 'object');
+  });
+
+  it('[PLAY-014] live shrink-genome status reflects the engine (no longer stubbed): measured = smallest live genome size at the current cycle, passed = measured < size', () => {
+    const smallest = compile(STARTER, classic32).bytes.length; // one founder present at cycle 0
+
+    // Threshold above the starter size → passes, and measured is the REAL live size (not a 0 stub).
+    const pass = createPlayground(
+      baseConfig({ goal: { id: 'sh', kind: 'shrink-genome', params: { size: smallest + 1 }, tier: 'required', title: 'shrink' } }),
+    );
+    const g = pass.state.goal!;
+    assert.equal(g.kind, 'shrink-genome');
+    assert.equal(g.measured, smallest); // engine's smallest live genome, read live
+    assert.notEqual(g.measured, 0);
+    assert.equal(g.passed, true);
+    assert.equal(g.atCycle, 0);
+
+    // Threshold == the starter size → fails (measured is not strictly < size), still reporting real size.
+    const fail = createPlayground(
+      baseConfig({ goal: { id: 'sh', kind: 'shrink-genome', params: { size: smallest }, tier: 'required', title: 'shrink' } }),
+    );
+    const gf = fail.state.goal!;
+    assert.equal(gf.measured, smallest);
+    assert.equal(gf.passed, false);
+
+    // Deterministic per seed at the same cycle.
+    const a = createPlayground(baseConfig({ goal: { id: 'sh', kind: 'shrink-genome', params: { size: smallest + 1 }, tier: 'required', title: 'shrink' } }));
+    const b = createPlayground(baseConfig({ goal: { id: 'sh', kind: 'shrink-genome', params: { size: smallest + 1 }, tier: 'required', title: 'shrink' } }));
+    a.runTo(200); b.runTo(200);
+    assert.deepEqual(a.state.goal, b.state.goal);
+  });
+
+  it('[PLAY-015] the play bridge resolves the shipped lesson scenario ids: a real lesson playground config (soup-small) normalizes without throwing, and soup-evolve resolves mutation-on', () => {
+    const cfgOf = (id: string): PlaygroundConfig => {
+      const lesson = LESSONS.find((l) => l.id === id)!;
+      const pg = parse(lesson.source).ast.body.find((n) => n.kind === 'playground') as PlaygroundNode;
+      // PLAY holds no starter registry (C-CON-SOURCE); resolve the shipped `ancestor` ref → its
+      // GeneScript source exactly as [01]/[03] would, then hand PLAY a self-contained config.
+      return { ...pg.config, starter: { kind: 'genescript', source: STARTERS.ancestor.source } };
+    };
+
+    // soup-small (design phase) resolves without throwing → mutation OFF.
+    const small = cfgOf('ch01-landmarks');
+    assert.equal(small.scenario, 'soup-small');
+    let normSmall!: ReturnType<typeof normalizePlayground>;
+    assert.doesNotThrow(() => { normSmall = normalizePlayground(small); });
+    assert.equal(normSmall.scenario.soupSize, 30000);
+    assert.equal(normSmall.scenario.mutation.copy, 0);
+    assert.equal(normSmall.scenario.mutation.cosmic, 0);
+
+    // soup-evolve (emergence) resolves → mutation ON.
+    const evolve = cfgOf('ch07-mutation');
+    assert.equal(evolve.scenario, 'soup-evolve');
+    const normEvolve = normalizePlayground(evolve);
+    assert.equal(normEvolve.scenario.soupSize, 60000);
+    assert.ok(
+      normEvolve.scenario.mutation.copy > 0 || normEvolve.scenario.mutation.cosmic > 0,
+      'soup-evolve turns mutation on',
+    );
   });
 });
