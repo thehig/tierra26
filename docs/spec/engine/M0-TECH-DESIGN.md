@@ -142,6 +142,7 @@ interface Creature {
   bornAtCycle: number; parentId: CreatureId;
   errorCount: number;               // lifetime E events (reaper input)
   genotypeId: number;               // assigned at birth (genebank hook)
+  founderId: number;                // Versus lineage tag (0=neutral); set at inject, inherited on divide (S1)
   // intrusive queue links (see scheduler/reaper): slicerPrev/Next, reaperPrev/Next
 }
 ```
@@ -365,17 +366,22 @@ interface Mutation {
 ## 14. Engine API & reproducibility
 
 ```ts
-// index.ts
+// index.ts — canonical, fully-specified Scenario lives in systems/15 §2 (this is the M0 sketch).
 interface Scenario {
   soupSize: number;              // default 60000
   instructionSet: 'classic32' | SubsetSpec;
-  seed: number;
-  slicer: { style: 'ran'; sizeDependent: true; slicePow: 1 };
-  reaper: { threshold: number };     // soup-fullness trigger
-  limits: { minCellSize: 12; searchLimitMult: 5; movPropThrDiv: 0.7; ... };
-  mutation: { flaw: 0; copy: 0; cosmic: 0 };   // M0 defaults
+  seed: number;                  // canonical seed home
+  slicer: { style: 'ran'; sizeDependent: boolean; slicePow: number; sliceSize: number };
+                                 // DEFAULT sizeDependent:false (uniform slice = shipped-experiment regime,
+                                 // size-selecting; S6). slicePow:1, sliceSize:25.
+  reaper: { threshold: number; reapRndProp?: number };   // soup-fullness trigger (+S23)
+  limits: { minCellSize: 12; searchLimitMult: 5; movPropThrDiv: 0.7; minTemplSize: 1; maxCellSize: number; dropDead?: number };
+  malMode: MalMode;              // default 'first-fit' (M0 determinism choice; see 15 §2 / S7)
+  mutation: MutationRates;       // full rate surface (owned by [11]); M0 defaults all 0 (breed true)
+  disturbance?: { freq: number; prop: number };   // S24 (default off)
+  inoculation?: { placement: 'first-fit'|'even'|'explicit'; offsets?: number[] };  // S29 (default first-fit)
 }
-interface Injection { atCycle: number; genome: Uint8Array; }
+interface Injection { atCycle: number; genome: Uint8Array; founderId?: number; }  // founderId: S1
 interface RunDescriptor { engineVersion: string; scenario: Scenario; injections: Injection[]; cycles: number; }
 
 class Engine {
@@ -395,10 +401,15 @@ class Engine {
   (later) Versus match sharing.
 
 ## 15. Snapshot / serialization (`snapshot.ts`)
-- Serializes: engine version, scenario, `cycles`, `nextId`, **RNG state (4 words)**, soup
-  bytes, and every creature (bounds, full CPU, daughter fields, queue positions, bookkeeping).
+- Serializes (canonical field list in systems/14 §2 — keep them in sync): engine version,
+  scenario, `cycles`, `nextId`, **RNG state (4 words)**, soup bytes, `births`/`deaths`,
+  **`generations`, running `avgSizeScaled`** (feeds searchLimit — snapshot-critical, S5),
+  **slicer cursor + `remainingInSlice`** (S5), **mutation period counters** (S5), the
+  **genebank genotype table** (S5), and every creature (bounds, full CPU, daughter fields,
+  queue positions, bookkeeping, **`founderId`** — S1).
 - `restore` reconstructs an engine that continues **bit-identically**. Round-trip
-  (`restore(snapshot(e))` ≡ `e`) is a tested invariant.
+  (`restore(snapshot(e))` ≡ `e`) is a tested invariant — and only holds if EVERY mutable,
+  fate-affecting field above is captured (S5: an omitted field silently breaks INV-ROUNDTRIP).
 
 ---
 

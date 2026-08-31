@@ -39,10 +39,12 @@ works; it is pure bookkeeping, so adding it cannot alter evolutionary dynamics (
 type FounderId = number;                                   // 0 = neutral; 1..N = players
 
 // Consumed from engine frames (after the extension above):
-interface FounderCensus { perFounder: Map<FounderId, number>; total: number; }
+// FounderCensus is owned by engine STATS [13] as `{ counts: Uint32Array; total }` (S1) — the
+// allocation-light frame shape. Versus imports it; it does NOT redefine a Map-based census.
+import type { FounderCensus } from '../engine/systems/13-statistics-and-observation';
 
-function attribute(frame: ObservationFrame): FounderCensus;          // pure read of frame tags
-function isPartition(c: FounderCensus): boolean;                     // Σ perFounder == total
+function attribute(frame: ObservationFrame): FounderCensus;          // returns frame.founders (pure)
+function isPartition(c: FounderCensus): boolean;                     // Σ counts == total
 ```
 
 ## 4. Behavior / algorithms

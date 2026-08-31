@@ -110,8 +110,20 @@ type WorkerEvent =
   | ({ type: 'error'; code: WorkerErrorCode; message: string; fatal: boolean } & Envelope); // correlationId if a reply
 
 interface AckResult { creatureId?: CreatureId; cycles?: number; }   // e.g. inject → creatureId, run/step → cycles
-interface InspectView { creatureId?: CreatureId; ip?: number; registers?: number[]; flags?: number;
-                        stack?: number[]; genome?: Uint8Array; }    // read-only inspector payload (INSPECTOR [04])
+// Read-only inspector payload — WORKER is the SOLE owner (S4); the Inspector [04] imports this
+// exact shape (no second definition). The worker resolves genebank label/population + daughter/bounds
+// worker-side so the host renders without further engine calls.
+interface InspectView {
+  address: number; occupied: boolean;
+  creatureId: number; parentId: number; bornAtCycle: number;
+  genotypeId: number; genotypeLabel: string; population: number; founderId: number;
+  ip: number; registers: { A: number; B: number; C: number; D: number };
+  flags: { E: boolean; S: boolean; Z: boolean };
+  stack: number[]; sp: number;
+  cell: { start: number; size: number };
+  daughter: { start: number; size: number; written: number } | null;
+  genome: Uint8Array;
+}
 
 type WorkerErrorCode =
   | 'VERSION_MISMATCH'   // createSession/init/replay engineVersion ≠ Engine.version (§4.2)

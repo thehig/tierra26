@@ -92,4 +92,10 @@ describe('Snapshot & Reproducibility (SNAP)', () => {
       'cycle N, including on a fresh-process / repeated invocation (integer-only checksum + RNG ' +
       '=> no drift)',
   );
+  it.todo("[SNAP-011] CreatureSnapshot.founderId is serialized + restored (S1; Versus replay scores identically)");
+  it.todo("[SNAP-012] slicer cursor + remainingInSlice serialized/restored (S5; resumes mid-slice)");
+  it.todo("[SNAP-013] mutation period counters serialized/restored (S5; cadence continues in phase)");
+  it.todo("[SNAP-014] genebank genotype table serialized/restored (S5; labels continue, no relabelling)");
+  it.todo("[SNAP-015] generations + avgSizeScaled serialized/restored (S5; searchLimit continues identically)");
+  it.todo("[SNAP-016] completeness: restore(snapshot(e)) continued N == e continued N for a mutation-on run (S5; catches any omitted field)");
 });

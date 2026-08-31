@@ -23,23 +23,12 @@ study ("open in editor" — the evolved-parasite flow).
 ## 2. Interfaces
 
 ```ts
-import type { InspectView, TankCommand } from '@tierra26/ui'; // (future)
+// InspectView is defined ONCE by the worker protocol [ui/01] (S4) and imported here — not redefined.
+import type { InspectView } from './01-worker-protocol';
+import type { TankCommand } from './02-tank-view';
 
 // Request comes from a click in the Tank [02] or a selection; goes to the worker [01].
 interface InspectRequest { sessionId: string; address: number; correlationId: string; }
-
-// The worker replies with a read-only view (subset of the engine snapshot for one creature).
-interface InspectView {
-  address: number; occupied: boolean;
-  creatureId: number; parentId: number; bornAtCycle: number;
-  genotypeId: number; genotypeLabel: string; population: number;
-  ip: number; registers: { A: number; B: number; C: number; D: number };
-  flags: { E: boolean; S: boolean; Z: boolean };
-  stack: number[]; sp: number;
-  cell: { start: number; size: number };
-  daughter: { start: number; size: number; written: number } | null;
-  genome: Uint8Array;            // the creature's bytes, for disassembly
-}
 
 // The pure view-model the panels render:
 function toPanelModel(v: InspectView, disasm: Disassembler): InspectorPanels;

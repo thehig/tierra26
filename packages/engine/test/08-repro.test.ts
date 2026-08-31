@@ -35,4 +35,5 @@ describe('Reproduction (REPRO)', () => {
 
   // --- end-to-end: the canonical ancestor breeds true ---
   it.todo('[REPRO-018] the canonical 0080aaa self-replication sequence (locate -> mal -> copy -> divide) with mutation off yields a byte-identical, sterile daughter');
+  it.todo("[REPRO-019] on divide the daughter inherits the mother founderId (VSINV-INHERIT / S1)");
 });

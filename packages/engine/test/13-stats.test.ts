@@ -46,4 +46,6 @@ describe('Statistics & Observation (STAT)', () => {
   it.todo(
     '[STAT-006] digest(w, N) is identical across two same-seed runs and across a snapshot/restore boundary; every digest field is an integer',
   );
+  it.todo("[STAT-011] TankView carries per-cell genotypeOf + ips alongside cells, width*height indexed (S2)");
+  it.todo("[STAT-012] founders census partitions population: Σ counts == total == population every frame (S1)");
 });

@@ -324,6 +324,9 @@ append-only.
 
 ---
 
+- **SLICE-010** — With `sizeDependent=false` (DEFAULT, S6) the base slice is the constant `sliceSize` regardless of genome size (randomized [0,2·sliceSize]) — larger genomes cost proportionally more life-cycles ⇒ size is SELECTED AGAINST (the shipped-experiment regime).
+- **SLICE-011** — With `sizeDependent=true` the base slice is `size^slicePow` (size-neutral) — the C-header regime, available via config but not the default.
+
 ## 9. Open questions
 
 1. **`step()` semantics across slice boundaries.** Should `step()` expose the *remaining*

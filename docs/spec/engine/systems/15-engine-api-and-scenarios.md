@@ -67,15 +67,21 @@ interface SubsetSpec {
 interface Scenario {
   soupSize: number;                    // default 60000 (SPEC §9.4); >= limits.maxCellSize and > 0
   instructionSet: 'classic32' | SubsetSpec;  // full ISA, or a tutorial subset
-  seed: number;                        // uint32; seed 0 is normal & reproducible (§[01])
+  seed: number;                        // uint32; seed 0 is normal & reproducible (§[01]). CANONICAL seed home (S14)
   slicer: {
     style: 'ran';                      // RanSlicerQueue (only style in M0)
-    sizeDependent: true;               // slice ∝ genome size (SizDepSlice=1)
-    slicePow: 1;                        // size exponent (SlicePow=1)
+    sizeDependent: boolean;            // false (DEFAULT, S6) = constant slice ⇒ big genomes cost more ⇒
+                                       //   size is SELECTED AGAINST (the regime EVERY shipped Tierra
+                                       //   experiment ran, SizDepSlice=0). true = slice ∝ size^slicePow
+                                       //   (size-neutral; the C-header default, never used in a shipped run).
+    slicePow: number;                  // default 1; size exponent when sizeDependent (SlicePow)
+    sliceSize: number;                 // default 25; base slice when !sizeDependent (randomized [0,2·base])
   };
   reaper: {
     threshold: number;                 // soup-fullness fraction that triggers reaping,
-                                       //   held as a scaled integer (e.g. per-1000); default 900/1000
+                                       //   held as a scaled integer (per-1000); default 900/1000
+    reapRndProp?: number;              // S23: random-victim proportion at queue top (scaled per-1000);
+                                       //   default 0 (deterministic, M0). Tierra si*=300.
   };
   limits: {
     minCellSize: number;               // default 12  (mal below this raises E)
@@ -83,15 +89,29 @@ interface Scenario {
     movPropThrDiv: number;             // default 0.7 (divide gate) — stored scaled, see §3
     minTemplSize: number;              // default 1   (shortest usable template)
     maxCellSize: number;               // default: soupSize (cap on mal size)
+    dropDead?: number;                 // S28: instructions-since-reproduce before forced death;
+                                       //   0 = off (default, M0). Tierra DropDead watchdog.
   };
-  mutation: { flaw: number; copy: number; cosmic: number };  // M0: all 0 (breed true)
+  malMode: MalMode;                    // S7: allocation strategy. Default 'first-fit' — an explicit
+                                       //   M0 DETERMINISM choice, NOT fidelity (shipped Tierra used
+                                       //   better-fit/random, which enable spatial aggregation). Exposed
+                                       //   so a scenario can select the reference strategy (M1).
+  mutation: MutationRates;             // S8: FULL rate surface (owned by mutation [11]). M0: all 0 (breed true).
+  disturbance?: { freq: number; prop: number };  // S24: periodic mass extinction; freq 0 = off (default).
+                                                  //   Tierra DistFreq/DistProp (on in si3/si7).
+  inoculation?: { placement: 'first-fit' | 'even' | 'explicit'; offsets?: number[] }; // S29: initial
+                                       //   seed layout; default 'first-fit'. 'even'/'explicit' for
+                                       //   symmetric placement (Versus [versus/03], multi-seed).
 }
+
+type MalMode = 'first-fit' | 'better-fit' | 'random' | 'near-mother' | 'near-dx' | 'near-sp';
 
 // ---- Injection & replay (index.ts) ----
 
 interface Injection {
   atCycle: number;             // cycle at which to inject (0 = before the run starts)
   genome: Uint8Array;          // opcode bytes (indices into the active set)
+  founderId?: number;          // S1: Versus lineage tag stamped on the seed creature (default 0 = neutral)
 }
 
 interface RunDescriptor {
@@ -101,24 +121,20 @@ interface RunDescriptor {
   cycles: number;              // total instructions to execute
 }
 
-interface Stats {
-  population: number;          // live creature count
-  genotypes: number;          // distinct live genotype ids
-  births: number;             // cumulative (world.births)
-  deaths: number;             // cumulative (world.deaths)
-  fullness: number;           // occupied bytes / soupSize, scaled integer per-1000 (C-INT)
-}
+// The live scalar surface is owned by STATS [13] as `LiveStats` (single definition, S15).
+// `stats()` returns it; do not redefine a second scalar type here.
+import type { LiveStats } from './13-statistics-and-observation';
 
 // ---- The public class (index.ts) ----
 
 class Engine {
   constructor(scenario: Partial<Scenario>);  // validates + fills defaults, builds World
 
-  inject(genome: Uint8Array): CreatureId;    // place at first free gap; register; return stable id
+  inject(genome: Uint8Array, opts?: { founderId?: number }): CreatureId; // place; register; stamp founder (S1); return id
   step(): void;                              // execute exactly one instruction
   run(nInstructions: number): void;          // execute whole slices until the budget is met
   get cycles(): number;                      // instructions executed so far (world.cycles)
-  stats(): Stats;                            // cheap observation snapshot
+  stats(): LiveStats;                        // cheap live scalar surface (owned by [13], S15)
 
   snapshot(): Snapshot;                      // full deterministic state (§[14])
   static restore(s: Snapshot): Engine;       // reconstruct; continues bit-identically
@@ -421,6 +437,9 @@ IDs are append-only.
   module-level state, C-SNAP).
 
 ---
+
+- **API-011** — `normalizeScenario` fills the full documented defaults — `slicer.sizeDependent=false` (S6, size-selecting), `slicer.slicePow=1`, `slicer.sliceSize=25`, `malMode=’first-fit’` (S7), `mutation` = all-zero `MutationRates` (S8), `disturbance`/`dropDead`/`inoculation` off/default — and validates (rejects out-of-range).
+- **API-012** — `inject(genome, {founderId})` stamps the seed creature’s `founderId` (default 0 = neutral) — the value the engine propagates on divide (S1).
 
 ## 9. Open questions
 

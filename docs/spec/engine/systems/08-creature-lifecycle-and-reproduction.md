@@ -51,6 +51,7 @@ scheduler, reaper, genebank, types); nothing imports it back.
 // creature.ts — daughter tracking surface (see §3 for fields)
 interface Creature {
   // ... identity/cell/cpu/bookkeeping (M0-TECH-DESIGN §4) ...
+  founderId: number;         // Versus lineage tag (0=neutral); set at inject, INHERITED on divide (S1; versus[02])
   dauStart: Addr;            // daughter block start; -1 when no daughter allocated
   dauSize: number;          // daughter block size in bytes; 0 when none
   dauWritten: number;       // count of DISTINCT daughter bytes written (0.7 gate numerator)
@@ -192,6 +193,7 @@ birthDaughter(mother):                       // world.ts
   child.cpu.ip = child.start                 // IP at the daughter's OWN start
   child.id = world.nextId++                   // C-ID: monotonic, deterministic
   child.parentId = mother.id
+  child.founderId = mother.founderId          // S1/VSINV-INHERIT: lineage tag flows to the daughter
   child.bornAtCycle = world.cycles
   child.dauStart = -1; child.dauSize = 0; child.dauWritten = 0  // child has no daughter yet
   world.creatures.set(child.id, child)
@@ -339,6 +341,8 @@ Each maps 1:1 to a pending test in
   mother's (breeds true, sterile — one genotype).
 
 ---
+
+- **REPRO-019** — On `divide`, the daughter inherits the mother’s `founderId` (VSINV-INHERIT / S1) — attribution survives arbitrary lineage depth and genotype drift.
 
 ## 9. Open questions
 

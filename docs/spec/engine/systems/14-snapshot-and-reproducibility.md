@@ -68,7 +68,20 @@ interface Snapshot {
   rngState: Uint32Array;       // exactly 4 words = rng.state() (01-determinism §2)
   soup: Uint8Array;            // the whole soup, length scenario.soupSize
   births: number; deaths: number;   // World counters (digest inputs)
+  generations: number;         // whole-generations counter (stats [13] §4.4) — fate-affecting via thresholds
+  avgSizeScaled: number;       // running avg live size, scaled integer — feeds searchLimit [06] & mutation cadence; snapshot-critical (S5)
+  slicerCursor: number;        // scheduler round-robin cursor position (which creature is next) [09]
+  remainingInSlice: number;    // instructions left in the current creature's slice [09]
+  mutationCounters: Int32Array; // saturating period counters for the Rate* mutation channels [11] (M0: zeros)
+  genebank: GenotypeSnapshot[]; // the genotype table: id/hash/label/size/alive/everBorn/firstSeen [12]
   creatures: CreatureSnapshot[];    // in slicer-queue order (deterministic; §3)
+}
+
+// One genebank record (genotype identity + census), serialized so restore continues labelling.
+interface GenotypeSnapshot {
+  id: number; hash: number; label: string;
+  size: number; alive: number; everBorn: number; firstSeen: number;
+  sizeSeq: number;             // per-size label sequence (deterministic label assignment, [12])
 }
 
 // One creature, fully. No object references — queues stored as positions, not links.
@@ -82,6 +95,7 @@ interface CreatureSnapshot {
   dauWritten: number; dauWriteMask?: Uint8Array;    // distinct-write count + bitmask (0.7 gate)
   bornAtCycle: number; errorCount: number;   // bookkeeping (reaper input, digest input)
   genotypeId: number;                        // genebank hook value assigned at birth
+  founderId: number;                         // Versus lineage tag (0=neutral); set at inject, inherited on divide [08]/versus[02] (S1)
   slicerPos: number; reaperPos: number;      // queue positions (INV-QUEUE), not pointers
 }
 
@@ -89,8 +103,7 @@ interface CreatureSnapshot {
 interface Injection { atCycle: number; genome: Uint8Array; }
 interface RunDescriptor {
   engineVersion: string;
-  scenario: Scenario;
-  seed: number;                // convenience mirror of scenario.seed (canonical source: scenario)
+  scenario: Scenario;          // seed lives at scenario.seed — the single canonical home (S14; no top-level mirror)
   injections: Injection[];     // sorted by atCycle; applied when world.cycles reaches atCycle
   cycles: number;              // total instructions to run
 }
@@ -422,6 +435,13 @@ Each maps 1:1 to an `it.todo('[SNAP-NNN] …')` in
   serialize identically (guards the INV-DET foundation against hash-order regressions).
 
 ---
+
+- **SNAP-011** — Each `CreatureSnapshot.founderId` is serialized and restored (S1) — Versus replay scores identically after a snapshot/restore boundary.
+- **SNAP-012** — The slicer cursor and `remainingInSlice` are serialized and restored (S5) — the round-robin resumes at the same creature mid-slice, not from the top.
+- **SNAP-013** — The mutation period counters are serialized and restored (S5) — mutation cadence continues in phase, not reset.
+- **SNAP-014** — The genebank genotype table (id/hash/label/size/alive/everBorn/firstSeen/sizeSeq) is serialized and restored (S5) — labels continue their deterministic sequence, no relabelling.
+- **SNAP-015** — `generations` and the running `avgSizeScaled` are serialized and restored (S5) — `searchLimit` and mutation cadence (which depend on avgSize) continue identically.
+- **SNAP-016** — Completeness meta-check: for a mutation-on run, `restore(snapshot(e))` continued N cycles yields a byte-identical soup+digest to `e` continued N cycles — any omitted mutable, fate-affecting field fails this (S5; guards INV-ROUNDTRIP against silent divergence).
 
 ## 9. Open questions
 

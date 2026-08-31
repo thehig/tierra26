@@ -47,4 +47,6 @@ describe('Scheduler / Slicer (SLICE)', () => {
   it.todo(
     '[SLICE-009] over many passes a size-2s creature receives on average ~2x the instructions of a size-s creature (mean slice == size); size is not auto-selected against by the scheduler',
   );
+  it.todo("[SLICE-010] sizeDependent=false (default) uses constant sliceSize regardless of size ⇒ size selected against (S6 regime)");
+  it.todo("[SLICE-011] sizeDependent=true uses size^slicePow base (size-neutral; config, not default) (S6)");
 });

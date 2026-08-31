@@ -80,20 +80,24 @@ interface ObservationFrame {
   readonly topGenotypes: readonly Readonly<HistBin>[];   // bounded (topK) genotype bins, pop-sorted
   readonly sizeHist:      readonly Readonly<HistBin>[];   // bounded size bins
   readonly tank: Readonly<TankView>;                      // spatial map for the visualization
+  readonly founders: Readonly<FounderCensus>;             // per-player live population (Versus, S1)
 }
-// Spatial map for the tank: soup quantized into `cells` buckets; each byte class 0=free,
-// 1=mother-code, 2=daughter (gestating). Fixed-length, reused buffer (see §3/§6).
-interface TankView { readonly width: Int; readonly height: Int; readonly cells: Uint8Array; }
+// Spatial map for the tank: soup quantized into `cells` buckets (S2 — TANK [ui/02] consumes all three).
+// Fixed-length, reused buffers (see §3/§6): the three arrays share the same width*height indexing.
+interface TankView {
+  readonly width: Int; readonly height: Int;
+  readonly bucketBytes: Int;          // ceil(soupSize/(width*height)) — the address quantization (TANK-003)
+  readonly cells: Uint8Array;         // per-cell class: 0=free, 1=mother-code, 2=daughter, 3=dead-noise
+  readonly genotypeOf: Uint32Array;   // per-cell owning genotype id (0=none) — drives colour-by-species (TANK-005) (S2)
+  readonly ips: Uint32Array;          // per-cell instruction-pointer marks (bright sparks) (TANK-008) (S2)
+}
+// Per-founder census for Versus scoring (versus [02] LINEAGE consumes this): index = founderId,
+// value = live pop; index 0 = neutral. Fixed-length (maxFounders); Σ counts == population (VSINV-ATTRIB).
+interface FounderCensus { readonly counts: Uint32Array; readonly total: Int; }
 
-// (D) The run digest — deterministic, stable per seed; the golden-fixture contract.
-interface RunDigest {
-  cycle: Int;             // the checkpoint cycle N this digest describes
-  population: Int;
-  genotypes: Int;
-  births: Int;
-  deaths: Int;
-  soupChecksum: Int;      // 32-bit integer checksum over all soup bytes (C-INT), order-fixed
-}
+// (D) The run digest is owned by SNAPSHOT [14] (single definition; field `atCycle`, FNV-1a uint32
+// `soupChecksum`). Stats re-exports it and `digest()` returns it — see [14] §2 (S3).
+import type { RunDigest } from './14-snapshot';   // re-export; no second definition here
 
 interface Stats {
   onBirth(): void;        // world calls exactly once per successful divide  (births++)
@@ -388,6 +392,9 @@ IDs are append-only.
   genotype-id tiebreak), never dependent on Map/object key order.
 
 ---
+
+- **STAT-011** — The `TankView` carries per-cell `genotypeOf` (owning genotype id, 0=none) and `ips` (IP marks) alongside `cells`, all width×height indexed (S2) — the tank’s colour-by-species + sparks are computable from the frame alone.
+- **STAT-012** — The `founders` census partitions the population: `Σ counts == total == population` at every frame, index 0 = neutral (VSINV-ATTRIB / S1).
 
 ## 9. Open questions
 

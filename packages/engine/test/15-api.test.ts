@@ -48,4 +48,6 @@ describe('Engine API & Scenarios (API)', () => {
     '[API-010] API is synchronous & re-entrant: step/run/stats/inject return synchronously ' +
       '(no Promise); two Engine instances in one process are fully independent (no shared module state)',
   );
+  it.todo("[API-011] normalizeScenario fills full defaults (sizeDependent=false S6, malMode first-fit S7, full mutation S8, disturbance/dropDead/inoculation) + validates");
+  it.todo("[API-012] inject(genome,{founderId}) stamps the seed creature founderId (default 0) (S1)");
 });
