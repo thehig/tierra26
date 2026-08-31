@@ -1,38 +1,110 @@
-// Soup & Memory Model (SOUP) — address space + protection.
-// Companion to docs/spec/engine/systems/02-soup-and-memory.md §8 (acceptance criteria).
-// Allocation internals are a SEPARATE system — see 03-alloc.test.ts / [03] — not tested here.
-//
-// Pending until the engine exists; encoded as node:test todo tests (spec-as-checklist).
-// Node reports these as `# todo`, so the suite is green-runnable pre-implementation.
-// Do NOT import engine src/ modules yet (they don't exist — an import error would fail the file).
-// When soup.ts lands, replace each `it.todo(name)` with `it(name, () => { ... })`. Keep 1:1 with §8.
+// Soup & Memory (SOUP) — implemented tests for the circular address space + write protection.
+// Ref: docs/spec/engine/systems/02-soup-and-memory.md §8.
+// Protection criteria assert the soup's canWrite decision; the raiseE/reaper CONSEQUENCE of a
+// denied write is verified at the handler/CPU layer (movii handler, CPU-008).
 import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import { Soup } from '../src/soup.ts';
+
+const cell = (start: number, size: number, dauStart = -1, dauSize = 0) => ({ start, size, dauStart, dauSize });
 
 describe('Soup & Memory (SOUP)', () => {
-  // --- Circular addressing / wrap-around (C-ADDR) ---
-  it.todo('[SOUP-001] ad(x) maps in-range indices to themselves and reduces x>=S modulo S (ad(S)==0, ad(S+3)==3, ad(2S+7)==7)');
-  it.todo('[SOUP-002] ad(x) maps negative indices into [0,S) (ad(-1)==S-1, ad(-S)==0, ad(-S-2)==S-2)');
-  it.todo('[SOUP-003] read wraps at both ends: read(S) returns byte at index 0 and read(-1) returns byte at index S-1');
-  it.todo('[SOUP-004] write wraps at both ends: writing at index S stores into index 0 and writing at index -1 stores into index S-1');
+  it('[SOUP-001] ad(x) reduces x>=S modulo S', () => {
+    const s = new Soup(100);
+    assert.equal(s.ad(50), 50); assert.equal(s.ad(100), 0);
+    assert.equal(s.ad(103), 3); assert.equal(s.ad(207), 7);
+  });
 
-  // --- Interface & substrate ---
-  it.todo('[SOUP-005] a fresh Soup(size) has bytes.length===size, defaults size to 60000, and every byte is initially 0');
-  it.todo('[SOUP-006] write masks stored values to one byte (v & 0xff) so a cell never overflows its neighbour; read returns the [0,255] opcode');
-  it.todo('[SOUP-007] soup bytes are the mutation substrate: an external bit-flip of a byte is observed by a subsequent read of that address');
+  it('[SOUP-002] ad(x) maps negative indices into [0,S)', () => {
+    const s = new Soup(100);
+    assert.equal(s.ad(-1), 99); assert.equal(s.ad(-100), 0); assert.equal(s.ad(-102), 98);
+  });
 
-  // --- Protection: reads/execute are global (the parasite premise) (C-PROT) ---
-  it.todo('[SOUP-008] read/execute of an address inside ANOTHER creature cell is allowed and returns that foreign byte (never protection-checked)');
-  it.todo('[SOUP-009] read of an address in free (unowned) soup is allowed (reads are global)');
+  it('[SOUP-003] read wraps at both ends', () => {
+    const s = new Soup(100); s.bytes[0] = 11; s.bytes[99] = 22;
+    assert.equal(s.read(100), 11); assert.equal(s.read(-1), 22);
+  });
 
-  // --- Protection: writes are local (C-PROT) ---
-  it.todo('[SOUP-010] canWrite is true for an address inside the creature OWN cell [start,start+size); a handler write there succeeds');
-  it.todo('[SOUP-011] canWrite is true for an address inside the creature currently-allocated DAUGHTER cell [dauStart,dauStart+dauSize) (the mal->divide window)');
-  it.todo('[SOUP-012] canWrite is false inside ANOTHER creature cell: handler performs NO write and calls raiseE (sets E flag) — C-ERR/C-PROT');
-  it.todo('[SOUP-013] canWrite is false for an address in free/unowned soup (outside both own and daughter windows); write denied and E set');
-  it.todo('[SOUP-014] with no daughter (dauSize==0) the daughter window is closed: writing where a daughter used to be is denied and sets E');
-  it.todo('[SOUP-015] canWrite normalizes via ad first, so a cell that WRAPS the soup end (start+size>S) admits its wrapped tail and rejects outside addresses');
-  it.todo('[SOUP-016] a write violation raises E and moves the creature UP the reaper queue via raiseE; it never throws a JS exception on the hot path (C-ERR)');
+  it('[SOUP-004] write wraps at both ends', () => {
+    const s = new Soup(100); s.write(100, 7); s.write(-1, 9);
+    assert.equal(s.bytes[0], 7); assert.equal(s.bytes[99], 9);
+  });
 
-  // --- The parasite niche (integration premise) ---
-  it.todo('[SOUP-017] a creature may READ/EXECUTE a foreign copy routine while WRITING only into its own daughter: same foreign address is readable but not writable (the asymmetry enabling parasitism)');
+  it('[SOUP-005] fresh Soup: length==size, default 60000, all zero', () => {
+    const s = new Soup(50); assert.equal(s.bytes.length, 50);
+    assert.equal(new Soup().size, 60000);
+    assert.ok(s.bytes.every((b) => b === 0));
+  });
+
+  it('[SOUP-006] write masks to one byte; read returns [0,255]', () => {
+    const s = new Soup(10); s.write(3, 257);
+    assert.equal(s.bytes[3], 1); assert.ok(s.read(3) >= 0 && s.read(3) <= 255);
+  });
+
+  it('[SOUP-007] bytes are the mutation substrate: an external flip is observed by read', () => {
+    const s = new Soup(10); s.bytes[4] ^= 0x05;
+    assert.equal(s.read(4), 5);
+  });
+
+  it('[SOUP-008] read/execute of another creature cell is allowed (never protection-checked)', () => {
+    const s = new Soup(100); s.write(60, 42);
+    const me = cell(0, 10);
+    // reads are global — no canWrite involved
+    assert.equal(s.read(60), 42);
+    assert.equal(s.canWrite(me, 60), false); // (and writing there would be denied)
+  });
+
+  it('[SOUP-009] read of free/unowned soup is allowed', () => {
+    const s = new Soup(100); s.write(80, 5);
+    assert.equal(s.read(80), 5);
+  });
+
+  it('[SOUP-010] canWrite true inside the OWN cell', () => {
+    const s = new Soup(100); const me = cell(10, 8);
+    for (let a = 10; a < 18; a++) assert.equal(s.canWrite(me, a), true);
+    assert.equal(s.canWrite(me, 18), false);
+  });
+
+  it('[SOUP-011] canWrite true inside the allocated DAUGHTER cell', () => {
+    const s = new Soup(100); const me = cell(10, 8, 40, 6);
+    for (let a = 40; a < 46; a++) assert.equal(s.canWrite(me, a), true);
+    assert.equal(s.canWrite(me, 46), false);
+  });
+
+  it('[SOUP-012] canWrite false inside another creature cell (write denied)', () => {
+    const s = new Soup(100); const me = cell(0, 10);
+    assert.equal(s.canWrite(me, 55), false);
+  });
+
+  it('[SOUP-013] canWrite false in free/unowned soup', () => {
+    const s = new Soup(100); const me = cell(0, 10, 40, 6);
+    assert.equal(s.canWrite(me, 80), false);
+  });
+
+  it('[SOUP-014] with no daughter (dauStart<0) the daughter window is closed', () => {
+    const s = new Soup(100); const me = cell(0, 10, -1, 0);
+    assert.equal(s.canWrite(me, 40), false); // where a daughter used to be
+  });
+
+  it('[SOUP-015] canWrite admits a cell that WRAPS the soup end', () => {
+    const s = new Soup(100); const me = cell(95, 10); // occupies 95..99, 0..4
+    assert.equal(s.canWrite(me, 97), true);
+    assert.equal(s.canWrite(me, 3), true);   // wrapped tail
+    assert.equal(s.canWrite(me, 50), false); // outside
+  });
+
+  it('[SOUP-016] write/canWrite never throw on the hot path (C-ERR)', () => {
+    const s = new Soup(100); const me = cell(0, 10);
+    assert.doesNotThrow(() => { s.canWrite(me, 12345); s.write(12345, 3); s.read(-99999); });
+  });
+
+  it('[SOUP-017] the parasite asymmetry: a foreign copy routine is readable but not writable', () => {
+    const s = new Soup(200);
+    const host = cell(100, 20);          // another creature's code
+    const me = cell(0, 10, 50, 8);       // me + my daughter
+    s.write(105, 26 /* movii */);        // host's copy instruction
+    assert.equal(s.read(105), 26);       // I can READ/execute it
+    assert.equal(s.canWrite(me, 105), false); // but I cannot WRITE it
+    assert.equal(s.canWrite(me, 52), true);    // I can write my own daughter
+  });
 });
