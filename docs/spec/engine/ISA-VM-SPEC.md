@@ -38,11 +38,12 @@ Ref: [`01-cpu-model.md`](../../original-tierra/01-cpu-model.md); `configur.h:41,
 | **Stack** | depth **10**, with stack pointer `SP` | `STACK_SIZE=10`. Holds addresses/values. |
 | **Flags** | `E` error, `S` sign, `Z` zero | set by arithmetic/`DoFlags`. `B` (bit-width) and `D` (direction) config flags are **[MOD] extended-only** — omitted from the classic core. |
 
-**[MOD] Stack overflow/underflow.** Tierra wraps the 10-slot stack silently (`push` past
-top / `pop` past bottom just move `SP` circularly). We **keep the depth-10 behavior** but on
-overflow/underflow **set the `E` flag** (which nudges the creature toward the reaper — §
-engine spec) instead of silently corrupting. This preserves the selective consequence of
-stack misuse while being debuggable. *(Open for review — see §11.)*
+**[CORE] Stack overflow/underflow — silent ring (S22, DECIDED).** We reproduce Tierra's 10-slot
+silent ring exactly: over/underflow **wraps**, no fault. The paragraph below records the earlier
+[MOD] proposal (raise `E`) that was **reversed** for fidelity — kept for provenance only.
+
+> ~~**[MOD] Stack overflow/underflow.** …set the `E` flag instead of silently corrupting.~~
+> **Reversed (S22):** silent ring, no `E` — fidelity to `instruct.c:1503/1526`.
 
 ### 2.2 The soup
 Ref: [`03-memory-soup.md`](../../original-tierra/03-memory-soup.md).
@@ -102,7 +103,7 @@ Ref: [`08-rng-stats-output.md`](../../original-tierra/08-rng-stats-output.md); `
 ### 2.6 Errors and the `E` flag
 Ref: `01-cpu-model.md` §flags.
 - `E` is raised by: failed template search, protection-violating write, divide-by-zero,
-  illegal `divide`, stack misuse (**[MOD]**, §2.1), and allocation failure.
+  illegal `divide`, and allocation failure. (Stack over/underflow does **not** fault — silent ring, §2.1/S22.)
 - Accumulated errors move a creature up the reaper queue (engine spec) — i.e. **making
   mistakes is selected against**. `E` is thus a first-class evolutionary signal, not just a
   debugging aid.

@@ -76,7 +76,7 @@ imported.
 | `reg` | `Int32Array` | 4 (A–D) | classic core has 4 registers; typed-array store gives signed-32 wrap for free (**C-INT**) | every write goes through the array so overflow wraps exactly |
 | `ip` | `number` (`Addr`) | `[0, soupSize)` | index into the soup; the fetch address | held in-bounds by `ad()` after each step (**C-ADDR**) |
 | `stack` | `Int32Array` | 10 (`STACK_SIZE`) | return addresses + saved values for `call`/`ret`/`push`/`pop` | slots are signed-32; wrap on store |
-| `sp` | `number` | `0..10` | number of occupied slots; `sp==0` empty, `sp==10` full | never < 0 or > 10 — over/underflow is refused, not wrapped (**[MOD]**, §7) |
+| `sp` | `number` | `0..9` ring | stack pointer into the 10-slot ring; over/underflow **wraps** silently (Tierra ring, S22/§7), never faults |
 | `flagE` | `boolean` | — | error signal; a first-class evolutionary input (moves creature up the reaper) | set only by `raiseE`; cleared per the rules in §4.5 |
 | `flagS` | `boolean` | — | sign of the last flag-defining result | set by `applyFlags` |
 | `flagZ` | `boolean` | — | zero-ness of the last flag-defining result | set by `applyFlags` |
@@ -87,10 +87,9 @@ truncates to signed 32-bit two's-complement — identical to Tierra's `I32s` `Re
 `C - B` wrap the same way. Handlers **must** write results back through `cpu.reg[i] = …` (not
 a local mirror) so the wrap is applied.
 
-**Stack pointer convention.** `sp` is the **count of occupied slots** (`0` = empty). `push`
-requires `sp < 10` then writes `stack[sp]` and `sp++`; `pop` requires `sp > 0` then `sp--` and
-reads `stack[sp]`. This is the modern refactor of Tierra's pre-increment ring
-(`instruct.c:1502-1534`); we keep **depth 10** but do **not** wrap (§7).
+**Stack pointer convention.** `sp` indexes a **10-slot ring** (`instruct.c:1503/1526`). `push`
+writes `stack[sp]` then `sp = (sp+1) % 10`; `pop` does `sp = (sp+9) % 10` then reads `stack[sp]`.
+Over/underflow **wraps silently** — no fault (S22 [CORE], §7). We reproduce Tierra's ring exactly.
 
 **Flags omitted from the classic core.** Tierra's `B` (bit-width) and `D` (direction) mode
 flags are **[MOD] extended-only** and absent here (ISA-VM-SPEC §2.1) — one byte = one cell,
@@ -169,8 +168,8 @@ per the clear rules in §4.5. `E` is **never** touched by `applyFlags` — only 
 
 It **never throws** — a JS exception on the hot path would break determinism and the slice
 loop. Faults that call `raiseE`: failed template search (§[06]), protection-violating write
-(§[02]), divide-by-zero, illegal `divide` (§[08]), **stack over/underflow (§7, [MOD])**, and
-allocation failure (§[03]). Because accumulated errors ratchet a creature toward the reaper,
+(§[02]), divide-by-zero, illegal `divide` (§[08]), and allocation failure (§[03]).
+(Stack over/underflow does **not** fault — it is a silent ring, S22/§7.) Because accumulated errors ratchet a creature toward the reaper,
 `E` is a **selective signal**, not merely a debugging aid (ISA-VM-SPEC §2.6): making mistakes
 is selected against. A raised `E` does **not** abort the current `stepOne` — the instruction
 still completes (having done nothing harmful) and `cycles` still advances by 1.
@@ -239,13 +238,14 @@ allocation-free, and wall-clock-free.
   (grounding `tierra.c:562-636`, `641-656`). The decode/execute split and single reused
   decode struct match Tierra's `FetchDecode` + global `PInst is` (an implementation-only
   artifact we keep as an *owned* `world.decoded`, not a global — **[MOD]** for snapshot-ability).
-- **[MOD] Stack over/underflow sets `E`.** Tierra's 10-slot stack is a **silent ring**:
-  `push` past the top overwrites the oldest slot and `pop` past the bottom returns a stale
-  value, with **no** fault (`01-cpu-model.md` §stack; `instruct.c:1502-1534`). We **keep the
-  depth-10 capacity** but on overflow/underflow **refuse the operation and `raiseE`**
-  (ISA-VM-SPEC §2.1 [MOD], §2.6). *Why:* it preserves the *selective cost* of stack misuse
-  (the creature is nudged toward the reaper) while being debuggable and avoiding silent state
-  corruption. (Open for review — ISA-VM-SPEC §11.1.)
+- **[CORE] Stack over/underflow is a silent 10-slot ring (S22 — DECIDED for fidelity).** Tierra's
+  10-slot stack wraps: `push` past the top overwrites the oldest slot (`sp = ++sp % 10`) and
+  `pop` past the bottom wraps to return a stale value (`sp==0 → sp=9`), with **no** fault
+  (`instruct.c:1503/1526`, validation D §1/A-5). We reproduce this **exactly** — no `E` on
+  over/underflow. *Why the reversal from the earlier [MOD]:* stack behavior is dynamics-affecting
+  (an evolved genome may depend on the ring), so our "preserve dynamics" principle makes the
+  silent ring the faithful choice; the debuggability argument for raising `E` did not outweigh a
+  behavioral divergence for evolved creatures.
 - **[MOD]** Computed flags reduced to **E/S/Z**; Tierra's `B` (bit-width) and `D` (direction)
   mode flags are extended-only and omitted (ISA-VM-SPEC §2.1, §10).
 - **[OPTIONAL]** Multi-CPU per cell / threads (`split`/`csync`), `slicexit`, per-opcode cycle
@@ -269,10 +269,10 @@ append-only.
 - **CPU-004** — A jump (`jmpo`/`jmpb`/`call`/`ret`) **sets `IP` directly** and **suppresses**
   the auto-advance (`world.decoded.ipWasSet = true`), so `IP` equals the landing address, not
   landing + iip.
-- **CPU-005** — `push` when the stack is full (`sp == 10`) does **not** wrap; it refuses the
-  write and calls `raiseE` (sets `flagE`) — **[MOD]** vs Tierra's silent ring; depth stays 10.
-- **CPU-006** — `pop` when the stack is empty (`sp == 0`) does **not** wrap/return stale; it
-  refuses and calls `raiseE` (sets `flagE`) — **[MOD]**.
+- **CPU-005** — `push` onto a full stack **wraps** the 10-slot ring (overwrites the oldest slot),
+  with **no** fault — Tierra's silent ring (S22 [CORE]); depth stays 10.
+- **CPU-006** — `pop` from an empty stack **wraps** and returns the ring's stale value, with **no**
+  fault (S22 [CORE]).
 - **CPU-007** — Each executed instruction increments `world.cycles` by exactly **1** (the
   global clock unit), including instructions that `raiseE`.
 - **CPU-008** — `raiseE(world, creature)` sets `creature.cpu.flagE = true` **and** increments
@@ -280,10 +280,13 @@ append-only.
 
 ---
 
+- **CPU-009** — Arithmetic/logic results set the `S` (sign) and `Z` (zero) flags via `DoFlags` — a result of 0 sets `Z`, a negative result sets `S`; a conditional (`ifz`) reads the corresponding state (C-INT integer compare).
+- **CPU-010** — `nop0`/`nop1` execute as no-ops that clear `E/S/Z` (Tierra nop behavior) — template bytes never leave a stale flag set.
+
 ## 9. Open questions
 
-1. **Stack fault vs silent wrap** (§7, ISA-VM-SPEC §11.1) — confirm `E` on over/underflow is
-   the desired behavior before it is frozen into golden runs.
+1. ~~Stack fault vs silent wrap~~ — **DECIDED (S22):** silent 10-slot ring, no `E`, matching
+   Tierra exactly (§7). No longer open.
 2. **`sp` semantics** — occupied-count (`0..10`, chosen here) vs Tierra's pre-increment ring
    index. The count model is refused-at-bounds and simplest to reason about; lock it.
 3. **`applyFlags` scope** — enumerate precisely which classic-32 ops define `S`/`Z` vs leave

@@ -127,7 +127,9 @@ export interface PlaygroundNode {
   loc: Loc;
 }
 // Fields the concrete format admits; may inherit missing ones from Frontmatter.defaults.
-export interface PlaygroundConfig {
+// The raw parse shape of a :::playground directive (all optional). The NORMALIZED, resolved
+// `PlaygroundConfig` is owned by PLAY [02] (S18); this parse shape is renamed to avoid the clash.
+export interface PlaygroundDirective {
   scenario?: string; seed?: number; starter?: string; subset?: string;
 }
 

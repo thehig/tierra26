@@ -9,7 +9,7 @@ describe("Tank View (TANK)", () => {
   it.todo("[TANK-003] address↔cell round-trip is exact");
   it.todo("[TANK-004] cell-class classification from the frame");
   it.todo("[TANK-005] genotype→color mapping is stable");
-  it.todo("[TANK-006] (visual) daughter cells reuse the mother's color, dimmed");
+  it.todo("[TANK-006] daughter cells reuse the mother's colour index (dim tier) deterministically from the frame");
   it.todo("[TANK-007] dead code classifies as dim-noise");
   it.todo("[TANK-008] IP cells are marked as sparks from the frame");
   it.todo("[TANK-009] pixel→address→creature lookup is correct (click-to-inspect)");
@@ -18,7 +18,7 @@ describe("Tank View (TANK)", () => {
   it.todo("[TANK-012] view/control state is a pure function of the latest frame");
   it.todo("[TANK-013] latest-frame-wins under coalescing (C-UI-RESPONSIVE)");
   it.todo("[TANK-014] render loop decoupled from sim cadence");
-  it.todo("[TANK-015] (visual) birth/death diff is a pure function of two frames");
+  it.todo("[TANK-015] birth/death diff is a pure function of two frames (born=free→occupied, died=occupied→free)");
   it.todo("[TANK-016] reduced-motion is honored (C-UI-A11Y)");
   it.todo("[TANK-017] (visual) colors are theme tokens (C-UI-THEME)");
   it.todo("[TANK-018] same frame sequence → identical buffers for any viewer (determinism)");

@@ -83,11 +83,10 @@ export interface ControlStmt { kind: 'control'; verb: string; target: string | n
 export interface RawStmt     { kind: 'raw';     mnemonic: string; loc: Loc; } // incl. nop0/nop1
 export interface ErrorStmt   { kind: 'error';   raw: string; diagnostic: Diagnostic; loc: Loc; }
 
-export interface Diagnostic {
-  severity: 'error' | 'warning' | 'hint';
-  message: string;              // plain wording; [06] may refine tone
-  loc: Loc;
-}
+// The canonical `Diagnostic` shape is owned by DIAGNOSTICS [06] (severity/span/message/suggestion/
+// code); the parser emits THAT type (S17). `Loc` here is the same span type DIAG calls `SourceSpan`.
+// No second definition — import it:
+import type { Diagnostic, SourceSpan as Loc } from './06-diagnostics-and-validation';
 ```
 
 Whether a verb is *bare* vs *register-specific* vs *control* is a **vocabulary** fact ([02]),

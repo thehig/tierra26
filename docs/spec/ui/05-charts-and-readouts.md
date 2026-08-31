@@ -34,7 +34,7 @@ interface ChartModel {
   population: SeriesBuffer;
   genotypes: SeriesBuffer;
   perGenotype: Map<number, SeriesBuffer>;    // top-K genotype populations over time
-  sizeHistogram: { size: number; count: number }[];   // from the frame's size data
+  sizeHistogram: HistBin[];        // == the engine `HistBin` {key,label,count} from STAT [13] (S21); key = size
   readouts: Readouts;
   ingest(frame: ObservationFrame): void;     // pure state transition per frame
 }

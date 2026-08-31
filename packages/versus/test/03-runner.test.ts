@@ -10,7 +10,7 @@ describe('Match Runner & Fairness (RUNNER)', () => {
   it.todo('[RUNNER-004] injection/initial-scheduling order is a seed-derived permutation, not fixed to slot index');
   it.todo('[RUNNER-005] buildDescriptor is pure and captures scenario+seed+players+placement+threshold+rules+engineVersion');
   it.todo('[RUNNER-006] runMatch(desc) reproduces identical live standings + result for any viewer (VSINV-DET)');
-  it.todo('[RUNNER-007] a MatchDescriptor round-trips to/from a RunLink (share/deep-link)');
+  it.todo('[RUNNER-007] a MatchDescriptor round-trips to/from a VersusLink; toRunDescriptor(m) yields a valid RunDescriptor (S16)');
   it.todo('[RUNNER-008] the match stops deterministically at the threshold cycle/generation');
   it.todo('[RUNNER-009] each observed frame yields a LiveStanding via attribute for the scoreboard');
   it.todo('[RUNNER-010] a genome that fails to compile is rejected before the match starts (no partial start)');

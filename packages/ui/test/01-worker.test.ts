@@ -9,7 +9,7 @@ describe("Worker/Host Protocol (WORKER)", () => {
   it.todo("[WORKER-003] init(scenario) builds the authoritative engine and acks");
   it.todo("[WORKER-004] inject(genome) accepts genome bytes (transferable) and acks a creature id");
   it.todo("[WORKER-005] A run command yields a frame-event stream on that session only");
-  it.todo("[WORKER-006] step yields exactly one frame");
+  it.todo("[WORKER-006] step yields exactly one frame + ack{cycles}; setSpeed changes emission cadence only, never the digest/frame content for a given cycle");
   it.todo("[WORKER-007] reset returns the session to a deterministic start");
   it.todo("[WORKER-008] requestInspect(addr) returns an inspectResult correlated by id");
   it.todo("[WORKER-009] Transferable ownership");

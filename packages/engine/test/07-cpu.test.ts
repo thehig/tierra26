@@ -11,8 +11,10 @@ describe('CPU & Execution Cycle (CPU)', () => {
   it.todo('[CPU-002] IP advances by iip: default op -> IP+1; op that consumed an s-byte template -> IP+s+1');
   it.todo('[CPU-003] IP advance wraps mod soupSize: IP=soupSize-1 with iip=1 lands at 0 via ad() (C-ADDR)');
   it.todo('[CPU-004] a jump sets IP directly and suppresses auto-advance (decoded.ipWasSet), so IP == landing address');
-  it.todo('[CPU-005] push past the top (sp==10) does not wrap; it refuses and raiseE sets flagE ([MOD]); depth stays 10');
-  it.todo('[CPU-006] pop past the bottom (sp==0) does not wrap/return stale; it refuses and raiseE sets flagE ([MOD])');
+  it.todo('[CPU-005] push onto a full stack wraps the 10-slot ring (overwrites oldest), no fault (S22 silent ring)');
+  it.todo('[CPU-006] pop from an empty stack wraps and returns the ring stale value, no fault (S22 silent ring)');
   it.todo('[CPU-007] each executed instruction increments world.cycles by exactly 1, including ones that raiseE');
   it.todo('[CPU-008] raiseE(world, creature) sets flagE and increments errorCount (and moves creature up the reaper) (C-ERR)');
+  it.todo("[CPU-009] arithmetic sets S/Z via DoFlags (0→Z, negative→S); ifz reads the state");
+  it.todo("[CPU-010] nop0/nop1 are no-ops that clear E/S/Z (no stale flags)");
 });
