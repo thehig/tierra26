@@ -1,16 +1,16 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, userEvent, within } from 'storybook/test';
-import { page } from '@vitest/browser/context';
 import { useMicroEngine } from './useMicroEngine.ts';
 import { EntityDiagram, type Focus } from './EntityDiagram.tsx';
 import { ANCESTOR_GS } from '@tierra26/genescript/ancestor.gs.ts';
 
 // A live wrapper: drives the real micro-engine so stories are interactive (Step/Run work) and the
-// assertions run against the real component + engine — exactly what the app renders.
-function LiveEntity({ source, soup, focus = 'whole' }: { source: string; soup?: number; focus?: Focus }) {
+// assertions run against the real component + engine — exactly what the app renders. `width` sizes
+// the container the entity reflows within (it uses container queries, not the viewport).
+function LiveEntity({ source, soup, focus = 'whole', width = 680 }: { source: string; soup?: number; focus?: Focus; width?: number }) {
   const m = useMicroEngine(source, soup);
   return (
-    <div style={{ maxWidth: 680, padding: 16 }}>
+    <div style={{ maxWidth: width, padding: 16 }}>
       <EntityDiagram state={m.state} focus={focus} onStep={m.step} onReset={m.reset}
         onRun={m.run} onPause={m.pause} running={m.running} steps={m.steps} />
     </div>
@@ -137,13 +137,12 @@ export const NoSpotlight: Story = {
   },
 };
 
-// ── mobile: the panel never scrolls sideways ────────────────────────────────────────────────────
+// ── mobile: in a phone-width container the panel reflows and never scrolls sideways ─────────────
 export const Mobile: Story = {
-  args: { source: ANCESTOR_GS, soup: 256 },
-  play: async ({ canvasElement }) => {
-    await page.viewport(390, 844);
-    const overflow = document.documentElement.scrollWidth - document.documentElement.clientWidth;
-    await expect(overflow).toBeLessThanOrEqual(1);
-    await page.viewport(1280, 900); // restore for later stories
+  args: { source: ANCESTOR_GS, soup: 256, width: 390 },
+  play: async ({ canvasElement: c }) => {
+    // container queries put the entity into its single-column layout at this width — no h-overflow
+    const entity = c.querySelector('.entity') as HTMLElement;
+    await expect(entity.scrollWidth - entity.clientWidth).toBeLessThanOrEqual(1);
   },
 };

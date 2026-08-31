@@ -1,4 +1,5 @@
 import type { Preview } from '@storybook/react-vite'
+import '../src/design/tokens.css' // CSS custom properties (--ink, --surface, --accent…) — must load first
 import '../src/styles.css'
 
 const preview: Preview = {
