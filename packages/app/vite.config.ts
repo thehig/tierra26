@@ -22,10 +22,9 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        // Split heavy vendors so the app chunk stays small and caches well.
+        // React in its own cached chunk; CodeMirror is code-split via the editor's dynamic import.
         manualChunks: {
           react: ['react', 'react-dom'],
-          codemirror: ['@codemirror/view', '@codemirror/state', '@codemirror/commands', '@codemirror/autocomplete'],
         },
       },
     },

@@ -14,6 +14,7 @@ export interface FounderCensus { counts: Uint32Array; total: number }
 export interface TankView {
   width: number; height: number; bucketBytes: number;
   cells: Uint8Array; genotypeOf: Uint32Array; ips: Uint32Array;
+  founderOf: Uint32Array; // per-cell owning founderId (0 = neutral/free) — Versus color-by-founder
 }
 export interface ObservationFrame {
   cycles: number; stats: LiveStats;
@@ -57,29 +58,29 @@ export function histograms(w: World): Histograms {
 
 export function makeTank(width: number, height: number, soupSize: number): TankView {
   const cells = new Uint8Array(width * height);
-  return { width, height, bucketBytes: Math.ceil(soupSize / (width * height)), cells, genotypeOf: new Uint32Array(width * height), ips: new Uint32Array(width * height) };
+  return { width, height, bucketBytes: Math.ceil(soupSize / (width * height)), cells, genotypeOf: new Uint32Array(width * height), ips: new Uint32Array(width * height), founderOf: new Uint32Array(width * height) };
 }
 
 /** Fill the reused tank buffers + return a frozen frame (STAT-007). */
 export function observe(w: World, topK: number, tank: TankView): ObservationFrame {
   const S = w.config().soupSize;
   // per-address ownership index (O(S) per frame; frames are occasional, not per-instruction)
-  const cls = new Uint8Array(S), geno = new Int32Array(S), ip = new Uint8Array(S);
+  const cls = new Uint8Array(S), geno = new Int32Array(S), ip = new Uint8Array(S), fnd = new Int32Array(S);
   for (const c of w.creatures.values()) {
-    for (let i = 0; i < c.size; i++) { const a = w.soup.ad(c.start + i); cls[a] = 1; geno[a] = c.genotypeId; }
-    if (c.dauStart >= 0) for (let i = 0; i < c.dauSize; i++) { const a = w.soup.ad(c.dauStart + i); if (cls[a] === 0) { cls[a] = 2; geno[a] = c.genotypeId; } }
+    for (let i = 0; i < c.size; i++) { const a = w.soup.ad(c.start + i); cls[a] = 1; geno[a] = c.genotypeId; fnd[a] = c.founderId; }
+    if (c.dauStart >= 0) for (let i = 0; i < c.dauSize; i++) { const a = w.soup.ad(c.dauStart + i); if (cls[a] === 0) { cls[a] = 2; geno[a] = c.genotypeId; fnd[a] = c.founderId; } }
     ip[w.soup.ad(c.cpu.ip)] = 1;
   }
   const B = tank.bucketBytes;
   for (let g = 0; g < tank.cells.length; g++) {
     const base = g * B;
-    let klass = 0, gid = 0, spark = 0;
+    let klass = 0, gid = 0, fid = 0, spark = 0;
     for (let j = 0; j < B; j++) {
       const a = base + j; if (a >= S) break;
-      if (cls[a] && klass === 0) { klass = cls[a]!; gid = geno[a]!; }
+      if (cls[a] && klass === 0) { klass = cls[a]!; gid = geno[a]!; fid = fnd[a]!; }
       if (ip[a]) spark = 1;
     }
-    tank.cells[g] = klass; tank.genotypeOf[g] = gid; tank.ips[g] = spark;
+    tank.cells[g] = klass; tank.genotypeOf[g] = gid; tank.ips[g] = spark; tank.founderOf[g] = fid;
   }
   const counts = Uint32Array.from(w.founders);
   const founders: FounderCensus = { counts, total: counts.reduce((s, x) => s + x, 0) };

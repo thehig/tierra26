@@ -11,7 +11,7 @@ import { Hud } from '../ui/Hud.tsx';
 import { Controls } from '../ui/Controls.tsx';
 import { Charts } from '../ui/Charts.tsx';
 import { Inspector } from '../ui/Inspector.tsx';
-import { GeneEditor } from '../editor/GeneEditor.tsx';
+import { GeneEditorLazy as GeneEditor } from '../editor/GeneEditorLazy.tsx';
 import { resolvePlaygroundBoot } from './resolve.ts';
 import { liveGoalStatus } from '../goal/liveGoal.ts';
 

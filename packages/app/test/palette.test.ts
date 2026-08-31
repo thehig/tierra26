@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { cellColor, hueForIndex } from '../src/design/palette.ts';
+import { cellColor, hueForIndex, founderCellColor, FOUNDER_RGBA } from '../src/design/palette.ts';
 
 describe('tank palette', () => {
   it('is deterministic — same channels, same RGBA', () => {
@@ -35,5 +35,18 @@ describe('tank palette', () => {
     for (const px of [cellColor(5, 1, 0, false), cellColor(5, 2, 1, true), cellColor(0, 0, 0, false)]) {
       for (const ch of px) { expect(ch).toBeGreaterThanOrEqual(0); expect(ch).toBeLessThanOrEqual(255); }
     }
+  });
+
+  it('founder colors distinguish the two players and default neutral for founder 0', () => {
+    const a = founderCellColor(1, 1, 0, false);
+    const b = founderCellColor(2, 1, 0, false);
+    expect(a).not.toEqual(b);
+    // player 1 leans blue, player 2 leans red (matching the scoreboard)
+    expect(FOUNDER_RGBA[1]![2]).toBeGreaterThan(FOUNDER_RGBA[1]![0]); // blue > red
+    expect(FOUNDER_RGBA[2]![0]).toBeGreaterThan(FOUNDER_RGBA[2]![2]); // red > blue
+    // a spark is white and free is not a founder hue
+    expect(founderCellColor(1, 1, 2, false)).toEqual([255, 255, 255, 255]);
+    const neutral = founderCellColor(0, 1, 0, false);
+    expect(neutral).not.toEqual(a);
   });
 });

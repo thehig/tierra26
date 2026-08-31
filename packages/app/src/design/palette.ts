@@ -45,3 +45,18 @@ export type KeywordCategory = 'action' | 'register' | 'marker' | 'control' | 'va
 export function categoryVar(category: KeywordCategory): string {
   return `var(--kw-${category})`;
 }
+
+// Versus color-by-founder: match the scoreboard hues (1 = register blue, 2 = action coral).
+export const FOUNDER_RGBA: Record<number, [number, number, number]> = { 1: [47, 109, 224], 2: [217, 83, 47] };
+function clamp(x: number): number { return x < 0 ? 0 : x > 255 ? 255 : Math.round(x); }
+
+export function founderCellColor(founderId: number, klass: CellClass, bright: BrightTier, dark: boolean): RGBA {
+  if (klass === 0) return dark ? [15, 30, 26, 255] : [233, 239, 234, 255];
+  if (klass === 3) return dark ? [72, 86, 80, 255] : [150, 162, 156, 255];
+  if (bright === 2) return [255, 255, 255, 255];
+  const base = FOUNDER_RGBA[founderId] ?? (dark ? [120, 132, 126] : [150, 160, 154]); // neutral for founder 0
+  let f = klass === 2 ? 0.82 : 1;          // daughters a touch dimmer
+  if (bright === 1) f *= dark ? 0.82 : 1.1;
+  if (dark) f *= 1.14;                      // lift on the dark ground
+  return [clamp(base[0] * f), clamp(base[1] * f), clamp(base[2] * f), 255];
+}

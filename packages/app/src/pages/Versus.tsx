@@ -11,7 +11,7 @@ import { routeToPath } from '@tierra26/ui/shell.ts';
 import { buildDescriptor, toRunDescriptor } from '@tierra26/versus/runner.ts';
 import type { MatchConfig, MatchDescriptor } from '@tierra26/versus/types.ts';
 import { playerPopulations } from '@tierra26/versus/lineage.ts';
-import { GeneEditor } from '../editor/GeneEditor.tsx';
+import { GeneEditorLazy as GeneEditor } from '../editor/GeneEditorLazy.tsx';
 import { TankCanvas } from '../ui/TankCanvas.tsx';
 import { useSession } from '../session/useSession.ts';
 import { useMatch, type MatchApi } from '../versus/useMatch.ts';
@@ -34,7 +34,7 @@ function MatchStage({ desc, dark, threshold, match }: { desc: MatchDescriptor; d
   const live = session.state.frame ? playerPopulations(session.state.frame) : new Map<number, number>();
   return (
     <div className="match-stage">
-      <div className="tankwrap"><TankCanvas frame={session.state.frame} dark={dark} /></div>
+      <div className="tankwrap"><TankCanvas frame={session.state.frame} dark={dark} colorBy="founder" /></div>
       <Scoreboard
         names={['Player A', 'Player B']}
         live={live}
