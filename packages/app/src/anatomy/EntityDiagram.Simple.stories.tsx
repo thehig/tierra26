@@ -31,6 +31,10 @@ export const Tutorial: Story = {
     await expect(c.querySelectorAll('.gblock.link').length).toBe(1);
     await userEvent.hover(c.querySelector('.gline') as HTMLElement);
     await expect(c.querySelectorAll('.wcell.link').length).toBe(1);
+    // …and the ring is actually VISIBLE in the emoji world — the class alone isn't enough, the emoji
+    // cell's own `box-shadow: none` used to out-specify it and hide the highlight entirely
+    const linked = c.querySelector('.wcell.link') as HTMLElement;
+    await expect(getComputedStyle(linked).boxShadow).not.toBe('none');
   },
 };
 
