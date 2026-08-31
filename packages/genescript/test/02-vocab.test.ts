@@ -1,27 +1,95 @@
-// Vocabulary & Keywords (VOCAB) — pending acceptance tests.
-// Ref: docs/spec/genescript/02-vocabulary-and-keywords.md §8 (VOCAB-NNN).
-// The definitive verb <-> classic-32-mnemonic table, register-specific verbs, and the
-// color-coded keyword taxonomy + tooltips (kid line + machine-truth "more" line).
-// Verbs map to opcodes via the engine ISA at compile time (C-GS-NOOPCODES) — the vocabulary
-// records a mnemonic STRING, never an opcode number. Tooltips are plain language (C-GS-KID).
-//
-// Pending until the vocabulary/compiler exist; encoded as node:test todo tests (spec-as-checklist).
-// NO src imports yet (the modules don't exist — an import error would fail the file).
-// When implemented, replace `it.todo(name)` with `it(name, () => { ... })`.
+// Vocabulary & Keywords (VOCAB) — real tests over the engine-derived verb table.
+// Ref: docs/spec/genescript/02-vocabulary-and-keywords.md §8.
 import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import { VOCAB, verbToMnemonic, isControlVerb, takesTarget } from '../src/vocab.ts';
+import { DICTIONARY } from '../../engine/src/isa.ts';
 
 describe('Vocabulary & Keywords (VOCAB)', () => {
-  it.todo('[VOCAB-001] VOCABULARY has exactly 32 entries, one per classic-32 instruction (total coverage)');
-  it.todo('[VOCAB-002] every classic-32 mnemonic (all 32 from ISA-VM §3.3) is covered by exactly one verb (bijection)');
-  it.todo('[VOCAB-003] all 32 verb strings are unique (no two keywords collide)');
-  it.todo('[VOCAB-004] every entry.mnemonic is a real classic-32 dictionary mnemonic (verb maps to an actual engine instruction)');
-  it.todo('[VOCAB-005] a verb ending in -a/-b/-c/-d has register set to that letter, matching the engine binding destination register');
-  it.todo('[VOCAB-006] register-specific families are exactly grow-a/grow-b/grow-c + shrink-c, save-a..save-d, load-a..load-d, copy-a-to-b, copy-c-to-d, subtract (C=A-B), subtract-into-a (A=A-C); no member for an unbound register (no grow-d/shrink-a)');
-  it.todo('[VOCAB-007] nop0/nop1 are the only two marker-category entries and their verbs are mark-0/mark-1');
-  it.todo('[VOCAB-008] every entry has a non-empty tooltip.kid in plain language: no mnemonic string, no register-letter jargon, no word "opcode" (C-GS-KID)');
-  it.todo('[VOCAB-009] every entry has a non-empty tooltip.machine ("machine truth") consistent with ISA-VM §4 semantics for its mnemonic');
-  it.todo('[VOCAB-010] every category is one of action/register/marker/control/value, and all flow ops (jmpo/jmpb/call/ret/ifz/adro/adrb/adrf/mal/divide) are control');
-  it.todo('[VOCAB-011] no entry hard-codes an opcode number: a VerbEntry exposes only a mnemonic string, opcode resolution deferred to the engine active set (C-GS-NOOPCODES)');
-  it.todo('[VOCAB-012] every register-role usage references only registers A-D (classic core), never E/F');
-  it.todo('[VOCAB-013] table presentation order matches the engine §3.3 load order (0-31); order is presentational only, nothing keys off the index (C-GS-NOOPCODES)');
+  it('[VOCAB-001] exactly 32 entries', () => { assert.equal(VOCAB.length, 32); });
+
+  it('[VOCAB-002] bijection with classic-32 mnemonics', () => {
+    const mns = new Set(VOCAB.map((v) => v.mnemonic));
+    assert.equal(mns.size, 32);
+    for (const e of DICTIONARY) assert.ok(mns.has(e.mnemonic));
+  });
+
+  it('[VOCAB-003] all verb strings are unique', () => {
+    assert.equal(new Set(VOCAB.map((v) => v.verb)).size, 32);
+  });
+
+  it('[VOCAB-004] every mnemonic is a real engine instruction', () => {
+    const real = new Set(DICTIONARY.map((e) => e.mnemonic));
+    for (const v of VOCAB) assert.ok(real.has(v.mnemonic));
+  });
+
+  it('[VOCAB-005] verbs ending -a/-b/-c/-d carry the register matching the engine binding dest', () => {
+    for (const v of VOCAB) {
+      const m = /-([abcd])$/.exec(v.verb);
+      if (m) {
+        assert.equal(v.register, m[1]!.toUpperCase());
+        const dict = DICTIONARY.find((e) => e.mnemonic === v.mnemonic)!;
+        assert.equal(dict.binding[0], 'abcd'.indexOf(m[1]!)); // dest register index
+      }
+    }
+  });
+
+  it('[VOCAB-006] register-specific families are exactly the specified set', () => {
+    const reg = VOCAB.filter((v) => v.category === 'register').map((v) => v.verb).sort();
+    assert.deepEqual(reg, [
+      'copy-a-to-b', 'copy-c-to-d', 'grow-a', 'grow-b', 'grow-c', 'load-a', 'load-b', 'load-c', 'load-d',
+      'save-a', 'save-b', 'save-c', 'save-d', 'shrink-c', 'subtract', 'subtract-into-a',
+    ].sort());
+  });
+
+  it('[VOCAB-007] nop0/nop1 are the only markers: mark-0/mark-1', () => {
+    const markers = VOCAB.filter((v) => v.category === 'marker');
+    assert.deepEqual(markers.map((v) => v.verb).sort(), ['mark-0', 'mark-1']);
+    assert.deepEqual(markers.map((v) => v.mnemonic).sort(), ['nop0', 'nop1']);
+  });
+
+  it('[VOCAB-008] every kid tooltip is plain (no cryptic mnemonic, no "opcode")', () => {
+    // exclude mnemonics that are also plain English words (zero/call/divide/ret)
+    const english = new Set(['zero', 'call', 'divide', 'ret']);
+    const cryptic = VOCAB.map((v) => v.mnemonic).filter((mn) => !english.has(mn));
+    for (const v of VOCAB) {
+      assert.ok(v.kid.length > 0);
+      assert.equal(/opcode/i.test(v.kid), false);
+      for (const mn of cryptic) assert.equal(v.kid.includes(mn), false, `kid mentions ${mn}`);
+    }
+  });
+
+  it('[VOCAB-009] every machine tooltip is non-empty', () => {
+    for (const v of VOCAB) assert.ok(v.machine.length > 0);
+  });
+
+  it('[VOCAB-010] categories valid; all flow ops are control', () => {
+    const flow = ['jmpo', 'jmpb', 'call', 'ret', 'ifz', 'adro', 'adrb', 'adrf', 'mal', 'divide'];
+    for (const v of VOCAB) {
+      assert.ok(['action', 'register', 'marker', 'control', 'value'].includes(v.category));
+      if (flow.includes(v.mnemonic)) assert.equal(v.category, 'control', `${v.mnemonic} should be control`);
+    }
+  });
+
+  it('[VOCAB-011] no entry exposes an opcode number (only a mnemonic string)', () => {
+    for (const v of VOCAB) {
+      assert.equal(typeof v.mnemonic, 'string');
+      assert.equal('opcode' in (v as any), false);
+    }
+  });
+
+  it('[VOCAB-012] register usage references only A-D', () => {
+    for (const v of VOCAB) if (v.register) assert.ok(['A', 'B', 'C', 'D'].includes(v.register));
+  });
+
+  it('[VOCAB-013] presentation order matches engine load order (0-31)', () => {
+    assert.deepEqual(VOCAB.map((v) => v.mnemonic), DICTIONARY.map((e) => e.mnemonic));
+  });
+
+  it('[helpers] verbToMnemonic / isControlVerb / takesTarget', () => {
+    assert.equal(verbToMnemonic('copy-byte'), 'movii');
+    assert.equal(isControlVerb('jump'), true);
+    assert.equal(takesTarget('jump'), true);
+    assert.equal(takesTarget('divide'), false);
+  });
 });
