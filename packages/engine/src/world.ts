@@ -8,6 +8,9 @@ import { makeRng, type Rng } from './rng.ts';
 import { DICTIONARY, classic32 } from './isa.ts';
 import { HANDLERS } from './handlers.ts';
 import { makeCreature } from './creature.ts';
+import { Genebank } from './genebank.ts';
+
+export const MAX_FOUNDERS = 16;
 
 export interface WorldConfig {
   soupSize: number;
@@ -48,6 +51,11 @@ export class World implements IWorld {
   private cursor = 0;
   private reaperQ: CreatureId[] = []; // index 0 = next to die (oldest)
   private avgSizeVal = 1;
+
+  genebank = new Genebank();
+  generations = 0;
+  private genAccum = 0;
+  founders = new Uint32Array(MAX_FOUNDERS); // per-founder live census (S1); index 0 = neutral
 
   private cfg: WorldConfig;
 
@@ -143,14 +151,9 @@ export class World implements IWorld {
     this.removeSlicer(id);
     this.removeReaper(id);
     this.creatures.delete(id);
+    this.genebank.deathById(c.genotypeId);
+    if (c.founderId >= 0 && c.founderId < MAX_FOUNDERS && this.founders[c.founderId]! > 0) this.founders[c.founderId]!--;
     this.deaths++;
-  }
-
-  // ---- genotype hook (FNV-1a over cell bytes) ----
-  private genotypeOf(start: Addr, size: number): number {
-    let h = 0x811c9dc5;
-    for (let i = 0; i < size; i++) { h ^= this.soup.read(start + i); h = Math.imul(h, 0x01000193) >>> 0; }
-    return (h >>> 0);
   }
 
   // ---- lifecycle ----
@@ -159,17 +162,29 @@ export class World implements IWorld {
     if (start < 0) return -1;
     for (let i = 0; i < genome.length; i++) this.soup.write(start + i, genome[i]!);
     this.occupy(start, genome.length);
-    return this.register(start, genome.length, 0, founderId);
+    return this.register(start, genome.length, 0, founderId, -1);
   }
 
-  private register(start: Addr, size: number, parentId: CreatureId, founderId: number): CreatureId {
+  private sampleBytes(start: Addr, size: number): Uint8Array {
+    const b = new Uint8Array(size);
+    for (let i = 0; i < size; i++) b[i] = this.soup.read(start + i);
+    return b;
+  }
+
+  private register(start: Addr, size: number, parentId: CreatureId, founderId: number, parentGenotypeId: number): CreatureId {
     const id = this.nextId++;
     const c = makeCreature(id, start, size, parentId, founderId, this.cycles);
-    c.genotypeId = this.genotypeOf(start, size);
+    const g = this.genebank.register(this.sampleBytes(start, size), this.cycles, parentGenotypeId);
+    c.genotypeId = g.id;
     this.creatures.set(id, c);
+    if (founderId >= 0 && founderId < MAX_FOUNDERS) this.founders[founderId]!++;
     this.enqueueSlicer(id);
     this.enqueueReaper(id);
     this.births++;
+    // generations: a full population turnover ≈ +1 generation (integer, deterministic)
+    this.genAccum++;
+    const pop = Math.max(1, this.creatures.size);
+    if (this.genAccum >= pop) { this.generations++; this.genAccum -= pop; }
     this.recomputeAvg();
     return id;
   }
@@ -177,8 +192,9 @@ export class World implements IWorld {
   birthDaughter(mother: Creature): void {
     const start = mother.dauStart, size = mother.dauSize;
     // the daughter block is already occupied (from mal); it now belongs to the child.
+    const parentGenotypeId = mother.genotypeId;
     mother.clearDaughter();
-    this.register(start, size, mother.id, mother.founderId);
+    this.register(start, size, mother.id, mother.founderId, parentGenotypeId);
     this.reaperMoveDown(mother);
   }
 
@@ -271,5 +287,12 @@ export class World implements IWorld {
   }
 
   population(): number { return this.creatures.size; }
-  genotypeCount(): number { const s = new Set<number>(); for (const c of this.creatures.values()) s.add(c.genotypeId); return s.size; }
+  genotypeCount(): number { return this.genebank.aliveGenotypes(); }
+  avgSize(): number { return this.avgSizeVal; }
+  // exposed for stats/snapshot
+  allocsView(): Interval[] { return this.allocs; }
+  slicerView(): CreatureId[] { return this.slicerQ; }
+  reaperView(): CreatureId[] { return this.reaperQ; }
+  cursorPos(): number { return this.cursor; }
+  config(): WorldConfig { return this.cfg; }
 }
