@@ -1,7 +1,7 @@
 // The oversized "anatomy of a creature" in its magnified world: the world grid (the creature, its
 // daughter, its babies), the genome blocks (with the reading head), the four notebooks, flags,
 // save-pile, daughter, and age. A `focus` (from scroll waypoints) spotlights one part at a time.
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { categoryVar } from '../design/palette.ts';
 import type { EntityState } from './useMicroEngine.ts';
 
@@ -31,10 +31,23 @@ export function EntityDiagram({
   // creature sits at soup address 0, a block's address IS its world-cell index — they share a number.
   const [hovered, setHovered] = useState<number | null>(null);
 
+  // The genome list has a bounded height and scrolls internally (a real genome is dozens of blocks),
+  // so keep the reading head in view — scrolling only the list, never the page.
+  const genomeRef = useRef<HTMLDivElement | null>(null);
+  const ipRef = useRef<HTMLDivElement | null>(null);
+  const ipAddr = state.blocks.find((b) => b.isIp)?.addr ?? -1;
+  useEffect(() => {
+    const c = genomeRef.current, el = ipRef.current;
+    if (!c || !el) return;
+    const cr = c.getBoundingClientRect(), er = el.getBoundingClientRect();
+    if (er.top < cr.top || er.bottom > cr.bottom) c.scrollTop += (er.top - cr.top) - (c.clientHeight - er.height) / 2;
+  }, [ipAddr]);
+
   const dim = (part: Focus) => (focus !== 'whole' && focus !== 'run' && focus !== part ? 'dim' : '');
   const cols = Math.max(1, Math.round(Math.sqrt(state.worldSize)));
 
   return (
+    <div className="entity-wrap">
     <div className={`entity focus-${focus}`}>
       <div className={`entity-world ${dim('world')} ${focus === 'world' ? 'lit' : ''}`} data-part="world">
         <div className="part-label">its world</div>
@@ -48,9 +61,9 @@ export function EntityDiagram({
 
       <div className={`entity-genome ${dim('genome')} ${focus === 'ip' ? 'lit' : ''}`} data-part="genome">
         <div className="part-label">its genome — numbered instruction blocks</div>
-        <div className="genome-blocks">
+        <div className="genome-blocks" ref={genomeRef}>
           {state.blocks.map((b) => (
-            <div key={b.index} className="gline"
+            <div key={b.index} className="gline" ref={b.isIp ? ipRef : undefined}
               onMouseEnter={() => b.addr >= 0 && setHovered(b.addr)} onMouseLeave={() => setHovered(null)}>
               <span className="gaddr" title="this block's position in the code">{b.addr >= 0 ? b.addr : ''}</span>
               <div className={`gblock ${b.isLabel ? 'is-label' : ''} ${b.isIp ? 'is-ip' : ''} ${b.addr === hovered ? 'link' : ''}`}
@@ -114,6 +127,7 @@ export function EntityDiagram({
             : `${steps} tick${steps === 1 ? '' : 's'}`}
         </span>
       </div>
+    </div>
     </div>
   );
 }
