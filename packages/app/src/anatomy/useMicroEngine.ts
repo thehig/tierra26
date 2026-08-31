@@ -28,6 +28,7 @@ export interface EntityState {
   daughterFillPct: number;
   population: number;
   compileError: boolean;
+  halted: boolean;      // a straight-line program that has run its last block (reading head left its body)
   world: CellOwner[];   // one owner per soup byte (the magnified world)
   worldSize: number;    // == soup size (for grid layout)
 }
@@ -43,7 +44,7 @@ function empty(worldSize: number, compileError: boolean): EntityState {
   return {
     blocks: [], regs: { A: 0, B: 0, C: 0, D: 0 }, flags: { E: false, S: false, Z: false },
     stack: [], ipLine: -1, age: 0, size: 0, cycle: 0, alive: false,
-    hasDaughter: false, daughterFillPct: 0, population: 0, compileError,
+    hasDaughter: false, daughterFillPct: 0, population: 0, compileError, halted: false,
     world: new Array(worldSize).fill(0), worldSize,
   };
 }
@@ -97,6 +98,7 @@ export function useMicroEngine(source: string, soupSize = 256) {
       daughterFillPct: c && c.dauStart >= 0 && c.dauSize > 0 ? Math.floor((c.dauWritten / c.dauSize) * 100) : 0,
       population: e.world.creatures.size,
       compileError: false,
+      halted: !c ? false : (c.cpu.ip - c.start < 0 || c.cpu.ip - c.start >= c.size),
       world, worldSize: soupSize,
     };
   }, [disasm, compiled, soupSize]);
@@ -106,23 +108,37 @@ export function useMicroEngine(source: string, soupSize = 256) {
   // (Re)build whenever the genome changes; stop any run.
   useEffect(() => { stopRun(); build(); setState(read()); setSteps(0); return stopRun; }, [build, read, stopRun]);
 
-  const step = useCallback(() => { if (!engineRef.current) return; engineRef.current.step(); setState(read()); setSteps((s) => s + 1); }, [read]);
+  // A straight-line program is "done" once its reading head walks off the end of its own body; a
+  // looping creature (jump-back) never does. We stop there so Step and Run land on the same state
+  // instead of the head wandering into empty soup and eventually wrapping back over the genome.
+  const isHalted = useCallback(() => {
+    const c = engineRef.current?.world.creatures.get(idRef.current);
+    if (!c) return false; // no creature to run (or it's gone) — treat as "not mid-program"
+    const rel = c.cpu.ip - c.start;
+    return rel < 0 || rel >= c.size;
+  }, []);
+
+  const step = useCallback(() => {
+    if (!engineRef.current || isHalted()) return; // parked at the end — nothing left to run
+    engineRef.current.step(); setState(read()); setSteps((s) => s + 1);
+  }, [read, isHalted]);
   const reset = useCallback(() => { stopRun(); build(); setState(read()); setSteps(0); }, [build, read, stopRun]);
 
   const run = useCallback(() => {
-    if (runRef.current || !engineRef.current) return;
+    if (runRef.current || !engineRef.current || isHalted()) return;
     runRef.current = true; setRunning(true);
     const loop = () => {
       if (!runRef.current) return;
       const e = engineRef.current;
       if (!e) { stopRun(); return; }
-      for (let i = 0; i < 40; i++) e.step();
-      setState(read()); setSteps((s) => s + 40);
-      if (e.cycles > 8000) { stopRun(); return; }         // safety cap
+      let stepped = 0;
+      for (let i = 0; i < 40 && !isHalted(); i++) { e.step(); stepped++; }
+      setState(read()); setSteps((s) => s + stepped);
+      if (isHalted() || e.cycles > 8000) { stopRun(); return; } // finished, or hit the safety cap
       rafRef.current = requestAnimationFrame(loop);
     };
     rafRef.current = requestAnimationFrame(loop);
-  }, [read, stopRun]);
+  }, [read, stopRun, isHalted]);
 
   return { state, step, reset, run, pause: stopRun, running, steps };
 }

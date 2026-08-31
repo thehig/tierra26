@@ -20,13 +20,18 @@ export interface EntityStateLike {
   hasDaughter: boolean;
   daughterFillPct: number;
   population: number;
+  halted: boolean; // the program has run its last block (straight-line finished)
 }
 
-// Latch-friendly: true the moment the goal is met at the current step.
+// Latch-friendly: true the moment the goal is met.
+// `regEquals` is an *end result* — it only counts once the program has halted, so a value the
+// creature merely passes through mid-run (e.g. C climbing past 1) can't solve the challenge for
+// the learner. The threshold/growth goals ("reach", "make a daughter", "be born") are monotonic,
+// so latching on first-true is what we want.
 export function checkMicroGoal(g: MicroGoal, s: EntityStateLike): boolean {
   switch (g.kind) {
     case 'regAtLeast': return s.regs[g.reg] >= g.value;
-    case 'regEquals': return s.regs[g.reg] === g.value;
+    case 'regEquals': return s.halted && s.regs[g.reg] === g.value;
     case 'daughter': return s.hasDaughter;
     case 'daughterFill': return s.daughterFillPct >= g.pct || s.population > 1; // filled, or already split off
     case 'born': return s.population >= 2;

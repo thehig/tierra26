@@ -21,8 +21,10 @@ function solves(source: string, goal: MicroGoal, budget: number): boolean {
       hasDaughter: !!c && c.dauStart >= 0,
       daughterFillPct: c && c.dauStart >= 0 && c.dauSize > 0 ? Math.floor((c.dauWritten / c.dauSize) * 100) : 0,
       population: e.world.creatures.size,
+      halted: !!c && (c.cpu.ip - c.start < 0 || c.cpu.ip - c.start >= c.size),
     };
     if (checkMicroGoal(goal, s)) return true;
+    if (s.halted) break; // straight-line program is done — no point stepping into empty soup
     e.step();
   }
   return false;
@@ -64,4 +66,36 @@ describe('brick-by-brick chapters', () => {
       expect(solves(sol!.source, ch.challenge!.goal, sol!.budget)).toBe(true);
     });
   }
+
+  // The unedited starter must NOT solve the challenge — except the two "just press Run" chapters
+  // whose starter (the ancestor) IS the solution. This guards the self-solving bug: a "must equal"
+  // goal being satisfied by a value the creature merely passes through while the program runs.
+  const RUN_THE_STARTER = new Set(['copy-loop', 'give-birth']);
+  for (const ch of ready) {
+    if (!ch.challenge) continue;
+    it(`ch${ch.no} "${ch.title}" starter does not self-solve`, () => {
+      const runsToSolve = RUN_THE_STARTER.has(ch.id);
+      expect(solves(ch.challenge!.starter, ch.challenge!.goal, runsToSolve ? 8000 : 500)).toBe(runsToSolve);
+    });
+  }
+
+  // Step and Run must agree: a straight-line program halts on ONE deterministic end-state, no matter
+  // how far you run it. (The bug: Run walked the reading head off the end, wrapped the 256-byte world,
+  // and re-ran the genome, so "sums" gave a different answer than stepping.)
+  it('a straight-line program halts on one stable end-state', () => {
+    const src = 'grow-a\ngrow-a\ngrow-a\ngrow-b\nsubtract';
+    const at = (budget: number) => {
+      const e = new Engine({ seed: 1, soupSize: SOUP, mutation: { flaw: 0, copy: 0, cosmic: 0 } });
+      const id = e.inject(compile(src, classic32).bytes, { founderId: 1 });
+      for (let t = 0; t < budget; t++) {
+        const c = e.world.creatures.get(id)!;
+        if (c.cpu.ip - c.start >= c.size) break; // halted — stop, exactly as the UI does
+        e.step();
+      }
+      const c = e.world.creatures.get(id)!;
+      return { A: c.cpu.reg[0], B: c.cpu.reg[1], C: c.cpu.reg[2] };
+    };
+    expect(at(5)).toEqual({ A: 3, B: 1, C: 2 });   // stepping through
+    expect(at(9000)).toEqual({ A: 3, B: 1, C: 2 }); // "running" lands on the same state
+  });
 });

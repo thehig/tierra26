@@ -92,12 +92,16 @@ export function EntityDiagram({
       </div>
 
       <div className={`entity-controls ${focus === 'run' ? 'lit' : ''}`}>
-        <button className="btn primary" onClick={onStep} disabled={running}>⇥ Step</button>
-        {onRun && (running
+        <button className="btn primary" onClick={onStep} disabled={running || state.halted}>⇥ Step</button>
+        {onRun && !state.halted && (running
           ? <button className="btn" onClick={onPause}>❚❚ Pause</button>
           : <button className="btn" onClick={onRun}>▶ Run</button>)}
         <button className="btn" onClick={onReset} disabled={steps === 0 && !running}>↺ Reset</button>
-        <span className="entity-steps">{steps === 0 ? 'press Step to run one instruction' : `${steps} tick${steps === 1 ? '' : 's'}`}</span>
+        <span className="entity-steps">
+          {state.halted ? `finished after ${steps} tick${steps === 1 ? '' : 's'} — press ↺ Reset to run again`
+            : steps === 0 ? 'press Step to run one instruction'
+            : `${steps} tick${steps === 1 ? '' : 's'}`}
+        </span>
       </div>
     </div>
   );
