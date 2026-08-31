@@ -7,7 +7,12 @@
     "packages/*"
   ],
   "scripts": {
-    "test": "npm test --workspaces --if-present"
+    "test": "npm test --workspaces --if-present",
+    "build": "npm run build --workspace @tierra26/app",
+    "dev": "npm run dev --workspace @tierra26/app",
+    "docker:build": "docker build -t tierra26 .",
+    "docker:up": "docker compose up -d --build",
+    "docker:down": "docker compose down"
   },
   "devDependencies": {
     "typescript": "^5.6.0"
