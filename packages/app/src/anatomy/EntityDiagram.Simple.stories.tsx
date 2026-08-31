@@ -15,8 +15,9 @@ export default meta;
 export const Tutorial: Story = {
   args: { source: 'grow-a\ngrow-b\ngrow-c\ngrow-a\ngrow-b', soup: 36 },
   play: async ({ canvasElement: c }) => {
-    // small world renders emoji directly, no magnifier cursor/loupe
+    // small world renders emoji directly, no magnifier cursor/loupe — and so no step inspector either
     await expect(c.querySelector('.world-grid.emoji')).toBeTruthy();
+    await expect(c.querySelector('.world-focus')).toBeNull();
     await expect(c.querySelectorAll('.gblock').length).toBe(5);
     await expect(c.querySelector('.gblock-emoji')!.textContent!.length).toBeGreaterThan(0);
     // fresh controls: Step enabled, Reset disabled, hint says "press Step"

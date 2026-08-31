@@ -81,6 +81,14 @@ export function EntityDiagram({
             </span>
           ))}
         </div>
+        {/* the big world stays solid, so pin the magnifier under it, centred on the reading head — it
+            follows the ▶ as you Step, showing the current instruction in context without hovering. */}
+        {!small && ipAddr >= 0 && (
+          <div className="world-focus">
+            <div className="part-label">reading head ▶</div>
+            <div className="step-loupe"><LoupeView state={state} cols={cols} cell={ipAddr} /></div>
+          </div>
+        )}
       </div>
       {loupe && <WorldLoupe state={state} cols={cols} {...loupe} />}
 
@@ -162,9 +170,10 @@ export function EntityDiagram({
   );
 }
 
-// The magnifier: a floating loupe showing the 5×5 neighbourhood around the hovered cell, each cell's
-// opcode as an emoji inside its ownership-coloured border, with the centre cell's block named below.
-function WorldLoupe({ state, cols, cell, x, y }: { state: EntityState; cols: number; cell: number; x: number; y: number }) {
+// The magnifier body: the 5×5 neighbourhood around a cell, each cell's opcode as an emoji inside its
+// ownership-coloured border, with the centre cell's gene named below. Shared by the floating hover
+// loupe and the inline reading-head inspector.
+function LoupeView({ state, cols, cell }: { state: EntityState; cols: number; cell: number }) {
   const R = 2, N = 2 * R + 1;
   const rows = Math.ceil(state.worldSize / cols);
   const cr = Math.floor(cell / cols), cc = cell % cols;
@@ -174,13 +183,9 @@ function WorldLoupe({ state, cols, cell, x, y }: { state: EntityState; cols: num
     const inside = rr >= 0 && rr < rows && ccc >= 0 && ccc < cols;
     cells.push({ idx: inside ? rr * cols + ccc : -1, center: dr === 0 && dc === 0 });
   }
-  const vw = typeof window !== 'undefined' ? window.innerWidth : 1200;
-  const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
-  const left = Math.min(x + 18, vw - 200);
-  const top = Math.min(y + 18, vh - 220);
   const centerGene = state.worldGene[cell];
   return (
-    <div className="wloupe" style={{ left, top }}>
+    <>
       <div className="wloupe-grid" style={{ gridTemplateColumns: `repeat(${N}, 1fr)` }}>
         {cells.map((c, k) => {
           const owner = c.idx >= 0 ? state.world[c.idx]! : 0;
@@ -189,6 +194,19 @@ function WorldLoupe({ state, cols, cell, x, y }: { state: EntityState; cols: num
         })}
       </div>
       <div className="wloupe-cap">{centerGene ? <code>{centerGene}</code> : 'empty space'}</div>
+    </>
+  );
+}
+
+// The floating magnifier that follows the cursor while hovering the big world.
+function WorldLoupe({ state, cols, cell, x, y }: { state: EntityState; cols: number; cell: number; x: number; y: number }) {
+  const vw = typeof window !== 'undefined' ? window.innerWidth : 1200;
+  const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
+  const left = Math.min(x + 18, vw - 200);
+  const top = Math.min(y + 18, vh - 220);
+  return (
+    <div className="wloupe" style={{ left, top }}>
+      <LoupeView state={state} cols={cols} cell={cell} />
     </div>
   );
 }

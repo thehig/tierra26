@@ -31,6 +31,12 @@ export const Ancestor: Story = {
     await expect(g.clientHeight).toBeLessThanOrEqual(420);
     // the whole entity fits comfortably in the viewport height (controls never pushed off-screen)
     await expect((c.querySelector('.entity') as HTMLElement).getBoundingClientRect().height).toBeLessThan(760);
+    // a reading-head inspector rides under the world, centred on the current step (the ▶ cell): its
+    // centre shows the very opcode the reading head sits on in the genome — no hover needed
+    await expect(c.querySelector('.world-focus')).toBeTruthy();
+    await expect(c.querySelectorAll('.step-loupe .wl-cell').length).toBe(25);
+    await expect(c.querySelector('.step-loupe .wl-cell.center')!.textContent)
+      .toBe(c.querySelector('.gblock.is-ip .gblock-emoji')!.textContent);
     // hovering the world raises the magnifier loupe (naming the opcode under the cursor)
     await userEvent.hover(c.querySelector('.wcell.mother') as HTMLElement);
     await expect(document.querySelector('.wloupe')).toBeTruthy();
@@ -48,5 +54,8 @@ export const ReadingHeadFollows: Story = {
     await expect(ip).toBeTruthy();
     const a = ip.getBoundingClientRect(), b = g.getBoundingClientRect();
     await expect(a.top >= b.top - 1 && a.bottom <= b.bottom + 1).toBe(true);
+    // and the step inspector stays locked on the reading head as it advances
+    await expect(c.querySelector('.step-loupe .wl-cell.center')!.textContent)
+      .toBe(c.querySelector('.gblock.is-ip .gblock-emoji')!.textContent);
   },
 };

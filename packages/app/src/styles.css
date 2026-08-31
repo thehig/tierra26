@@ -417,6 +417,10 @@ svg.spark { display: block; width: 100%; height: 54px; }
 .wl-cell.center { box-shadow: 0 0 0 2px var(--ink); }
 .wloupe-cap { margin-top: 6px; text-align: center; font-size: .78rem; color: var(--ink-2); }
 .wloupe-cap code { font-family: var(--fm); font-weight: 600; }
+/* the reading-head inspector: the same magnifier body pinned under the big world, centred on the
+   current step (the ▶ cell). It follows the reading head as you Step — no hover needed. */
+.world-focus { margin-top: 10px; }
+.step-loupe { width: fit-content; margin: 0 auto; padding: 8px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line); }
 /* block ↔ cell bridge: hovering either rings the matching one */
 .wcell.link { box-shadow: 0 0 0 2px var(--ink), 0 0 0 4px color-mix(in srgb, var(--accent) 60%, transparent); z-index: 1; }
 .gblock.link { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 55%, transparent); }
