@@ -156,6 +156,31 @@ describe('Cross-package integration (INT)', () => {
     }
   });
 
-  // Pending — needs versus src:
-  it.todo('[INT-VERSUS-MATCH-REPLAY] a MatchDescriptor replays identical standings + result');
+  // Versus layer wired (@tierra26/versus):
+  it('[INT-VERSUS-MATCH-REPLAY] a MatchDescriptor replays identical standings + result', async () => {
+    const { buildDescriptor, toRunDescriptor, runMatch } = await import('../../versus/src/runner.ts');
+    const { normalizeScenario } = await import('../../engine/src/index.ts');
+    const { ANCESTOR_GS } = await import('../../genescript/src/ancestor.gs.ts');
+    const cfg = {
+      scenario: normalizeScenario({ soupSize: 30000, mutation: { flaw: 0, copy: 0, cosmic: 0 } }),
+      seed: 7,
+      players: [
+        { founderId: 1, name: 'A', genome: ANCESTOR_GS },
+        { founderId: 2, name: 'B', genome: 'here:\njump-back here' },
+      ],
+      rules: { threshold: { kind: 'cycles' as const, value: 300_000 }, tiebreakers: ['peak-population' as const] },
+    };
+    const desc = buildDescriptor(cfg);
+    // two viewers of the same descriptor see identical standings + result (VSINV-DET)
+    const r1 = await runMatch(desc).result;
+    const r2 = await runMatch(desc).result;
+    assert.deepEqual(r1.standings, r2.standings);
+    assert.equal(r1.winner, r2.winner);
+    // the descriptor derives a valid RunDescriptor that the engine replays to the same stop cycle
+    const run = toRunDescriptor(desc);
+    assert.ok(run.injections.every((i: any) => i.atCycle === 0)); // simultaneous
+    const replay = Engine.replay(run);
+    assert.equal(replay.cycles, r1.atCycle, 'engine replay reaches the match stop cycle');
+    assert.equal(r1.winner, 1);
+  });
 });
