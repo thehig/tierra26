@@ -47,7 +47,14 @@ export function EntityDiagram({
     if (er.top < cr.top || er.bottom > cr.bottom) c.scrollTop += (er.top - cr.top) - (c.clientHeight - er.height) / 2;
   }, [ipAddr]);
 
-  const dim = (part: Focus) => (focus !== 'whole' && focus !== 'run' && focus !== part ? 'dim' : '');
+  // A scroll waypoint HIGHLIGHTS one part (a ring) rather than dimming the rest — nothing ever looks
+  // greyed-out/disabled. 'genome' covers the 'ip' focus; 'controls' covers the 'run' focus.
+  const spot = (part: string) => {
+    const on = part === 'genome' ? (focus === 'genome' || focus === 'ip')
+      : part === 'controls' ? focus === 'run'
+      : focus === part;
+    return on ? 'spot' : '';
+  };
   const cols = Math.max(1, Math.round(Math.sqrt(state.worldSize)));
   // A small tutorial world shows every opcode emoji right in the grid (no hover needed); a big world
   // (the ancestor) stays solid colours and reveals emoji under the hover magnifier.
@@ -56,7 +63,7 @@ export function EntityDiagram({
   return (
     <div className="entity-wrap">
     <div className={`entity focus-${focus}`}>
-      <div className={`entity-world ${dim('world')} ${focus === 'world' ? 'lit' : ''}`} data-part="world">
+      <div className={`entity-world ${spot('world')}`} data-part="world">
         <div className="part-label">{small ? 'its world' : 'its world · hover to inspect 🔍'}</div>
         <div className={`world-grid ${small ? 'emoji' : ''}`} style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
           onMouseLeave={() => { setHovered(null); setLoupe(null); }}>
@@ -70,7 +77,7 @@ export function EntityDiagram({
       </div>
       {loupe && <WorldLoupe state={state} cols={cols} {...loupe} />}
 
-      <div className={`entity-genome ${dim('genome')} ${focus === 'ip' ? 'lit' : ''}`} data-part="genome">
+      <div className={`entity-genome ${spot('genome')}`} data-part="genome">
         <div className="part-label">its genome — numbered instruction blocks</div>
         <div className="genome-blocks" ref={genomeRef}>
           {state.blocks.map((b) => (
@@ -89,7 +96,7 @@ export function EntityDiagram({
       </div>
 
       <div className="entity-side">
-        <div className={`entity-regs ${dim('registers')}`} data-part="registers">
+        <div className={`entity-regs ${spot('registers')}`} data-part="registers">
           <div className="part-label">four notebooks</div>
           <div className="reg-cards">
             {REG_KEYS.map((k) => (
@@ -100,13 +107,13 @@ export function EntityDiagram({
           </div>
         </div>
 
-        <div className={`entity-flags ${dim('flags')}`} data-part="flags">
+        <div className={`entity-flags ${spot('flags')}`} data-part="flags">
           <div className="part-label">flags</div>
           <div className="flag-chips">{FLAG_KEYS.map((f) => <span className={`flag-chip ${state.flags[f] ? 'on' : ''}`} key={f}>{f}</span>)}</div>
         </div>
 
         {(state.hasDaughter || state.population > 1) && (
-          <div className={`entity-daughter ${dim('daughter')}`} data-part="daughter">
+          <div className={`entity-daughter ${spot('daughter')}`} data-part="daughter">
             <div className="part-label">{state.population > 1 ? 'a baby was born! 🎉' : 'the daughter'}</div>
             <div className="dfill"><span style={{ width: `${state.daughterFillPct}%` }} /></div>
             <span className="dfill-pct">{state.daughterFillPct}% filled</span>
@@ -119,7 +126,7 @@ export function EntityDiagram({
             : <span className="pile-cells">{state.stack.map((v, i) => <span className="pile-cell" key={i}>{v}</span>)}</span>}
         </div>
 
-        <div className={`entity-vitals ${dim('age')}`} data-part="age">
+        <div className={`entity-vitals ${spot('age')}`} data-part="age">
           <span className="vital"><span className="vlabel">age</span><span className="vval">{state.age}</span></span>
           <span className="vital"><span className="vlabel">size</span><span className="vval">{state.size}</span></span>
           <span className="vital"><span className="vlabel">tick</span><span className="vval">{state.cycle}</span></span>
@@ -127,7 +134,7 @@ export function EntityDiagram({
         </div>
       </div>
 
-      <div className={`entity-controls ${focus === 'run' ? 'lit' : ''}`}>
+      <div className={`entity-controls ${spot('controls')}`}>
         <button className="btn primary" onClick={onStep} disabled={running || state.halted}>⇥ Step</button>
         {onRun && !state.halted && (running
           ? <button className="btn" onClick={onPause}>❚❚ Pause</button>

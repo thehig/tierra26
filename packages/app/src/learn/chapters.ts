@@ -155,6 +155,7 @@ const CHAPTERS_DATA: Chapter[] = [
     demo: 'top:\ngrow-a\njump-back top\nclear',
     waypoints: [
       { focus: 'ip', title: 'The loop', body: '`jump-back top` sends the reading head back up to the `top:` landmark. So `grow-a` runs again and again — a *loop*. (The `clear` at the bottom is a *wall* — it marks where the loop ends. A loop must always have a wall after it.)' },
+      { focus: 'world', title: 'One block, two cells', body: 'Look at the world: `jump-back` fills *two cells* side by side, both with its arrow. That’s because it’s a *two-part block* — the *jump* plus the *signpost it aims at* (`top`). Most blocks are one cell; only jumps and searches carry a target, so they take two.' },
       { focus: 'registers', title: 'Watch A climb', body: 'Press *Run* and watch A shoot up. A loop is how a creature does a lot with just a few blocks.' },
     ],
     challenge: { prompt: 'Add a `jump-back top` line just above `clear` to make a loop, and push notebook A to 5.', starter: 'top:\ngrow-a\nclear', goal: { kind: 'regAtLeast', reg: 'A', value: 5, label: 'A reaches 5' } },
@@ -183,7 +184,7 @@ const CHAPTERS_DATA: Chapter[] = [
     lede: 'A creature reads its own code to find a signpost by name.',
     demo: 'spot:\ngrow-a\ngrow-a\nfind-back spot\ngrow-b',
     waypoints: [
-      { focus: 'genome', title: 'Search by name', body: '`find-back` looks *backwards* through your own blocks for a signpost. This searches your *code*, not the world — it’s how a creature finds a spot inside itself. (`find` looks both ways; `find-forward` looks ahead.)' },
+      { focus: 'genome', title: 'Search by name', body: '`find-back` looks *backwards* through your own blocks for a signpost. This searches your *code*, not the world — it’s how a creature finds a spot inside itself. Like `jump-back`, it’s a *two-cell block* — the search plus the signpost it hunts for. (`find` looks both ways; `find-forward` looks ahead.)' },
       { focus: 'registers', title: 'Where, and how long', body: 'When it finds the `spot` signpost it fills two notebooks: *A* = the position right after it (here that’s *1* — check the numbers on the blocks), and *C* = how many blocks long the signpost itself is (here, *1*).' },
     ],
     challenge: { prompt: 'Add a `find-back spot` line just above `grow-b`, so the creature finds its own signpost — its length lands in C.', starter: 'spot:\ngrow-a\ngrow-b', goal: { kind: 'regAtLeast', reg: 'C', value: 1, label: 'C holds the signpost’s length' } },

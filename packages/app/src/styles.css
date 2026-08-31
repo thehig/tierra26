@@ -381,9 +381,8 @@ svg.spark { display: block; width: 100%; height: 54px; }
 .entity-controls { grid-area: controls; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding-top: 12px; border-top: 1px solid var(--line); }
 .part-label { font-size: .66rem; text-transform: uppercase; letter-spacing: .09em; color: var(--faint); font-weight: 600; margin-bottom: 6px; }
 
-.dim { opacity: .32; transition: opacity .3s ease; }
-.lit { transform: scale(1.01); }
-.entity-genome.lit, .entity-controls.lit, .entity-world.lit { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent); border-radius: 12px; }
+/* a scroll waypoint HIGHLIGHTS one part with a ring — it never dims/greys the others */
+.spot { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 50%, transparent); border-radius: 12px; transition: box-shadow .3s ease; }
 
 /* the magnified world: one cell per soup byte, coloured by who owns it */
 .world-grid { display: grid; gap: 2px; width: 100%; max-width: 210px; margin: 0 auto; padding: 6px; border-radius: 12px;
