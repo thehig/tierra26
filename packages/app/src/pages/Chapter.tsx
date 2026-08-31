@@ -66,7 +66,7 @@ export function ChapterPage({ id }: { id: string }) {
         stage={(active) => (
           <EntityDiagram
             state={demo.state}
-            focus={chapter.waypoints[active]?.focus ?? 'whole'}
+            focus={active === null ? 'whole' : (chapter.waypoints[active]?.focus ?? 'whole')}
             onStep={demo.step}
             onReset={demo.reset}
             onRun={demo.run}

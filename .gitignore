@@ -1,2 +1,7 @@
 node_modules
 dist
+
+# Playwright
+packages/app/test-results/
+packages/app/playwright-report/
+packages/app/blob-report/
