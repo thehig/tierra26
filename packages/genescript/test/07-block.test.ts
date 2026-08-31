@@ -8,6 +8,8 @@ import { fromAst, toAst, palette, labelsOf } from '../src/block.ts';
 import type { Block, BlockDoc } from '../src/block.ts';
 import type { Program, Stmt, Loc, Diagnostic } from '../src/types.ts';
 import { entry, allVerbs, verbInSet } from '../src/vocab.ts';
+import { compile, compileProgram } from '../src/comp.ts';
+import { parse } from '../src/gs.ts';
 import { classic32, buildSubset } from '../../engine/src/isa.ts';
 
 // ---- builders (stand in for the future parser) --------------------------------------------
@@ -44,7 +46,15 @@ describe('Block Form (BLOCK)', () => {
     assert.deepEqual(fromAst(toAst(doc)), doc);
   });
 
-  it.todo('[BLOCK-003] a block program compiles to the same bytes as its worded-text twin'); // needs comp.ts (built later)
+  it('[BLOCK-003] a block program compiles to the same bytes as its worded-text twin', () => {
+    // Worded text and its block twin are two views of one AST: fromAst->toAst->compile must match
+    // compiling the worded source directly (blocks add no expressive power).
+    const source = 'copy:\ncopy-byte\ngrow-a\njump-back copy\ndivide';
+    const twin = compile(source, classic32);          // worded-text path
+    const roundtrip = compileProgram(toAst(fromAst(parse(source))), classic32); // block path
+    assert.deepEqual([...roundtrip.bytes], [...twin.bytes]);
+    assert.ok(twin.bytes.length > 0);
+  });
 
   it('[BLOCK-004] block order equals statement order; reordering blocks reorders statements', () => {
     const p = sample();
