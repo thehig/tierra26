@@ -1,0 +1,12 @@
+{
+  "name": "@tierra26/ui",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "tierra26 web UI — app shell, worker/host protocol, tank view, gene editor, inspector, charts, lesson reader (framework-agnostic contracts + view logic; pixel design is a separate design pass)",
+  "scripts": {
+    "test": "node --experimental-strip-types --test \"test/**/*.test.ts\"",
+    "test:watch": "node --experimental-strip-types --test --watch \"test/**/*.test.ts\"",
+    "spec": "node --experimental-strip-types --test-reporter=spec --test \"test/**/*.test.ts\""
+  }
+}
