@@ -4,9 +4,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Engine } from '@tierra26/engine';
 import { classic32, DICTIONARY } from '@tierra26/engine/isa.ts';
-import { compile } from '@tierra26/genescript/comp.ts';
+import { compileProgram } from '@tierra26/genescript/comp.ts';
+import { parse } from '@tierra26/genescript/gs.ts';
 import { disassemble } from '@tierra26/genescript/disasm.ts';
 import { entry } from '@tierra26/genescript/vocab.ts';
+import type { Program, SourceMap } from '@tierra26/genescript/types.ts';
 import { opcodeEmoji } from './opcodeEmoji.ts';
 import type { KeywordCategory } from '../design/palette.ts';
 
@@ -73,8 +75,52 @@ function empty(worldSize: number, compileError: boolean): EntityState {
 const geneOf = (byte: number): string | null => DICTIONARY[byte]?.gene ?? null;
 
 export function useMicroEngine(source: string, soupSize = 256) {
-  const compiled = useMemo(() => { try { const r = compile(source, classic32); return { bytes: r.bytes, error: r.bytes.length === 0 }; } catch { return { bytes: new Uint8Array(), error: true }; } }, [source]);
+  const compiled = useMemo((): { bytes: Uint8Array; error: boolean; sourceMap: SourceMap | null; program: Program | null } => {
+    try {
+      const program = parse(source);
+      const r = compileProgram(program, classic32);
+      return { bytes: r.bytes, error: r.bytes.length === 0, sourceMap: r.sourceMap, program };
+    } catch { return { bytes: new Uint8Array(), error: true, sourceMap: null, program: null }; }
+  }, [source]);
   const disasm = useMemo(() => disassemble(compiled.bytes, classic32), [compiled.bytes]);
+
+  // How each byte-run is grouped into a row and what its head/payload say. The disassembler can only
+  // GUESS this from the bytes — a compiled genome stores nop-template bit patterns, never the name a
+  // label was written with, nor whether a nop run was authored as a named `top:` or as raw `nop1`s.
+  // So it resynthesises generic `label1:` / `points at label1` for BOTH, which is right for an evolved
+  // creature but wrong when we still have the source. When we do (we compiled it, mutation off, at
+  // soup addr 0 → bytes line up 1:1), read the truth from the compiler's byte→statement source map:
+  // the label name the kid actually wrote (`top:`), and raw nops shown as the `nop1`s they are — never
+  // a label that isn't in the source. We fall back to the disassembler only with no source map.
+  type Group = { start: number; end: number; isLabel: boolean; headText: string; payloadText: string };
+  const groups = useMemo((): Group[] => {
+    const anns = disasm.annotations;
+    const { sourceMap, program } = compiled;
+    if (sourceMap && program && anns.length > 0) {
+      // Source-faithful: one group per source statement, tiling every byte (ranges are gap-free).
+      return sourceMap.ranges.map((r): Group => {
+        const st = program.statements[r.stmt];
+        if (st?.kind === 'label') return { start: r.start, end: r.end, isLabel: true, headText: `${st.name}:`, payloadText: '' };
+        if (st?.kind === 'control') return { start: r.start, end: r.end, isLabel: false, headText: st.verb, payloadText: st.target ? `points at ${st.target}` : '' };
+        if (st?.kind === 'verb') return { start: r.start, end: r.end, isLabel: false, headText: st.verb, payloadText: '' };
+        if (st?.kind === 'raw') return { start: r.start, end: r.end, isLabel: false, headText: st.mnemonic, payloadText: '' };
+        return { start: r.start, end: r.end, isLabel: false, headText: '', payloadText: '' };
+      });
+    }
+    // Fallback (no source map, e.g. a compile error, or a future non-source genome): the
+    // disassembler's honest best-effort — generic `labelN` grouped by its emitted lines.
+    const gs: Group[] = [];
+    for (let i = 0; i < anns.length; ) {
+      const ln = disasm.lines[anns[i]!.lineIndex]!;
+      let j = i; while (j < anns.length && anns[j]!.lineIndex === anns[i]!.lineIndex) j++;
+      const toks = ln.text.trim().split(/\s+/);
+      const isLabel = ln.kind === 'label';
+      gs.push({ start: i, end: j, isLabel, headText: isLabel ? ln.text.trim() : toks[0]!,
+        payloadText: !isLabel && toks.length > 1 ? `points at ${toks.slice(1).join(' ')}` : '' });
+      i = j;
+    }
+    return gs;
+  }, [disasm, compiled]);
   const engineRef = useRef<Engine | null>(null);
   const idRef = useRef<number>(-1);
   const runRef = useRef(false);
@@ -107,32 +153,24 @@ export function useMicroEngine(source: string, soupSize = 256) {
     const ipByte = c ? (((c.cpu.ip - c.start) % soupSize) + soupSize) % soupSize : -1;
     const ipLine = ipByte >= 0 ? (disasm.annotations[ipByte]?.lineIndex ?? -1) : -1;
 
-    // One block per BYTE, grouped into instructions/labels by lineIndex (consecutive). The head byte
-    // shows the verb/label; continuation bytes (a label's extra marks, or a jump/find target) become
-    // subordinate rows — so the genome list matches the world cells exactly, 1:1.
+    // One block per BYTE (1:1 with the world cells), expanded from the source-faithful `groups`. The
+    // head byte shows the verb/label name; continuation bytes (a label's extra marks, or a jump/find
+    // target) are subordinate rows — the target names itself once, on the first payload byte.
     const anns = disasm.annotations;
     const blocks: GenomeBlock[] = [];
-    for (let i = 0; i < anns.length; ) {
-      const li = anns[i]!.lineIndex;
-      const ln = disasm.lines[li]!;
-      const isLabel = ln.kind === 'label';
-      const groupStart = anns[i]!.byteIndex;
-      let j = i; while (j < anns.length && anns[j]!.lineIndex === li) j++;
-      const span = j - i;
-      const toks = ln.text.trim().split(/\s+/);
-      const verb = toks[0]!, target = toks.slice(1).join(' ');
-      const category = lineCategory(anns[i]!.verb ?? null, anns[i]!.mnemonic ?? null, anns[i]!.role ?? '', isLabel);
-      for (let k = i; k < j; k++) {
+    for (const g of groups) {
+      const head = anns[g.start]!;
+      const span = g.end - g.start;
+      const category = lineCategory(head.verb ?? null, head.mnemonic ?? null, head.role ?? '', g.isLabel);
+      for (let k = g.start; k < g.end; k++) {
         const a = anns[k]!;
-        const isHead = k === i, isCont = !isHead;
-        const text = isHead ? (isLabel ? ln.text.trim() : verb)   // "label1:" or the bare verb
-          : (!isLabel && k === i + 1 && target ? `points at ${target}` : ''); // target on the first payload byte
+        const isHead = k === g.start, isCont = !isHead;
+        const text = isHead ? g.headText : (k === g.start + 1 ? g.payloadText : '');
         blocks.push({
           addr: a.byteIndex, text, emoji: opcodeEmoji(blockGene(a.verb ?? null, a.mnemonic ?? null)),
-          category, isLabel, isCont, isIp: a.byteIndex === ipByte, groupStart, groupSpan: span,
+          category, isLabel: g.isLabel, isCont, isIp: a.byteIndex === ipByte, groupStart: g.start, groupSpan: span,
         });
       }
-      i = j;
     }
     return {
       blocks,
@@ -151,7 +189,7 @@ export function useMicroEngine(source: string, soupSize = 256) {
       halted: !c ? false : (c.cpu.ip - c.start < 0 || c.cpu.ip - c.start >= c.size),
       world, worldGene, worldSize: soupSize,
     };
-  }, [disasm, compiled, soupSize]);
+  }, [disasm, compiled, soupSize, groups]);
 
   const stopRun = useCallback(() => { runRef.current = false; cancelAnimationFrame(rafRef.current); setRunning(false); }, []);
 

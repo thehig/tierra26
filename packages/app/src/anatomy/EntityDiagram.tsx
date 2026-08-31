@@ -86,7 +86,7 @@ export function EntityDiagram({
       {loupe && <WorldLoupe state={state} cols={cols} {...loupe} />}
 
       <div className={`entity-genome ${spot('genome')}`} data-part="genome">
-        <div className="part-label">its genome — numbered instruction blocks</div>
+        <div className="part-label">genome</div>
         <div className="genome-blocks" ref={genomeRef}>
           {state.blocks.map((b) => {
             const lit = blockLit(b);
@@ -109,7 +109,7 @@ export function EntityDiagram({
 
       <div className="entity-side">
         <div className={`entity-regs ${spot('registers')}`} data-part="registers">
-          <div className="part-label">four notebooks</div>
+          <div className="part-label">registers</div>
           <div className="reg-cards">
             {REG_KEYS.map((k) => (
               <div className={`reg-card ${changed[k] ? 'changed' : ''}`} key={k}>

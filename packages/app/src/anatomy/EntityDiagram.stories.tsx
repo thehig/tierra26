@@ -72,9 +72,11 @@ export const Loops: Story = {
     // world shows the red payload mark after the jump opcode
     const worldEmojis = [...c.querySelectorAll('.world-grid .wcell')].map((w) => w.textContent);
     await expect(worldEmojis.filter((e) => e === '🔴').length).toBe(1); // the payload marker
-    // genome: a jump-back row + a subordinate payload row naming its target
+    // genome shows the label by the name the source wrote (`top`), not a generic `label1`
+    await expect(c.querySelector('.gblock.is-label .gblock-text')!.textContent).toBe('top:');
+    // genome: a jump-back row + a subordinate payload row naming its target by that same name
     await expect(c.querySelector('.gblock.is-payload')).toBeTruthy();
-    await expect(c.querySelector('.gblock.is-payload .gpay-text')!.textContent).toMatch(/points at/);
+    await expect(c.querySelector('.gblock.is-payload .gpay-text')!.textContent).toBe('points at top');
     // a loop never "finishes": Step stays enabled and Run stays available
     await step(c, 2);
     await expect(stepBtn(c)).toBeEnabled();
@@ -93,9 +95,14 @@ export const ComplexAncestor: Story = {
   play: async ({ canvasElement: c }) => {
     // big world → NOT emoji mode (magnifier instead)
     await expect(c.querySelector('.world-grid.emoji')).toBeNull();
-    // exact 1:1 parity: one genome row per world cell. The 4-byte label1: is 4 rows (head + 3 conts)
+    // exact 1:1 parity: one genome row per world cell
     await expect(c.querySelectorAll('.gblock').length).toBe(c.querySelectorAll('.wcell.mother').length);
-    await expect(c.querySelectorAll('.gblock.is-payload').length).toBeGreaterThan(0); // continuation rows exist
+    // the ancestor authors its templates as raw nops — the viewer shows them faithfully (`nop1`),
+    // never a synthesised `label1:` / `points at` landmark the source never wrote
+    const texts = [...c.querySelectorAll('.gblock-text')].map((t) => t.textContent ?? '');
+    await expect(texts).toContain('nop1');
+    await expect(texts.some((t) => /^label\d+:/.test(t))).toBe(false);
+    await expect(texts.some((t) => /points at/.test(t))).toBe(false);
     // the genome list is height-bounded and scrolls internally (not down the page)
     const g = c.querySelector('.genome-blocks') as HTMLElement;
     await expect(g.scrollHeight).toBeGreaterThan(g.clientHeight);
