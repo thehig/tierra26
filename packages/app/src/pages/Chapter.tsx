@@ -65,8 +65,12 @@ export function ChapterPage({ id }: { id: string }) {
     content: (<><h2><RichText text={w.title} /></h2><p><RichText text={w.body} /></p></>),
   }));
 
+  // The "zoomed-out" big-world chapters (the ancestor) get a wider layout so the byte-level genome
+  // (one row per cell) has room to breathe.
+  const wide = chapterSoup(chapter) > 49;
+
   return (
-    <div className="page anatomy chapter">
+    <div className={`page anatomy chapter${wide ? ' wide' : ''}`}>
       <header className="anatomy-hero">
         <div className="eyebrow">Chapter {chapter.no} · {chapter.phase}</div>
         <h1>{chapter.title}</h1>

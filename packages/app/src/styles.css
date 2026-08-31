@@ -345,6 +345,12 @@ svg.spark { display: block; width: 100%; height: 54px; }
 
 /* ═══ Meet a creature — anatomy scrollytelling ═══ */
 .anatomy { max-width: 1200px; }
+/* big-world ("zoomed out") chapters: a wider page + a wider stage so the byte-level genome has room */
+.anatomy.wide { max-width: 1440px; }
+@media (min-width: 900px) { .anatomy.wide .scrolly { grid-template-columns: 1.55fr 0.8fr; gap: 36px; } }
+.anatomy.wide .genome-blocks { max-height: clamp(300px, 56vh, 560px); }
+.micro-sandbox.wide { max-width: 1440px; }
+.micro-sandbox.wide .genome-blocks { max-height: clamp(300px, 56vh, 560px); }
 .anatomy-hero { text-align: center; max-width: 720px; margin: 20px auto 10px; }
 .anatomy-hero h1 { font-family: var(--fd); font-size: clamp(2.2rem, 5vw, 3.2rem); font-weight: 800; letter-spacing: -.02em; }
 .anatomy-lede { font-size: 1.15rem; color: var(--ink-2); margin-top: 12px; }
@@ -423,7 +429,7 @@ svg.spark { display: block; width: 100%; height: 54px; }
   overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; }
 .genome-blocks::-webkit-scrollbar { width: 8px; }
 .genome-blocks::-webkit-scrollbar-thumb { background: var(--line); border-radius: 8px; }
-.gline { display: grid; grid-template-columns: 42px 1fr; align-items: center; gap: 8px; }
+.gline { display: grid; grid-template-columns: 24px 1fr; align-items: center; gap: 8px; }
 .gaddr { font-family: var(--fm); font-size: .78rem; font-weight: 600; font-variant-numeric: tabular-nums;
   color: var(--faint); text-align: right; user-select: none; }
 /* a genome block is a flex row: reading-head slot · opcode emoji · name — so nothing overlaps */

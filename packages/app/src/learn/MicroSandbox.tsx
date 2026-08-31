@@ -19,7 +19,7 @@ export function MicroSandbox({ challenge, soup, onSolved }: { challenge: Challen
   }, [micro.state, solved, challenge.goal, onSolved]);
 
   return (
-    <div className="micro-sandbox">
+    <div className={`micro-sandbox${(soup ?? 256) > 49 ? ' wide' : ''}`}>
       <div className="ms-prompt"><span className="goaltag">Your turn</span> {challenge.prompt}</div>
       <div className="ms-grid">
         <GeneEditor value={source} onChange={setSource} title="your code" />

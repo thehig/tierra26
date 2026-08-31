@@ -91,13 +91,11 @@ export const Loops: Story = {
 export const ComplexAncestor: Story = {
   args: { source: ANCESTOR_GS, soup: 256 },
   play: async ({ canvasElement: c }) => {
-    // big world → NOT emoji mode, and the dense genome stays compact (no payload-row expansion)
+    // big world → NOT emoji mode (magnifier instead)
     await expect(c.querySelector('.world-grid.emoji')).toBeNull();
-    await expect(c.querySelector('.gblock.is-payload')).toBeNull();
-    // multi-byte blocks (e.g. the 4-byte label1:) show their cell RANGE in the gutter, e.g. "0–3"
-    const ranges = [...c.querySelectorAll('.gaddr')].filter((g) => /\d+–\d+/.test(g.textContent || ''));
-    await expect(ranges.length).toBeGreaterThan(0);
-    await expect(c.querySelector('.gaddr')!.textContent).toMatch(/^0–\d+$/); // first block is the label, spanning from 0
+    // exact 1:1 parity: one genome row per world cell. The 4-byte label1: is 4 rows (head + 3 conts)
+    await expect(c.querySelectorAll('.gblock').length).toBe(c.querySelectorAll('.wcell.mother').length);
+    await expect(c.querySelectorAll('.gblock.is-payload').length).toBeGreaterThan(0); // continuation rows exist
     // the genome list is height-bounded and scrolls internally (not down the page)
     const g = c.querySelector('.genome-blocks') as HTMLElement;
     await expect(g.scrollHeight).toBeGreaterThan(g.clientHeight);

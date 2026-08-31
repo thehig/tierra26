@@ -10,12 +10,17 @@ import { entry } from '@tierra26/genescript/vocab.ts';
 import { opcodeEmoji } from './opcodeEmoji.ts';
 import type { KeywordCategory } from '../design/palette.ts';
 
+// ONE block per BYTE — exact 1:1 parity with the world cells. A multi-byte instruction/label becomes
+// a head row (the verb/label) followed by continuation rows (its template/payload bytes). Hover
+// groups by the whole instruction via groupStart/groupSpan.
 export interface GenomeBlock {
-  index: number; addr: number; text: string; emoji: string;
+  addr: number;          // byte index == world-cell index
+  text: string;          // head: the verb/label name (or "points at X" on a payload byte); '' on plain continuations
+  emoji: string;
   category: KeywordCategory | 'value'; isLabel: boolean; isIp: boolean;
-  span: number;          // how many cells/bytes this instruction occupies
-  target: string;        // the label an addressing op points at (payload), '' otherwise
-  payload: string[];     // emoji per payload byte (the jump/find target template) — the extra cells
+  isCont: boolean;       // a continuation byte (a label's extra marks, or a jump/find target) — a subordinate row
+  groupStart: number;    // first byte of this byte's instruction (for hover grouping)
+  groupSpan: number;     // bytes in that instruction
 }
 
 // The opcode emoji for a block: its GeneScript verb, or the mark for a label's template byte.
@@ -98,32 +103,37 @@ export function useMicroEngine(source: string, soupSize = 256) {
       for (let i = 0; i < cr.size; i++) { const a = e.world.soup.ad(cr.start + i); if (a < soupSize) { world[a] = owner; worldGene[a] = geneOf(e.world.soup.read(cr.start + i)); } }
       if (cr.dauStart >= 0) for (let j = 0; j < cr.dauSize; j++) { const a = e.world.soup.ad(cr.dauStart + j); if (a < soupSize && world[a] === 0) { world[a] = 2; worldGene[a] = geneOf(e.world.soup.read(cr.dauStart + j)); } }
     }
-    let ipLine = -1;
-    if (c) { const rel = ((c.cpu.ip - c.start) % soupSize + soupSize) % soupSize; const a = disasm.annotations[rel]; if (a) ipLine = a.lineIndex; }
-    // Group the dense byte annotations by the line they belong to (for span + payload bytes).
-    const annsByLine: (typeof disasm.annotations)[] = [];
-    for (const an of disasm.annotations) (annsByLine[an.lineIndex] ??= []).push(an);
-    const blocks: GenomeBlock[] = disasm.lines.map((ln, i) => {
-      const anns = annsByLine[i] ?? [];
-      const first = anns[0];
+    // The reading head sits on a specific BYTE (the ip). Its line is kept for reference.
+    const ipByte = c ? (((c.cpu.ip - c.start) % soupSize) + soupSize) % soupSize : -1;
+    const ipLine = ipByte >= 0 ? (disasm.annotations[ipByte]?.lineIndex ?? -1) : -1;
+
+    // One block per BYTE, grouped into instructions/labels by lineIndex (consecutive). The head byte
+    // shows the verb/label; continuation bytes (a label's extra marks, or a jump/find target) become
+    // subordinate rows — so the genome list matches the world cells exactly, 1:1.
+    const anns = disasm.annotations;
+    const blocks: GenomeBlock[] = [];
+    for (let i = 0; i < anns.length; ) {
+      const li = anns[i]!.lineIndex;
+      const ln = disasm.lines[li]!;
       const isLabel = ln.kind === 'label';
-      // An addressing op (jump/find/call) is a verb byte followed by its target-template byte(s) — the
-      // "payload". Those extra bytes become extra cells/rows; split the target off the main text so the
-      // verb row shows the command and each payload row shows a 🔴/🔵 with the target it points at.
-      const payloadAnns = first?.role === 'verb' ? anns.slice(1).filter((a) => a.role === 'template') : [];
-      const payload = payloadAnns.map((a) => opcodeEmoji(blockGene(a.verb ?? null, a.mnemonic ?? null)));
-      const full = ln.text.trim();
-      const toks = full.split(/\s+/);
-      const hasTarget = payload.length > 0 && toks.length > 1;
-      // The creature is injected at soup address 0, so a block's byte offset IS its address — the
-      // number `find-back`/`jump` report and land on. That's what the gutter shows.
-      return {
-        index: i, addr: first?.byteIndex ?? -1, span: Math.max(1, anns.length),
-        text: hasTarget ? toks[0]! : full, target: hasTarget ? toks.slice(1).join(' ') : '', payload,
-        emoji: opcodeEmoji(blockGene(first?.verb ?? null, first?.mnemonic ?? null)),
-        category: lineCategory(first?.verb ?? null, first?.mnemonic ?? null, first?.role ?? '', isLabel), isLabel, isIp: i === ipLine,
-      };
-    });
+      const groupStart = anns[i]!.byteIndex;
+      let j = i; while (j < anns.length && anns[j]!.lineIndex === li) j++;
+      const span = j - i;
+      const toks = ln.text.trim().split(/\s+/);
+      const verb = toks[0]!, target = toks.slice(1).join(' ');
+      const category = lineCategory(anns[i]!.verb ?? null, anns[i]!.mnemonic ?? null, anns[i]!.role ?? '', isLabel);
+      for (let k = i; k < j; k++) {
+        const a = anns[k]!;
+        const isHead = k === i, isCont = !isHead;
+        const text = isHead ? (isLabel ? ln.text.trim() : verb)   // "label1:" or the bare verb
+          : (!isLabel && k === i + 1 && target ? `points at ${target}` : ''); // target on the first payload byte
+        blocks.push({
+          addr: a.byteIndex, text, emoji: opcodeEmoji(blockGene(a.verb ?? null, a.mnemonic ?? null)),
+          category, isLabel, isCont, isIp: a.byteIndex === ipByte, groupStart, groupSpan: span,
+        });
+      }
+      i = j;
+    }
     return {
       blocks,
       regs: c ? { A: c.cpu.reg[0]!, B: c.cpu.reg[1]!, C: c.cpu.reg[2]!, D: c.cpu.reg[3]! } : { A: 0, B: 0, C: 0, D: 0 },

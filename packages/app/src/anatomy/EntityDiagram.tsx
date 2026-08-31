@@ -33,11 +33,11 @@ export function EntityDiagram({
   // both cells to its rows. The creature sits at soup address 0, so cell index == byte address.
   const [hovered, setHovered] = useState<{ start: number; end: number } | null>(null);
   const rangeOfCell = (i: number) => {
-    const b = state.blocks.find((bl) => i >= bl.addr && i < bl.addr + bl.span);
-    return b ? { start: b.addr, end: b.addr + b.span } : { start: i, end: i + 1 };
+    const b = state.blocks.find((bl) => bl.addr === i);
+    return b ? { start: b.groupStart, end: b.groupStart + b.groupSpan } : { start: i, end: i + 1 };
   };
   const cellLit = (i: number) => hovered != null && i >= hovered.start && i < hovered.end;
-  const blockLit = (b: GenomeBlock) => hovered != null && hovered.start === b.addr;
+  const blockLit = (b: GenomeBlock) => hovered != null && hovered.start === b.groupStart;
   const clearHover = () => setHovered(null);
   // Hovering the world raises a magnifier loupe: solid colours stay in the grid, but the cells under
   // the cursor are shown big, with each cell's opcode emoji inside its ownership-coloured border.
@@ -72,7 +72,7 @@ export function EntityDiagram({
     <div className="entity-wrap">
     <div className={`entity focus-${focus}`}>
       <div className={`entity-world ${spot('world')}`} data-part="world">
-        <div className="part-label">{small ? 'its world' : 'its world · hover to inspect 🔍'}</div>
+        <div className="part-label">{small ? 'world' : 'world · hover to inspect 🔍'}</div>
         <div className={`world-grid ${small ? 'emoji' : ''}`} style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
           onMouseLeave={() => { clearHover(); setLoupe(null); }}>
           {state.world.map((o, i) => (
@@ -90,33 +90,17 @@ export function EntityDiagram({
         <div className="genome-blocks" ref={genomeRef}>
           {state.blocks.map((b) => {
             const lit = blockLit(b);
-            const setB = () => setHovered({ start: b.addr, end: b.addr + b.span });
-            const expand = small && b.payload.length > 0; // tutorial worlds split a 2-byte op into rows
+            const setB = () => setHovered({ start: b.groupStart, end: b.groupStart + b.groupSpan });
             const col = { borderColor: categoryVar(b.category), color: categoryVar(b.category) };
-            // The gutter shows the cell(s) a block occupies: a single position, or a range for a
-            // multi-byte block shown on one row (a label, or a compact 2-byte op) — so it reconciles
-            // with the world. When a 2-byte op is expanded into rows, each row shows its own position.
-            const gutter = b.addr < 0 ? '' : (!expand && b.span > 1 ? `${b.addr}–${b.addr + b.span - 1}` : `${b.addr}`);
+            // one row per byte == one world cell (1:1); continuation bytes are subordinate rows
             return (
-              <div key={b.index} className="gblockgroup">
-                <div className="gline" ref={b.isIp ? ipRef : undefined} onMouseEnter={setB} onMouseLeave={clearHover}>
-                  <span className="gaddr" title={b.span > 1 ? `occupies ${b.span} cells` : 'this block’s position in the code'}>{gutter}</span>
-                  <div className={`gblock ${b.isLabel ? 'is-label' : ''} ${b.isIp ? 'is-ip' : ''} ${lit ? 'link' : ''}`} style={col}>
-                    <span className="gblock-head" aria-label={b.isIp ? 'reading head' : undefined}>{b.isIp ? '▶' : ''}</span>
-                    <span className="gblock-emoji" aria-hidden="true">{b.emoji}</span>
-                    <span className="gblock-text">{b.text}{!expand && b.target ? ' ' + b.target : ''}</span>
-                  </div>
+              <div className="gline" key={b.addr} ref={b.isIp ? ipRef : undefined} onMouseEnter={setB} onMouseLeave={clearHover}>
+                <span className="gaddr" title="this cell’s position in the code">{b.addr >= 0 ? b.addr : ''}</span>
+                <div className={`gblock ${b.isLabel ? 'is-label' : ''} ${b.isIp ? 'is-ip' : ''} ${b.isCont ? 'is-payload' : ''} ${lit ? 'link' : ''}`} style={col}>
+                  <span className={`gblock-head ${b.isCont ? 'gpay-arrow' : ''}`} aria-label={b.isIp ? 'reading head' : undefined}>{b.isIp ? '▶' : b.isCont ? '↳' : ''}</span>
+                  <span className="gblock-emoji" aria-hidden="true">{b.emoji}</span>
+                  <span className={`gblock-text ${b.isCont ? 'gpay-text' : ''}`}>{b.text}</span>
                 </div>
-                {expand && b.payload.map((pe, k) => (
-                  <div className="gline" key={k} onMouseEnter={setB} onMouseLeave={clearHover}>
-                    <span className="gaddr">{b.addr + 1 + k}</span>
-                    <div className={`gblock is-payload ${lit ? 'link' : ''}`} style={col}>
-                      <span className="gblock-head gpay-arrow">↳</span>
-                      <span className="gblock-emoji" aria-hidden="true">{pe}</span>
-                      <span className="gblock-text gpay-text">{k === 0 ? `points at ${b.target}` : ''}</span>
-                    </div>
-                  </div>
-                ))}
               </div>
             );
           })}
