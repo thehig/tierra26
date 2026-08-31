@@ -9,10 +9,12 @@ import type { Scenario, Injection } from '@tierra26/engine';
 import { STARTERS } from '@tierra26/content/lessons.ts';
 import type { PlaygroundConfig } from '@tierra26/content/types.ts';
 
-// Named scenario presets the lessons reference (soup size; mutation is design-off for now).
+// Named scenario presets the lessons reference. Design-phase soups run mutation-off; the
+// emergence "evolve" soup turns copy/cosmic mutation on (the proven open-ended-evolution regime).
 const SCENARIO_PRESETS: Record<string, Partial<Scenario>> = {
-  'soup-small': { soupSize: 30000 },
-  'soup-standard': { soupSize: 60000 },
+  'soup-small': { soupSize: 30000, mutation: { flaw: 0, copy: 0, cosmic: 0 } },
+  'soup-standard': { soupSize: 60000, mutation: { flaw: 0, copy: 0, cosmic: 0 } },
+  'soup-evolve': { soupSize: 60000, mutation: { flaw: 0, copy: 200, cosmic: 4000 } },
 };
 
 export interface Boot {
@@ -37,7 +39,8 @@ export function resolvePlaygroundBoot(cfg: PlaygroundConfig): Boot {
   const genome = compile(starterSource(cfg), activeSet(cfg)).bytes;
   const preset = typeof cfg.scenario === 'string' ? (SCENARIO_PRESETS[cfg.scenario] ?? {}) : (cfg.scenario ?? {});
   return {
-    scenario: { ...preset, seed: cfg.seed, mutation: { flaw: 0, copy: 0, cosmic: 0 } },
+    // The preset carries the mutation regime (design-off vs evolve-on); seed comes from the recipe.
+    scenario: { ...preset, seed: cfg.seed },
     injections: [{ atCycle: 0, genome, founderId: 1 }],
   };
 }

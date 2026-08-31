@@ -25,6 +25,13 @@ describe('playground boot resolver', () => {
     expect(boot.scenario.soupSize).toBe(60000);
   });
 
+  it('the evolve scenario turns mutation on (emergence lessons)', () => {
+    const boot = resolvePlaygroundBoot({ scenario: 'soup-evolve', seed: 3, starter: { kind: 'ref', id: 'ancestor' }, subset: { kind: 'classic32' } } as any);
+    expect(boot.scenario.mutation!.copy).toBeGreaterThan(0);
+    const design = resolvePlaygroundBoot({ scenario: 'soup-small', seed: 3, starter: { kind: 'ref', id: 'ancestor' }, subset: { kind: 'classic32' } } as any);
+    expect(design.scenario.mutation!.copy).toBe(0);
+  });
+
   it('is deterministic', () => {
     const cfg = { scenario: 'soup-small', seed: 7, starter: { kind: 'ref', id: 'ancestor' }, subset: { kind: 'classic32' } } as any;
     expect([...resolvePlaygroundBoot(cfg).injections[0]!.genome]).toEqual([...resolvePlaygroundBoot(cfg).injections[0]!.genome]);
