@@ -5,3 +5,10 @@ dist
 packages/app/test-results/
 packages/app/playwright-report/
 packages/app/blob-report/
+
+*storybook.log
+storybook-static
+
+# Storybook
+packages/app/storybook-static/
+packages/app/debug-storybook.log
