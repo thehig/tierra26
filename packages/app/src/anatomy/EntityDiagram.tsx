@@ -93,10 +93,14 @@ export function EntityDiagram({
             const setB = () => setHovered({ start: b.addr, end: b.addr + b.span });
             const expand = small && b.payload.length > 0; // tutorial worlds split a 2-byte op into rows
             const col = { borderColor: categoryVar(b.category), color: categoryVar(b.category) };
+            // The gutter shows the cell(s) a block occupies: a single position, or a range for a
+            // multi-byte block shown on one row (a label, or a compact 2-byte op) — so it reconciles
+            // with the world. When a 2-byte op is expanded into rows, each row shows its own position.
+            const gutter = b.addr < 0 ? '' : (!expand && b.span > 1 ? `${b.addr}–${b.addr + b.span - 1}` : `${b.addr}`);
             return (
               <div key={b.index} className="gblockgroup">
                 <div className="gline" ref={b.isIp ? ipRef : undefined} onMouseEnter={setB} onMouseLeave={clearHover}>
-                  <span className="gaddr" title="this block's position in the code">{b.addr >= 0 ? b.addr : ''}</span>
+                  <span className="gaddr" title={b.span > 1 ? `occupies ${b.span} cells` : 'this block’s position in the code'}>{gutter}</span>
                   <div className={`gblock ${b.isLabel ? 'is-label' : ''} ${b.isIp ? 'is-ip' : ''} ${lit ? 'link' : ''}`} style={col}>
                     <span className="gblock-head" aria-label={b.isIp ? 'reading head' : undefined}>{b.isIp ? '▶' : ''}</span>
                     <span className="gblock-emoji" aria-hidden="true">{b.emoji}</span>
