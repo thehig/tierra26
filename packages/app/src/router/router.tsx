@@ -2,10 +2,10 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { pathToRoute, routeToPath, type Route } from '@tierra26/ui/shell.ts';
 
-// The app adds `concept` (explainer pages) and `meet` (the anatomy onboarding) surfaces.
+// The app adds `concept` (explainer pages) and `learn` (the brick-by-brick chapters) surfaces.
 export type ConceptRoute = { surface: 'concept'; slug: string };
-export type MeetRoute = { surface: 'meet' };
-export type AppRoute = Route | ConceptRoute | MeetRoute;
+export type LearnRoute = { surface: 'learn'; chapterId: string };
+export type AppRoute = Route | ConceptRoute | LearnRoute;
 type Target = AppRoute | 'home';
 
 interface RouterCtx {
@@ -18,11 +18,13 @@ const Ctx = createContext<RouterCtx>({ route: null, navigate: () => {} });
 function pathOf(to: Target): string {
   if (to === 'home') return '/';
   if (to.surface === 'concept') return '/concept/' + encodeURIComponent(to.slug);
-  if (to.surface === 'meet') return '/meet';
+  if (to.surface === 'learn') return '/learn/' + encodeURIComponent(to.chapterId);
   return routeToPath(to);
 }
 function routeOf(path: string): AppRoute | null {
-  if (/^\/meet\/?/.test(path)) return { surface: 'meet' };
+  if (/^\/meet\/?/.test(path)) return { surface: 'learn', chapterId: 'meet' }; // legacy alias
+  const learnMatch = /^\/learn\/([^/?#]+)/.exec(path);
+  if (learnMatch) return { surface: 'learn', chapterId: decodeURIComponent(learnMatch[1]!) };
   const conceptMatch = /^\/concept\/([^/?#]+)/.exec(path);
   if (conceptMatch) return { surface: 'concept', slug: decodeURIComponent(conceptMatch[1]!) };
   return pathToRoute(path);
