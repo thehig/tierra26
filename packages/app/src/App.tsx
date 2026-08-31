@@ -10,6 +10,21 @@ import { VersusPage } from './pages/Versus.tsx';
 import { ConceptPage } from './pages/Concept.tsx';
 import { ChapterPage } from './pages/Chapter.tsx';
 
+// A stable identity per distinct page, so client navigation REMOUNTS the page (matching a refresh)
+// instead of reusing a same-typed page's stale internal state (e.g. a sandbox's solved/step state).
+function routeKey(r: AppRoute | null): string {
+  if (!r) return 'home';
+  switch (r.surface) {
+    case 'lesson': return 'lesson:' + r.lessonId + (r.section ?? '');
+    case 'learn': return 'learn:' + r.chapterId;
+    case 'wiki': return 'wiki:' + (r.verb ?? '');
+    case 'concept': return 'concept:' + r.slug;
+    case 'sandbox': return 'sandbox:' + (r.run ? r.run.seed + r.run.genomes.join('|') : '');
+    case 'versus': return 'versus:' + (r.run ? r.run.seed + r.run.genomes.join('|') : '');
+    default: return 'home';
+  }
+}
+
 function Surface({ route, dark }: { route: AppRoute | null; dark: boolean }) {
   if (!route) return <Home />;
   switch (route.surface) {
@@ -43,7 +58,7 @@ function Chrome() {
         </button>
         <button className="btn ghost" onClick={nextTheme}>◐ {theme}</button>
       </header>
-      <Surface route={route} dark={dark} />
+      <Surface key={routeKey(route)} route={route} dark={dark} />
     </div>
   );
 }
