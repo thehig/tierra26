@@ -123,7 +123,39 @@ describe('Cross-package integration (INT)', () => {
     assert.equal(r1.passed, true);          // the ancestor replicates
   });
 
-  // Pending — need ui/versus src:
-  it.todo('[INT-FRAME-VIEWS] one ObservationFrame feeds tank/charts/inspector consistently');
+  // UI layer wired (@tierra26/ui): one worker frame feeds every view-model consistently.
+  it('[INT-FRAME-VIEWS] one ObservationFrame feeds tank/charts/inspector consistently', async () => {
+    const { createWorkerCore } = await import('../../ui/src/worker-core.ts');
+    const { tankFrameFromObservation, addressToCell } = await import('../../ui/src/tank-view.ts');
+    const { makeChartModel } = await import('../../ui/src/charts.ts');
+    let s = 0; const env = () => ({ sessionId: 'v', correlationId: `k${s++}` });
+    const core = createWorkerCore();
+    core.handle({ type: 'createSession', engineVersion: Engine.version, ...env() } as any);
+    core.handle({ type: 'init', scenario: { seed: 1, mutation: { flaw: 0, copy: 0, cosmic: 0 } }, ...env() } as any);
+    core.handle({ type: 'inject', genome: ANC.slice(), ...env() } as any);
+    core.handle({ type: 'run', mode: 'budget', nInstructions: 400_000, ...env() } as any);
+    const evs = core.handle({ type: 'step', ...env() } as any);
+    const frame = (evs.find((e: any) => e.type === 'frame') as any).frame;
+
+    // charts reads the SAME population the frame carries
+    const chart = makeChartModel(); chart.ingest(frame);
+    assert.equal(chart.readouts.population, frame.stats.population);
+    assert.ok(frame.stats.population > 1, 'the ancestor has replicated by now');
+
+    // tank spatial map agrees with the census: some cells are occupied
+    const tf = tankFrameFromObservation(frame);
+    let occupied = 0; for (const g of tf.genotypeOf) if (g !== 0) occupied++;
+    assert.ok(occupied > 0, 'the tank shows living cells');
+
+    // inspector view of a live address agrees with the tank cell's genotype at that address
+    const insp = core.handle({ type: 'requestInspect', addr: 0, ...env() } as any).find((e: any) => e.type === 'inspectResult') as any;
+    if (insp && insp.view.occupied) {
+      const { x, y } = addressToCell(0, tf);
+      const cellGeno = tf.genotypeOf[y * tf.width + x];
+      assert.equal(cellGeno, insp.view.genotypeId, 'tank cell genotype === inspector genotypeId (one frame, consistent views)');
+    }
+  });
+
+  // Pending — needs versus src:
   it.todo('[INT-VERSUS-MATCH-REPLAY] a MatchDescriptor replays identical standings + result');
 });
