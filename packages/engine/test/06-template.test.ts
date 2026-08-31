@@ -8,6 +8,13 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { Soup } from '../src/soup.ts';
 import { search, templateLen } from '../src/template.ts';
+import { World } from '../src/world.ts';
+import { classic32 } from '../src/isa.ts';
+import { DEFAULT_RATES } from '../src/mutation.ts';
+
+function tworld() {
+  return new World({ soupSize: 400, seed: 1, activeSet: classic32, minCellSize: 12, maxCellSize: 300, searchLimitMult: 5, sizeDependent: false, slicePow: 1, sliceSize: 25, reaperThreshold: 990, rates: DEFAULT_RATES });
+}
 
 const NOP0 = 0, NOP1 = 1, WALL = 9; // WALL = any non-nop opcode, delimits templates
 function soup(size = 200) { const s = new Soup(size); s.bytes.fill(WALL); return s; }
@@ -77,7 +84,37 @@ describe('Template Addressing (TMPL)', () => {
     assert.equal(templateLen(s, 11, NOP0, NOP1), 6);
   });
 
-  it.todo('[TMPL-006] a miss beyond searchLimit sets E, advances IP past own template, leaves regs (needs world)');
-  it.todo('[TMPL-008] adr writes A/C; jmp loads IP; call pushes return (needs world/handlers)');
-  it.todo('[TMPL-011] searchLimit = floor(mult * integer avgSize), stable across snapshot (needs world)');
+  it('[TMPL-006] a miss sets E, advances IP past own template, leaves dest regs unchanged', () => {
+    const w = tworld(); const c = w.creatures.get(w.spawn(new Uint8Array(60)))!;
+    c.cpu.reg[0] = 111; c.cpu.reg[2] = 222; // A, C (adr dests)
+    w.soup.bytes.fill(9); // no nops anywhere → no complement to find
+    w.soup.write(c.start, 28);                 // adrb
+    w.soup.write(c.start + 1, 1); w.soup.write(c.start + 2, 0); // template size 2
+    w.soup.write(c.start + 3, 9);              // WALL
+    c.cpu.ip = c.start; w.stepOne(c);
+    assert.equal(c.cpu.flagE, true);
+    assert.equal(c.cpu.ip, c.start + 3);       // advanced past own template (iip = 2+1)
+    assert.equal(c.cpu.reg[0], 111); assert.equal(c.cpu.reg[2], 222); // regs unchanged
+  });
+
+  it('[TMPL-008] adr writes A:=addr, C:=size on a hit', () => {
+    const w = tworld(); const c = w.creatures.get(w.spawn(new Uint8Array(80)))!;
+    w.soup.bytes.fill(9);
+    w.soup.write(c.start, 29);                  // adrf (forward)
+    w.soup.write(c.start + 1, 1); w.soup.write(c.start + 2, 0); // template nop1,nop0
+    w.soup.write(c.start + 3, 9);
+    w.soup.write(c.start + 40, 0); w.soup.write(c.start + 41, 1); // complement ahead
+    c.cpu.ip = c.start; w.stepOne(c);
+    assert.equal(c.cpu.flagE, false);
+    assert.equal(c.cpu.reg[0], w.soup.ad(c.start + 42)); // A := landing (just past)
+    assert.equal(c.cpu.reg[2], 2);                       // C := template size
+  });
+
+  it('[TMPL-011] searchLimit = floor(mult * integer avgSize)', () => {
+    const w = tworld();
+    w.spawn(new Uint8Array(80)); w.spawn(new Uint8Array(40)); // avg 60
+    assert.equal(w.avgSize(), 60);
+    assert.equal((w as any).searchLimit, Math.floor(5 * 60));
+    assert.ok(Number.isInteger((w as any).searchLimit));
+  });
 });

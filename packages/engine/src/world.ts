@@ -10,6 +10,7 @@ import { HANDLERS } from './handlers.ts';
 import { makeCreature } from './creature.ts';
 import { Genebank } from './genebank.ts';
 import { Mutation, type MutationRates } from './mutation.ts';
+import { IntervalAllocator, type Interval } from './alloc.ts';
 
 export const MAX_FOUNDERS = 16;
 
@@ -26,8 +27,6 @@ export interface WorldConfig {
   reaperThreshold: number; // per-1000
   rates: MutationRates;    // all 0 = off (M0 breed-true)
 }
-
-interface Interval { start: Addr; size: number; }
 
 export interface CreatureSnapshot {
   id: CreatureId; parentId: CreatureId; start: Addr; size: number;
@@ -64,7 +63,7 @@ export class World implements IWorld {
   searchLimit = 1;
 
   creatures = new Map<CreatureId, Creature>();
-  private allocs: Interval[] = [];   // occupied intervals, sorted by start
+  private alloc: IntervalAllocator;   // first-fit allocator over occupied intervals
   private slicerQ: CreatureId[] = []; // birth order; cursor round-robin
   private cursor = 0;
   private reaperQ: CreatureId[] = []; // index 0 = next to die (oldest)
@@ -83,6 +82,7 @@ export class World implements IWorld {
     this.soup = new Soup(cfg.soupSize);
     this.rng = makeRng(cfg.seed);
     this.activeSet = cfg.activeSet;
+    this.alloc = new IntervalAllocator(cfg.soupSize);
     this.mutation = new Mutation(this.rng, cfg.rates, cfg.activeSet);
     this.minCellSize = cfg.minCellSize;
     this.maxCellSize = cfg.maxCellSize;
@@ -99,37 +99,20 @@ export class World implements IWorld {
     this.reaperMoveUp(c);
   }
 
-  // ---- allocation (first-fit over occupied intervals; no wrap-around cells in M0) ----
-  private findFree(size: number): Addr {
-    let prevEnd = 0;
-    for (const a of this.allocs) {
-      if (a.start - prevEnd >= size) return prevEnd;
-      prevEnd = a.start + a.size;
-    }
-    if (this.cfg.soupSize - prevEnd >= size) return prevEnd;
-    return -1;
-  }
-  private occupy(start: Addr, size: number): void {
-    let i = 0; while (i < this.allocs.length && this.allocs[i]!.start < start) i++;
-    this.allocs.splice(i, 0, { start, size });
-  }
-  allocFree(start: Addr, size: number): void {
-    const i = this.allocs.findIndex((a) => a.start === start && a.size === size);
-    if (i >= 0) this.allocs.splice(i, 1);
-  }
-  fullness(): number { // per-1000 scaled integer
-    let occ = 0; for (const a of this.allocs) occ += a.size;
-    return Math.floor((occ * 1000) / this.cfg.soupSize);
-  }
+  // ---- allocation (delegates to the first-fit IntervalAllocator; no wrap-around cells in M0) ----
+  private findFree(size: number): Addr { return this.alloc.findFree(size); }
+  private occupy(start: Addr, size: number): void { this.alloc.reserve(start, size); }
+  allocFree(start: Addr, size: number): void { this.alloc.free(start, size); }
+  fullness(): number { return this.alloc.fullnessScaled(); }
   allocFindRoom(size: number, mother: Creature): Addr {
-    let addr = this.findFree(size);
+    let addr = this.alloc.findFree(size);
     let guard = 0;
     while (addr < 0 && this.creatures.size > 1 && guard++ < 100000) {
       if (!this.reapHeadExcept(mother.id)) break;
-      addr = this.findFree(size);
+      addr = this.alloc.findFree(size);
     }
     if (addr < 0) return -1;
-    this.occupy(addr, size);
+    this.alloc.reserve(addr, size);
     return addr;
   }
 
@@ -337,7 +320,7 @@ export class World implements IWorld {
       generations: this.generations, genAccum: this.genAccum, avgSizeVal: this.avgSizeVal, cursor: this.cursor,
       rngState: this.rng.state(), soup: Uint8Array.from(this.soup.bytes),
       mutationState: this.mutation.state(), founders: Uint32Array.from(this.founders),
-      genebank: this.genebank.toRecords(), allocs: this.allocs.map((a) => ({ ...a })),
+      genebank: this.genebank.toRecords(), allocs: this.alloc.raw().map((a) => ({ ...a })),
       slicerQ: this.slicerQ.slice(), reaperQ: this.reaperQ.slice(), creatures,
     };
   }
@@ -349,7 +332,7 @@ export class World implements IWorld {
     w.rng.setState(s.rngState); w.soup.bytes.set(s.soup);
     w.mutation.setState(s.mutationState); w.founders = Uint32Array.from(s.founders);
     w.genebank = Genebank.fromRecords(s.genebank);
-    w.allocs = s.allocs.map((a) => ({ ...a }));
+    w.alloc.setRaw(s.allocs);
     w.slicerQ = s.slicerQ.slice(); w.reaperQ = s.reaperQ.slice();
     w.creatures = new Map();
     for (const cs of s.creatures) {
@@ -369,7 +352,7 @@ export class World implements IWorld {
   genotypeCount(): number { return this.genebank.aliveGenotypes(); }
   avgSize(): number { return this.avgSizeVal; }
   // exposed for stats/snapshot
-  allocsView(): Interval[] { return this.allocs; }
+  allocsView(): Interval[] { return this.alloc.raw(); }
   slicerView(): CreatureId[] { return this.slicerQ; }
   reaperView(): CreatureId[] { return this.reaperQ; }
   cursorPos(): number { return this.cursor; }

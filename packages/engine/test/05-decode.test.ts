@@ -103,6 +103,13 @@ describe('Decode & Operands (DEC)', () => {
     assert.equal(d.sval, 12345); assert.equal(d.sval2, -9);
   });
 
-  it.todo('[DEC-012] decadr/decjmp binding detail (adr writes A; jmp targets IP) — exercised via handler/acceptance');
+  it('[DEC-012] adr binds A(0)+C(2); jmp binds no register (target → IP)', () => {
+    const w = w1(); const c = spawn(w);
+    const dAdr = decodeOf(w, c, 28, [1, 0, 8]); // adrb
+    assert.deepEqual(dAdr.binding, [0, 2]);      // A (addr), C (size)
+    const dJmp = decodeOf(w, c, 21, [1, 8]);     // jmpb
+    assert.deepEqual(dJmp.binding, []);          // target goes to IP (ipWasSet at exec)
+  });
+
   it.todo('[DEC-013] fwd/bwd template start staging — not part of this design (search staged in handler)');
 });
