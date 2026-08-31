@@ -243,6 +243,7 @@ export class World implements IWorld {
     const entry = DICTIONARY[id]!;
     const d = this.decoded;
     d.iip = 1; d.ipWasSet = false; d.dstIdx = -1; d.dir = entry.dir; d.binding = entry.binding;
+    d.sval = 0; d.sval2 = 0; d.sval3 = 0; d.dstAddr = 0; d.srcAddr = 0; d.tplSize = 0; // no leakage (DEC-011)
 
     const reg = c.cpu.reg, b = entry.binding;
     switch (entry.kind) {
@@ -275,6 +276,9 @@ export class World implements IWorld {
     const base = this.cfg.sizeDependent ? c.size : this.cfg.sliceSize; // slicePow==1 in M0
     return this.rng.int(2 * base + 1); // uniform [0, 2*base]
   }
+  /** Introspection for tests: the base slice for a creature (before the random draw). */
+  sliceBaseOf(size: number): number { return this.cfg.sizeDependent ? size : this.cfg.sliceSize; }
+  drawSliceSize(c: Creature): number { return this.sliceSizeFor(c); }
 
   /** Run one creature's slice (the cursor's), then advance the cursor and cull if over threshold. */
   private runSlice(): void {

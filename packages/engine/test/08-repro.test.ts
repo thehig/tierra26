@@ -1,39 +1,114 @@
-// Creature lifecycle & reproduction (REPRO) — mal -> copy loop -> divide, the 0.7 gate, birth.
-// Ref: docs/spec/engine/systems/08-creature-lifecycle-and-reproduction.md §8 (REPRO-*).
-// Companion pending-test file. Node reports it.todo as `# todo`, so the suite is green pre-impl.
-// Do NOT import engine src/ (it does not exist yet — an import error would fail the file).
-// When the module lands, replace `it.todo(name)` with `it(name, () => { ... })`.
+// Creature Lifecycle & Reproduction (REPRO) — real tests. Ref: docs/spec/engine/systems/08-*.md §8.
 import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import { World } from '../src/world.ts';
+import { classic32 } from '../src/isa.ts';
+import { DEFAULT_RATES } from '../src/mutation.ts';
+import { Engine } from '../src/index.ts';
+import { ANCESTOR_0080AAA as ANC } from './fixtures/ancestor-0080aaa.ts';
+
+function w1() {
+  return new World({ soupSize: 2000, seed: 1, activeSet: classic32, minCellSize: 12, maxCellSize: 500, searchLimitMult: 5, sizeDependent: false, slicePow: 1, sliceSize: 25, reaperThreshold: 990, rates: DEFAULT_RATES });
+}
+const spawn = (w: World, size = 40) => w.creatures.get(w.spawn(new Uint8Array(size)))!;
+function malOf(w: World, c: any, size: number) { c.cpu.reg[2] = size; w.soup.write(c.start, 30); c.cpu.ip = c.start; w.stepOne(c); }
+function divideStep(w: World, c: any) { w.soup.write(c.start + 1, 31); c.cpu.ip = c.start + 1; w.stepOne(c); }
 
 describe('Reproduction (REPRO)', () => {
-  // --- mal: allocate the daughter ---
-  it.todo('[REPRO-001] mal with a valid size allocates a daughter and returns its start in register A');
-  it.todo('[REPRO-002] after mal the daughter block is write-protected to the mother and to no other creature');
-  it.todo('[REPRO-003] mal with size below MinCellSize (12) fails: sets E, allocates nothing, leaves A unchanged');
-  it.todo('[REPRO-004] mal with size above maxCellSize fails: sets E and allocates nothing');
-  it.todo('[REPRO-005] a second mal before divide frees the prior undivided daughter and resets dauWritten/dauWriteMask');
+  it('[REPRO-001] mal allocates a daughter, returns start in A', () => {
+    const w = w1(); const c = spawn(w); malOf(w, c, 40);
+    assert.ok(c.dauStart >= 0); assert.equal(c.cpu.reg[0], c.dauStart); assert.equal(c.dauSize, 40);
+  });
 
-  // --- copy loop: distinct-byte fill tracking (dauWriteMask) ---
-  it.todo('[REPRO-006] a movii into the daughter increments dauWritten and sets the dauWriteMask bit for that byte');
-  it.todo('[REPRO-007] rewriting an already-written daughter byte does NOT advance dauWritten (the 0.7 gate cannot be cheated)');
-  // FIXME: markDaughterWrite must use ad(addr)-dauStart so a wrap-spanning daughter counts correctly.
-  it.todo('[REPRO-008] a movii outside both the mother cell and the daughter block is denied, sets E, writes nothing, and does not count');
+  it('[REPRO-002] daughter is write-protected to the mother, not others', () => {
+    const w = w1(); const c = spawn(w); malOf(w, c, 40);
+    const other = { start: 1000, size: 40, dauStart: -1, dauSize: 0 };
+    assert.equal(w.soup.canWrite(c, c.dauStart), true);
+    assert.equal(w.soup.canWrite(other, c.dauStart), false);
+  });
 
-  // --- divide: the 0.7 gate ---
-  it.todo('[REPRO-009] divide with no allocated daughter (dauStart < 0) fails and sets E');
-  it.todo('[REPRO-010] divide before the daughter is >= MovPropThrDiv (0.7) filled fails, sets E, and does not mutate daughter fields');
-  // FIXME: gate is integer (dauWritten*10 >= dauSize*7), never a float compare (C-INT / determinism).
-  it.todo('[REPRO-011] the 0.7 gate is integer: for a size-80 daughter, 55 distinct bytes fail and 56 pass');
+  it('[REPRO-003] mal below MinCellSize fails: E, no alloc, A unchanged', () => {
+    const w = w1(); const c = spawn(w); c.cpu.reg[0] = 777;
+    c.cpu.reg[2] = 5; w.soup.write(c.start, 30); c.cpu.ip = c.start; w.stepOne(c);
+    assert.equal(c.cpu.flagE, true); assert.equal(c.dauStart, -1); assert.equal(c.cpu.reg[0], 777);
+  });
 
-  // --- divide: birth of an independent creature ---
-  it.todo('[REPRO-012] divide at >= 0.7 fill creates an independent creature over [dauStart,dauSize) enqueued in BOTH the slicer and reaper queues');
-  it.todo('[REPRO-013] the daughter creature gets a fresh zeroed CPU with IP at its OWN start address, not the mother\'s');
-  it.todo('[REPRO-014] the daughter gets a monotonic id (nextId++), parentId = mother.id, and bornAtCycle = current cycle');
-  it.todo('[REPRO-015] a successful divide fires the genebank birth hook for the daughter');
-  it.todo('[REPRO-016] a successful divide moves the mother DOWN the reaper queue and increments world.births');
-  it.todo('[REPRO-017] after a successful divide the mother\'s daughter fields are cleared (dauStart=-1, dauSize=0, dauWritten=0, mask released)');
+  it('[REPRO-004] mal above maxCellSize fails: E, no alloc', () => {
+    const w = w1(); const c = spawn(w); c.cpu.reg[2] = 9999; w.soup.write(c.start, 30); c.cpu.ip = c.start; w.stepOne(c);
+    assert.equal(c.cpu.flagE, true); assert.equal(c.dauStart, -1);
+  });
 
-  // --- end-to-end: the canonical ancestor breeds true ---
-  it.todo('[REPRO-018] the canonical 0080aaa self-replication sequence (locate -> mal -> copy -> divide) with mutation off yields a byte-identical, sterile daughter');
-  it.todo("[REPRO-019] on divide the daughter inherits the mother founderId (VSINV-INHERIT / S1)");
+  it('[REPRO-005] second mal frees the prior daughter and resets fill', () => {
+    const w = w1(); const c = spawn(w); malOf(w, c, 40); const first = c.dauStart;
+    c.dauWritten = 10; malOf(w, c, 50);
+    assert.notEqual(c.dauStart, -1); assert.equal(c.dauWritten, 0); assert.equal(c.dauSize, 50);
+    // the first block is free again → a fresh mal could reuse the region
+    assert.ok(!w.allocsView().some((a) => a.start === first && a.size === 40));
+  });
+
+  it('[REPRO-006] movii into the daughter increments dauWritten + mask', () => {
+    const w = w1(); const c = spawn(w); malOf(w, c, 40);
+    c.cpu.reg[0] = c.dauStart; c.cpu.reg[1] = c.start; // dst=daughter, src=mother
+    w.soup.write(c.start + 2, 26); c.cpu.ip = c.start + 2; w.stepOne(c);
+    assert.equal(c.dauWritten, 1); assert.equal(c.dauWriteMask[0], 1);
+  });
+
+  it('[REPRO-007] rewriting the same daughter byte does not advance the gate', () => {
+    const w = w1(); const c = spawn(w); malOf(w, c, 40);
+    c.cpu.reg[0] = c.dauStart; c.cpu.reg[1] = c.start;
+    for (let k = 0; k < 3; k++) { w.soup.write(c.start + 2, 26); c.cpu.ip = c.start + 2; w.stepOne(c); }
+    assert.equal(c.dauWritten, 1); // same byte written thrice
+  });
+
+  it('[REPRO-008] movii outside own+daughter is denied, sets E, no count', () => {
+    const w = w1(); const c = spawn(w); malOf(w, c, 40);
+    c.cpu.reg[0] = 1500; c.cpu.reg[1] = c.start; // dst outside everything
+    w.soup.write(c.start + 2, 26); c.cpu.ip = c.start + 2; w.stepOne(c);
+    assert.equal(c.cpu.flagE, true); assert.equal(c.dauWritten, 0);
+  });
+
+  it('[REPRO-009] divide with no daughter fails, sets E', () => {
+    const w = w1(); const c = spawn(w); divideStep(w, c);
+    assert.equal(c.cpu.flagE, true); assert.equal(w.births, 1); // only the injected one
+  });
+
+  it('[REPRO-010] divide below 0.7 fill fails, sets E', () => {
+    const w = w1(); const c = spawn(w); malOf(w, c, 40); c.dauWritten = 20; // 50% < 70%
+    divideStep(w, c);
+    assert.equal(c.cpu.flagE, true); assert.ok(c.dauStart >= 0); // daughter fields intact
+  });
+
+  it('[REPRO-011] the 0.7 gate is integer: 55 fails, 56 passes for size 80', () => {
+    const wA = w1(); const a = spawn(wA); malOf(wA, a, 80); a.dauWritten = 55; divideStep(wA, a);
+    assert.equal(a.cpu.flagE, true);
+    const wB = w1(); const b = spawn(wB); malOf(wB, b, 80); b.dauWritten = 56;
+    const births0 = wB.births; divideStep(wB, b);
+    assert.equal(wB.births, births0 + 1);
+  });
+
+  it('[REPRO-012/013/014/016/017/019] a legal divide births an independent daughter', () => {
+    const w = w1(); const c = spawn(w); c.founderId = 3; malOf(w, c, 40); c.dauWritten = 40;
+    const dStart = c.dauStart; const births0 = w.births; const bornCyc = w.cycles; divideStep(w, c);
+    assert.equal(w.births, births0 + 1);
+    const child = [...w.creatures.values()].find((x) => x.parentId === c.id)!;
+    assert.equal(child.start, dStart);                 // over [dauStart,dauSize)
+    assert.equal(child.cpu.ip, child.start);           // fresh CPU, IP at own start
+    assert.equal(child.bornAtCycle, bornCyc);          // cycle at the instant of birth
+    assert.equal(child.founderId, 3);                  // REPRO-019 inheritance
+    assert.equal(c.dauStart, -1);                      // mother daughter fields cleared
+    assert.ok(w.slicerView().includes(child.id) && w.reaperView().includes(child.id));
+  });
+
+  it('[REPRO-015] a divide registers the daughter genotype', () => {
+    const w = w1(); const c = spawn(w); malOf(w, c, 40); c.dauWritten = 40; divideStep(w, c);
+    assert.ok(w.genebank.count() >= 1);
+  });
+
+  it('[REPRO-018] the 0080aaa sequence breeds a byte-identical, sterile daughter', () => {
+    const e = new Engine({ seed: 7, mutation: { flaw: 0, copy: 0, cosmic: 0 } });
+    e.inject(ANC, { founderId: 1 });
+    while (e.stats().population < 2 && e.cycles < 300_000) e.run(500);
+    const child = [...e.world.creatures.values()].find((c) => c.parentId !== 0)!;
+    for (let i = 0; i < ANC.length; i++) assert.equal(e.world.soup.read(child.start + i), ANC[i]);
+  });
 });
