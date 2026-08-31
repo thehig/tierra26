@@ -145,7 +145,8 @@ const CHAPTERS_DATA: Chapter[] = [
     lede: 'Signposts inside your own code.',
     demo: 'grow-a\nhere:\ngrow-b',
     waypoints: [
-      { focus: 'genome', title: 'A signpost', body: '`mark-0` and `mark-1` make a *landmark* — a signpost you write like `here:`. It marks a *spot in your list of blocks* (see the numbers down the left side), not a square in the world up above. On its own it does nothing; the reading head walks straight past it.' },
+      { focus: 'genome', title: 'A signpost', body: '`mark-0` and `mark-1` are the two *marker* blocks — the raw pieces a signpost is built from. Write one with a name, like `here:`, and you’ve made a *landmark*: a spot in your list of blocks (see the numbers on the left), not a square in the world. On its own it does nothing; the reading head walks straight past it.' },
+      { focus: 'genome', title: 'Two markers', body: 'There are just two: `mark-0` (a blue marker) and `mark-1` (a red one). Here’s the part that matters next chapter — when a block *jumps to* or *searches for* a landmark, it carries a *matching marker* as its target. That marker rides along as an *extra cell*. So next time you spot a lone 🔴 beside a jump, you’ll know it: it’s the marker saying *which* signpost.' },
       { focus: 'ip', title: 'Why bother?', body: 'A landmark is a place you can *jump to* or *search for* by name. Next chapter you’ll send the reading head back to one — and make your first loop.' },
     ],
   },
@@ -155,7 +156,7 @@ const CHAPTERS_DATA: Chapter[] = [
     demo: 'top:\ngrow-a\njump-back top\nclear',
     waypoints: [
       { focus: 'ip', title: 'The loop', body: '`jump-back top` sends the reading head back up to the `top:` landmark. So `grow-a` runs again and again — a *loop*. (The `clear` at the bottom is a *wall* — it marks where the loop ends. A loop must always have a wall after it.)' },
-      { focus: 'world', title: 'One block, two cells', body: 'Look at the world: `jump-back` fills *two cells* side by side, both with its arrow. That’s because it’s a *two-part block* — the *jump* plus the *signpost it aims at* (`top`). Most blocks are one cell; only jumps and searches carry a target, so they take two.' },
+      { focus: 'world', title: 'One block, two cells', body: 'Look at the world: `jump-back` fills *two cells*. The first is the *jump* (⏪); the second is a *marker* (🔴) — a copy of the signpost it’s aiming at, exactly the markers you met last chapter. So a jump is a *two-part block*: the jump plus its target marker. Most blocks are one cell; only jumps and searches carry a target like this.' },
       { focus: 'registers', title: 'Watch A climb', body: 'Press *Run* and watch A shoot up. A loop is how a creature does a lot with just a few blocks.' },
     ],
     challenge: { prompt: 'Add a `jump-back top` line just above `clear` to make a loop, and push notebook A to 5.', starter: 'top:\ngrow-a\nclear', goal: { kind: 'regAtLeast', reg: 'A', value: 5, label: 'A reaches 5' } },
