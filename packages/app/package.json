@@ -9,8 +9,6 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:e2e": "playwright test --grep-invert @demo",
-    "walkthrough": "playwright test --grep @demo --headed",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
@@ -24,7 +22,6 @@
   },
   "devDependencies": {
     "@chromatic-com/storybook": "latest",
-    "@playwright/test": "^1.62.1",
     "@storybook/addon-a11y": "^10.5.10",
     "@storybook/addon-docs": "^10.5.10",
     "@storybook/addon-mcp": "latest",
