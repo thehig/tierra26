@@ -9,6 +9,8 @@ import { makeRng } from '../../engine/src/rng.ts';
 import { Soup } from '../../engine/src/soup.ts';
 import { search } from '../../engine/src/template.ts';
 import { ANCESTOR_0080AAA as ANC } from '../../engine/test/fixtures/ancestor-0080aaa.ts';
+import { compile } from '../../genescript/src/comp.ts';
+import { disassemble } from '../../genescript/src/disasm.ts';
 
 describe('Property / fuzz invariants (PROP)', () => {
   it('[PROP-DETERMINISM-DIGEST] same descriptor → same digest over many seeds', () => {
@@ -66,7 +68,25 @@ describe('Property / fuzz invariants (PROP)', () => {
     }
   });
 
-  // Pending — need @tierra26/genescript src:
-  it.todo('[PROP-DISASM-NEVER-THROWS] disassembler returns editable output on arbitrary bytes');
-  it.todo('[PROP-COMPILE-VALID] compiler output is always legal opcodes for the active set');
+  it('[PROP-DISASM-NEVER-THROWS] disassembler returns editable output on arbitrary bytes', () => {
+    const rng = makeRng(7);
+    for (let t = 0; t < 300; t++) {
+      const bytes = new Uint8Array(1 + rng.int(120));
+      for (let i = 0; i < bytes.length; i++) bytes[i] = rng.int(256); // arbitrary, incl. out-of-range
+      let out: { source: string } | undefined;
+      assert.doesNotThrow(() => { out = disassemble(bytes, classic32); });
+      assert.equal(typeof out!.source, 'string');
+    }
+  });
+
+  it('[PROP-COMPILE-VALID] compiler output is always legal opcodes for the active set', () => {
+    const verbs = ['grow-a', 'grow-b', 'grow-c', 'shrink-c', 'copy-byte', 'make-space', 'divide', 'clear', 'double', 'if-zero'];
+    const rng = makeRng(3);
+    for (let t = 0; t < 200; t++) {
+      const n = 1 + rng.int(20); const lines: string[] = [];
+      for (let i = 0; i < n; i++) lines.push(verbs[rng.int(verbs.length)]!);
+      const r = compile(lines.join('\n'), classic32);
+      for (const b of r.bytes) assert.ok(b >= 0 && b < classic32.n, `opcode ${b} legal`);
+    }
+  });
 });

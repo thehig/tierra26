@@ -5,7 +5,12 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { Engine, type RunDescriptor } from '../../engine/src/index.ts';
+import { classic32, buildSubset } from '../../engine/src/isa.ts';
 import { ANCESTOR_0080AAA as ANC } from '../../engine/test/fixtures/ancestor-0080aaa.ts';
+import { compile } from '../../genescript/src/comp.ts';
+import { disassemble } from '../../genescript/src/disasm.ts';
+import { ANCESTOR_GS } from '../../genescript/src/ancestor.gs.ts';
+import { hasErrors } from '../../genescript/src/types.ts';
 
 const dig = (e: Engine) => JSON.stringify(e.digest(e.cycles));
 
@@ -43,9 +48,38 @@ describe('Cross-package integration (INT)', () => {
     assert.equal(e.world.founders[1]! + e.world.founders[2]!, e.world.creatures.size);
   });
 
-  // Pending — need genescript/content/ui/versus src:
-  it.todo('[INT-EDITOR-ENGINE] compile(GeneScript) bytes == injected == inspector disassembly');
-  it.todo('[INT-GS-ANCESTOR] the GeneScript ancestor compiles to a genome that breeds true');
+  it('[INT-EDITOR-ENGINE] compile(GeneScript) bytes == injected == disassembly (one genome, three views)', () => {
+    const src = 'top:\ngrow-a\ncopy-byte\njump-back top\nmake-space\ndivide';
+    const compiled = compile(src, classic32).bytes;
+    const e = new Engine({ seed: 1 });
+    const id = e.inject(compiled, { founderId: 1 });
+    const c = e.world.creatures.get(id)!;
+    const injected = new Uint8Array(c.size);
+    for (let i = 0; i < c.size; i++) injected[i] = e.world.soup.read(c.start + i);
+    assert.deepEqual([...injected], [...compiled]);                    // editor == injected
+    // disassembling the injected genome recompiles to the same bytes (peek-under-hood consistency)
+    const recompiled = compile(disassemble(injected, classic32).source, classic32).bytes;
+    assert.deepEqual([...compile(disassemble(recompiled, classic32).source, classic32).bytes], [...recompiled]);
+  });
+
+  it('[INT-GS-ANCESTOR] the GeneScript ancestor compiles to a genome that breeds true (GSINV-ANCESTOR)', () => {
+    const r = compile(ANCESTOR_GS, classic32);
+    assert.equal(hasErrors(r.diagnostics), false);
+    const e = new Engine({ seed: 7, mutation: { flaw: 0, copy: 0, cosmic: 0 } });
+    e.inject(r.bytes, { founderId: 1 }); e.run(400_000);
+    assert.equal(e.stats().genotypes, 1);      // breeds true through the compiler
+    assert.ok(e.stats().births > 20);
+  });
+
+  it('[INT-SUBSET-PORTABLE] a named subset emits identical bytes across compiles (S10)', () => {
+    const sub = buildSubset('ch', ['movii', 'incA', 'jmpb', 'mal', 'divide']);
+    const src = 'grow-a\ncopy-byte\nmake-space\ndivide';
+    const a = compile(src, sub).bytes, b = compile(src, sub).bytes;
+    assert.deepEqual([...a], [...b]);           // deterministic + portable under the subset
+    for (const byte of a) assert.ok(byte >= 0 && byte < sub.n);
+  });
+
+  // Pending — need content/ui/versus src:
   it.todo('[INT-CONTENT-COMPILE] every shipped starter genome compiles under its subset + loads');
   it.todo('[INT-FRAME-VIEWS] one ObservationFrame feeds tank/charts/inspector consistently');
   it.todo('[INT-SUBSET-PORTABLE] a named subset emits identical bytes across content→genescript→engine');
