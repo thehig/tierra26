@@ -1,0 +1,723 @@
+<title>tierra26 App Blueprint</title>
+<meta name="description" content="The complete UI/UX, feature, and example scaffold for the tierra26 web app.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ground:#F1F5F1; --surface:#FFFFFF; --surface-2:#E9EFEA; --ink:#15211D; --ink-2:#46554E;
+  --faint:#6C7A73; --line:#DAE3DC; --line-2:#C7D3CB;
+  --accent:#0B9B8A; --accent-ink:#06463F; --accent-tint:#E0F1EE;
+  --kw-action:#D9532F; --kw-register:#2F6DE0; --kw-marker:#8A4FD6; --kw-control:#1E9A56; --kw-value:#BC841B; --kw-concept:#0B9B8A;
+  --good:#1E9A56; --warn:#BC841B; --crit:#CF4029;
+  --shadow:0 1px 0 rgba(20,40,35,.04), 0 6px 22px -14px rgba(20,50,45,.28);
+  --fd:'Bricolage Grotesque',system-ui,sans-serif;
+  --fb:'IBM Plex Sans',system-ui,sans-serif;
+  --fm:'IBM Plex Mono',ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#0B1512; --surface:#10201B; --surface-2:#15271F; --ink:#E6EFEA; --ink-2:#9DB1A8;
+  --faint:#6E827A; --line:#20332B; --line-2:#2A4136;
+  --accent:#37C9B6; --accent-ink:#BCefe6; --accent-tint:#0E2A25;
+  --kw-action:#FF7C55; --kw-register:#6396FF; --kw-marker:#B98BF1; --kw-control:#3BC57D; --kw-value:#E6B24D; --kw-concept:#37C9B6;
+  --good:#3BC57D; --warn:#E6B24D; --crit:#F26A50;
+  --shadow:0 1px 0 rgba(0,0,0,.3), 0 10px 30px -16px rgba(0,0,0,.6);
+}}
+:root[data-theme="dark"]{
+  --ground:#0B1512; --surface:#10201B; --surface-2:#15271F; --ink:#E6EFEA; --ink-2:#9DB1A8;
+  --faint:#6E827A; --line:#20332B; --line-2:#2A4136;
+  --accent:#37C9B6; --accent-ink:#BCEFE6; --accent-tint:#0E2A25;
+  --kw-action:#FF7C55; --kw-register:#6396FF; --kw-marker:#B98BF1; --kw-control:#3BC57D; --kw-value:#E6B24D; --kw-concept:#37C9B6;
+  --good:#3BC57D; --warn:#E6B24D; --crit:#F26A50;
+  --shadow:0 1px 0 rgba(0,0,0,.3), 0 10px 30px -16px rgba(0,0,0,.6);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{background:var(--ground);color:var(--ink);font-family:var(--fb);line-height:1.62;
+  font-size:16px;-webkit-font-smoothing:antialiased;letter-spacing:.001em}
+h1,h2,h3,h4{font-family:var(--fd);font-weight:700;line-height:1.1;text-wrap:balance;margin:0}
+a{color:var(--accent);text-underline-offset:3px}
+code,kbd{font-family:var(--fm);font-size:.9em}
+.wrap{max-width:1220px;margin:0 auto;padding:0 24px}
+
+/* header */
+header.top{border-bottom:1px solid var(--line);background:
+  radial-gradient(120% 140% at 85% -20%, var(--accent-tint), transparent 60%);}
+.top .wrap{padding-top:46px;padding-bottom:40px}
+.brandrow{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:30px}
+.brand{display:flex;align-items:center;gap:11px;font-family:var(--fd);font-weight:800;letter-spacing:-.01em}
+.brand .dot{width:14px;height:14px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px var(--accent-tint)}
+.eyebrow{font-size:.72rem;text-transform:uppercase;letter-spacing:.14em;color:var(--accent-ink);
+  font-weight:600;font-family:var(--fb)}
+:root[data-theme="dark"] .eyebrow,:root:not([data-theme="light"]) .eyebrow{color:var(--accent)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .eyebrow{color:var(--accent)}}
+h1.title{font-size:clamp(2.3rem,5.6vw,3.7rem);font-weight:800;letter-spacing:-.02em;margin:.3em 0 .35em}
+.lede{font-size:1.16rem;color:var(--ink-2);max-width:60ch}
+.meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
+.pill{font-size:.8rem;padding:5px 12px;border:1px solid var(--line-2);border-radius:100px;
+  background:var(--surface);color:var(--ink-2);font-weight:500}
+.pill b{color:var(--ink);font-weight:600}
+button.theme{font-family:var(--fb);font-size:.82rem;font-weight:500;color:var(--ink-2);
+  background:var(--surface);border:1px solid var(--line-2);border-radius:100px;padding:7px 14px;cursor:pointer}
+button.theme:hover{border-color:var(--accent);color:var(--accent-ink)}
+
+/* layout */
+.shell{display:grid;grid-template-columns:1fr;gap:0}
+@media (min-width:1000px){.shell{grid-template-columns:236px 1fr;gap:52px;align-items:start}
+  nav.toc{position:sticky;top:0;max-height:100vh;overflow:auto;padding:44px 0 40px}}
+nav.toc{font-size:.86rem}
+nav.toc .grp{text-transform:uppercase;letter-spacing:.1em;font-size:.68rem;color:var(--faint);
+  font-weight:600;margin:20px 0 8px}
+nav.toc a{display:block;color:var(--ink-2);text-decoration:none;padding:4px 10px;border-radius:7px;
+  border-left:2px solid transparent}
+nav.toc a:hover{color:var(--ink);background:var(--surface-2)}
+main{padding:44px 0 90px;min-width:0}
+
+section{margin:0 0 58px;scroll-margin-top:20px}
+section>.eyebrow{margin-bottom:8px}
+h2{font-size:clamp(1.5rem,3vw,2rem);letter-spacing:-.015em;margin-bottom:.5em}
+h3{font-size:1.16rem;margin:1.7em 0 .55em;letter-spacing:-.01em}
+h4{font-size:.98rem;font-family:var(--fb);font-weight:600;margin:1.3em 0 .4em}
+p{margin:0 0 1em;max-width:68ch}
+.prose li{max-width:66ch;margin:.28em 0}
+ul,ol{padding-left:1.15em;margin:0 0 1.1em}
+strong{font-weight:600}
+hr{border:0;border-top:1px solid var(--line);margin:44px 0}
+
+/* cards & devices */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px 24px;
+  box-shadow:var(--shadow);margin:18px 0}
+.grid{display:grid;gap:16px}
+@media (min-width:680px){.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr 1fr}}
+.mini{border:1px solid var(--line);border-radius:12px;padding:16px 18px;background:var(--surface)}
+.mini h4{margin-top:0}
+.mini p:last-child,.card p:last-child{margin-bottom:0}
+.tag{display:inline-block;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;
+  padding:3px 9px;border-radius:6px;background:var(--surface-2);color:var(--ink-2)}
+.tag.slice{background:var(--accent);color:#fff}
+:root[data-theme="dark"] .tag.slice{color:#04211D}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tag.slice{color:#04211D}}
+
+/* keyword chips */
+.kwrow{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 4px}
+.kw{font-family:var(--fm);font-size:.86rem;font-weight:500;padding:4px 10px;border-radius:8px;
+  border:1px solid color-mix(in srgb,var(--c) 34%,transparent);
+  background:color-mix(in srgb,var(--c) 12%,var(--surface));color:var(--c)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin:14px 0}
+.legend .lg{display:flex;align-items:center;gap:8px;font-size:.86rem}
+.legend .sw{width:14px;height:14px;border-radius:4px;background:var(--c)}
+.act{--c:var(--kw-action)}.reg{--c:var(--kw-register)}.mar{--c:var(--kw-marker)}
+.ctl{--c:var(--kw-control)}.val{--c:var(--kw-value)}.con{--c:var(--kw-concept)}
+
+/* code */
+pre.code{font-family:var(--fm);font-size:.86rem;line-height:1.7;background:var(--surface);
+  border:1px solid var(--line);border-radius:12px;padding:16px 18px;overflow-x:auto;margin:16px 0}
+pre.code .c{color:var(--faint)}
+.k-act{color:var(--kw-action);font-weight:500}.k-reg{color:var(--kw-register);font-weight:500}
+.k-mar{color:var(--kw-marker);font-weight:500}.k-ctl{color:var(--kw-control);font-weight:500}
+.k-val{color:var(--kw-value);font-weight:500}.k-con{color:var(--kw-concept);font-weight:600}
+
+/* wireframe */
+.wire{font-family:var(--fm);font-size:.8rem;border:1.5px dashed var(--line-2);border-radius:12px;
+  background:var(--surface-2);padding:6px;margin:16px 0}
+.wcap{font-family:var(--fb);font-size:.76rem;color:var(--faint);text-transform:uppercase;
+  letter-spacing:.07em;margin:4px 6px 10px}
+.mock{display:grid;gap:6px}
+.box{border:1px solid var(--line-2);border-radius:8px;background:var(--surface);padding:10px 12px;
+  min-height:44px;display:flex;flex-direction:column;justify-content:center}
+.box .bt{font-family:var(--fb);font-weight:600;font-size:.82rem;color:var(--ink)}
+.box .bd{font-size:.74rem;color:var(--faint);font-family:var(--fb);margin-top:2px}
+.box.accent{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--surface))}
+.box.soup{background:linear-gradient(135deg,color-mix(in srgb,var(--kw-register) 22%,var(--surface)),
+  color-mix(in srgb,var(--kw-marker) 18%,var(--surface)));min-height:120px}
+
+/* tables */
+.tbl{width:100%;border-collapse:collapse;font-size:.88rem;margin:14px 0;display:block;overflow-x:auto}
+.tbl table{width:100%;border-collapse:collapse;min-width:520px}
+.tbl th{text-align:left;font-family:var(--fb);font-weight:600;font-size:.74rem;text-transform:uppercase;
+  letter-spacing:.06em;color:var(--faint);padding:9px 12px;border-bottom:1.5px solid var(--line-2)}
+.tbl td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink-2)}
+.tbl td b{color:var(--ink);font-weight:600}
+.tbl td code{color:var(--accent-ink);background:var(--accent-tint);padding:1px 5px;border-radius:4px}
+:root[data-theme="dark"] .tbl td code{color:var(--accent)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tbl td code{color:var(--accent)}}
+.tbl tr:last-child td{border-bottom:0}
+
+/* notes */
+.note{border-left:3px solid var(--accent);background:var(--accent-tint);border-radius:0 10px 10px 0;
+  padding:13px 18px;margin:16px 0;font-size:.92rem;color:var(--ink)}
+.note.warn{border-color:var(--warn);background:color-mix(in srgb,var(--warn) 12%,var(--surface))}
+.note b{font-weight:600}
+
+/* phases */
+.phase{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:start;padding:15px 0;
+  border-top:1px solid var(--line)}
+.phase:first-child{border-top:0}
+.pid{font-family:var(--fd);font-weight:800;font-size:1.05rem;color:var(--accent-ink);
+  background:var(--accent-tint);border-radius:9px;padding:7px 12px;white-space:nowrap}
+:root[data-theme="dark"] .pid{color:var(--accent)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .pid{color:var(--accent)}}
+.phase h4{margin:2px 0 3px}
+.phase p{margin:0;font-size:.92rem;color:var(--ink-2)}
+
+.foot{border-top:1px solid var(--line);color:var(--faint);font-size:.84rem;padding:26px 0 60px}
+::selection{background:color-mix(in srgb,var(--accent) 26%,transparent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brandrow">
+      <div class="brand"><span class="dot"></span> tierra26</div>
+      <button class="theme" id="themeBtn" type="button">◐ theme</button>
+    </div>
+    <div class="eyebrow">App UX &amp; Feature Scaffold</div>
+    <h1 class="title">tierra26 App Blueprint</h1>
+    <p class="lede">The complete interface, feature, and example map for the rendered web app — the
+      surfaces kids play in, the components that bind them, and how the pieces we've already built
+      light up on screen. A reference to build the React + Vite app against.</p>
+    <div class="meta">
+      <span class="pill"><b>Audience</b> kids 8–16</span>
+      <span class="pill"><b>Theme</b> living fish-tank / ant-farm</span>
+      <span class="pill"><b>Stack</b> React + Vite over 6 pure packages</span>
+      <span class="pill"><b>First slice</b> the Playground</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap shell">
+  <nav class="toc" aria-label="Contents">
+    <div class="grp">Foundations</div>
+    <a href="#overview">Overview</a>
+    <a href="#identity">Visual identity</a>
+    <a href="#keywords">The keyword palette</a>
+    <a href="#type">Type &amp; tokens</a>
+    <a href="#tankpal">Tank palette</a>
+    <div class="grp">The map</div>
+    <a href="#ia">Surfaces &amp; routing</a>
+    <div class="grp">Surfaces</div>
+    <a href="#playground">Playground ★</a>
+    <a href="#editor">Gene editor</a>
+    <a href="#tank">Tank canvas</a>
+    <a href="#inspector">Inspector</a>
+    <a href="#charts">Charts &amp; HUD</a>
+    <a href="#reader">Tutorial reader</a>
+    <a href="#wiki">Instruction wiki</a>
+    <a href="#versus">Versus arena</a>
+    <a href="#shell">App shell &amp; home</a>
+    <div class="grp">Reference</div>
+    <a href="#components">Component inventory</a>
+    <a href="#examples">Worked examples</a>
+    <a href="#journey">A kid's first session</a>
+    <a href="#phases">Build phases</a>
+    <a href="#decisions">Open decisions</a>
+  </nav>
+
+  <main>
+    <section id="overview">
+      <div class="eyebrow">Overview</div>
+      <h2>What this app is, in one screen</h2>
+      <p>A child opens a browser tab and finds a <b>living tank of tiny programs</b>. They write a
+        creature in a friendly, color-coded language, drop it into the soup, and watch it copy
+        itself, fill the tank, mutate, and — chapters later — sprout parasites and immunity. Every
+        friendly word compiles to the real Tierra machine; nothing on screen is faked.</p>
+      <div class="grid g3">
+        <div class="mini"><h4>Design → emergence</h4><p>Early chapters are about <em>engineering</em>
+          a creature that lives. Later ones switch on mutation and let evolution surprise them.</p></div>
+        <div class="mini"><h4>Peek under the hood</h4><p>Friendly labels hide raw templates, but one
+          click shows the real opcodes and the byte each line compiles to.</p></div>
+        <div class="mini"><h4>Seed-reproducible</h4><p>Every run is deterministic. A shared seed
+          replays the exact same tank — for lessons, fair matches, and share links.</p></div>
+      </div>
+      <div class="note"><b>The app adds no logic.</b> Six tested packages already hold the engine,
+        the language, the lessons, the view-models, and Versus. This blueprint is about <em>binding
+        and rendering</em> them — pixels, motion, and layout — not new behavior.</div>
+    </section>
+
+    <section id="identity">
+      <div class="eyebrow">Foundations</div>
+      <h2>Visual identity: a lit aquarium, not a code editor</h2>
+      <p>The mood is a bioluminescent tank seen in soft light — deep water, glowing organisms, warm
+        paper chrome around it. It should feel <b>alive and safe to poke at</b>, closer to a nature
+        exhibit than an IDE. Chrome is calm and rounded; the soup itself is the only place saturated
+        color lives, so a child's eye always lands on the life, not the toolbar.</p>
+      <div class="grid g3">
+        <div class="mini"><h4>Calm chrome</h4><p>Panels, toolbars, and reader text use quiet
+          green-greys and one teal accent. The interface recedes.</p></div>
+        <div class="mini"><h4>Loud life</h4><p>Genotype colors, IP sparks, birth flashes — the tank
+          canvas is where brightness is spent.</p></div>
+        <div class="mini"><h4>Motion with meaning</h4><p>Every animation maps to a real event: a
+          spark is an instruction pointer, a bloom is a birth, a fade is a death (from
+          <code>diffFrames</code>). Honor <code>prefers-reduced-motion</code>.</p></div>
+      </div>
+      <p>Two themes ship: <b>Daylight</b> (soft paper, for classrooms and projectors) and
+        <b>Deep tank</b> (dark water, for the full glow). The tank palette is tuned so genotypes stay
+        distinguishable on either ground.</p>
+    </section>
+
+    <section id="keywords">
+      <div class="eyebrow">Foundations</div>
+      <h2>The keyword palette — the signature system</h2>
+      <p>Every instruction and concept has exactly one color <em>role</em>. A child learns to read
+        code by color before they read it by word: green means flow, blue means registers, coral
+        means "changes bytes", violet means "a place", amber means a number, teal means a big idea.
+        The roles come straight from the language's own vocabulary — the app never invents a color.</p>
+      <div class="legend">
+        <span class="lg act"><span class="sw"></span> action — changes bytes</span>
+        <span class="lg reg"><span class="sw"></span> register — the A–D notebooks</span>
+        <span class="lg mar"><span class="sw"></span> marker — landmarks &amp; templates</span>
+        <span class="lg ctl"><span class="sw"></span> control — flow, birth, allocation</span>
+        <span class="lg val"><span class="sw"></span> value — numbers</span>
+        <span class="lg con"><span class="sw"></span> concept — nouns you can hover</span>
+      </div>
+
+      <h3>The 32 instructions, by color</h3>
+      <div class="card">
+        <h4 style="color:var(--kw-control)">control</h4>
+        <div class="kwrow">
+          <span class="kw ctl">if-zero</span><span class="kw ctl">jump</span><span class="kw ctl">jump-back</span>
+          <span class="kw ctl">call</span><span class="kw ctl">return</span><span class="kw ctl">find</span>
+          <span class="kw ctl">find-back</span><span class="kw ctl">find-forward</span>
+          <span class="kw ctl">make-space</span><span class="kw ctl">divide</span>
+        </div>
+        <h4 style="color:var(--kw-register)">register</h4>
+        <div class="kwrow">
+          <span class="kw reg">grow-a</span><span class="kw reg">grow-b</span><span class="kw reg">grow-c</span>
+          <span class="kw reg">shrink-c</span><span class="kw reg">subtract</span><span class="kw reg">subtract-into-a</span>
+          <span class="kw reg">copy-a-to-b</span><span class="kw reg">copy-c-to-d</span>
+          <span class="kw reg">save-a</span><span class="kw reg">save-b</span><span class="kw reg">save-c</span><span class="kw reg">save-d</span>
+          <span class="kw reg">load-a</span><span class="kw reg">load-b</span><span class="kw reg">load-c</span><span class="kw reg">load-d</span>
+        </div>
+        <h4 style="color:var(--kw-action)">action</h4>
+        <div class="kwrow">
+          <span class="kw act">copy-byte</span><span class="kw act">flip-bit</span>
+          <span class="kw act">double</span><span class="kw act">clear</span>
+        </div>
+        <h4 style="color:var(--kw-marker)">marker</h4>
+        <div class="kwrow">
+          <span class="kw mar">mark-0</span><span class="kw mar">mark-1</span>
+          <span class="kw mar">landmark: (labels)</span>
+        </div>
+        <h4 style="color:var(--kw-concept)">concept nouns (hover for a tooltip anywhere in prose)</h4>
+        <div class="kwrow">
+          <span class="kw con">soup</span><span class="kw con">daughter</span><span class="kw con">template</span>
+          <span class="kw con">genome</span><span class="kw con">genotype</span><span class="kw con">mutation</span>
+          <span class="kw con">parasite</span><span class="kw con">reaper</span><span class="kw con">slicer</span>
+        </div>
+      </div>
+      <div class="note"><b>Tooltips have two depths.</b> A hover shows the kid line
+        ("<em>copy one byte of yourself</em>"); a "more" line shows the machine truth
+        (<code>soup[A] := soup[B]</code>). Both come from one source (the language's vocabulary and
+        the content registry), so the editor, the reader, the wiki, and the inspector always agree.</div>
+    </section>
+
+    <section id="type">
+      <div class="eyebrow">Foundations</div>
+      <h2>Type &amp; design tokens</h2>
+      <div class="grid g2">
+        <div class="mini"><h4 style="font-family:var(--fd);font-size:1.35rem">Bricolage Grotesque</h4>
+          <p><b>Display</b> — headings, the wordmark, big numbers. Friendly but characterful; carries
+            the "exhibit" voice without going cartoonish.</p></div>
+        <div class="mini"><h4 style="font-size:1.2rem">IBM Plex Sans</h4>
+          <p><b>Body &amp; UI</b> — reader prose, labels, buttons. Warm, technical, highly legible for
+            younger readers at a comfortable measure.</p></div>
+        <div class="mini"><h4 style="font-family:var(--fm);font-size:1.15rem">IBM Plex Mono</h4>
+          <p><b>Code &amp; data</b> — the gene editor, disassembly, registers, byte offsets. Ties the
+            whole "machine" surface together.</p></div>
+        <div class="mini"><h4>Token layer = the design pass</h4>
+          <p>The view-models emit abstract roles (<code>ColorIndex</code>,
+            <code>KeywordCategory</code>, <code>CellClass</code>). This CSS token set is exactly where
+            those map to real hex. Change the tank's mood in one file.</p></div>
+      </div>
+      <pre class="code"><span class="c">/* the seam the UI packages already name — fill it here */</span>
+--kw-action  <span class="c">// coral   → verbs that change bytes</span>
+--kw-register<span class="c">// blue    → A–D moves</span>
+--kw-marker  <span class="c">// violet  → landmarks & templates</span>
+--kw-control <span class="c">// green   → flow, make-space, divide</span>
+--kw-value   <span class="c">// amber   → numbers</span>
+--kw-concept <span class="c">// teal    → concept nouns</span></pre>
+    </section>
+
+    <section id="tankpal">
+      <div class="eyebrow">Foundations</div>
+      <h2>The tank palette</h2>
+      <p>The soup canvas paints one cell per grid bucket. The view-model hands the renderer three
+        channels per cell — <b>class</b>, <b>color index</b>, and <b>brightness</b> — and the palette
+        turns them into light.</p>
+      <div class="tbl"><table>
+        <tr><th>Channel</th><th>Values</th><th>Rendered as</th></tr>
+        <tr><td><b>class</b></td><td><code>free</code> · <code>mother</code> · <code>daughter</code> · <code>dead-noise</code></td>
+          <td>Free = near-invisible ground; mother = full color; daughter = same hue, dimmer; dead-noise = grey speck.</td></tr>
+        <tr><td><b>color index</b></td><td>0–63 (stable per genotype)</td>
+          <td>A 64-hue ring; a daughter shares her mother's hue, so a lineage reads as one color spreading.</td></tr>
+        <tr><td><b>brightness</b></td><td><code>base</code> · <code>dim</code> · <code>spark</code></td>
+          <td>Spark = a white flash on the cell holding a live instruction pointer this frame.</td></tr>
+      </table></div>
+      <div class="wire"><div class="wcap">Soup canvas — 1 bucket = a slice of memory</div>
+        <div class="box soup"><span style="font-family:var(--fb);color:#fff;font-weight:600;font-size:.8rem;text-shadow:0 1px 3px rgba(0,0,0,.4)">living soup · genotypes as color · white sparks = instruction pointers · blooms = births</span></div>
+      </div>
+    </section>
+
+    <section id="ia">
+      <div class="eyebrow">The map</div>
+      <h2>Surfaces &amp; routing</h2>
+      <p>Four routable surfaces plus a home lobby. The router maps clean URLs to the shell's
+        <code>Route</code> type both ways, so every state is a shareable link.</p>
+      <div class="tbl"><table>
+        <tr><th>Surface</th><th>Route</th><th>What happens here</th></tr>
+        <tr><td><b>Home / lobby</b></td><td><code>/</code></td><td>A live idle tank, "continue learning", jump to sandbox or Versus.</td></tr>
+        <tr><td><b>Lesson</b></td><td><code>/lesson/&lt;id&gt;</code></td><td>Scroll-based tutorial with inline playgrounds and goals.</td></tr>
+        <tr><td><b>Sandbox</b></td><td><code>/sandbox?…</code></td><td>A full-size free-play playground; the recipe lives in the URL (a share link).</td></tr>
+        <tr><td><b>Wiki</b></td><td><code>/wiki/&lt;verb&gt;</code></td><td>One page per instruction: definition, animation, "try this" scenarios.</td></tr>
+        <tr><td><b>Versus</b></td><td><code>/versus?…</code></td><td>Local hotseat match: drop genomes, watch them fight, see the winner.</td></tr>
+      </table></div>
+      <div class="note">Persistence is a versioned blob in <code>localStorage</code> (theme,
+        reduced-motion, and which lessons are complete). It hydrates migration-safe — a corrupt or
+        old blob falls back to defaults, never a crash.</div>
+    </section>
+
+    <section id="playground">
+      <div class="eyebrow">Surface · <span class="tag slice">first slice</span></div>
+      <h2>The Playground</h2>
+      <p>The heart of the app and the first thing we build. Everything else — lessons, the wiki,
+        Versus — embeds a Playground. It boots a real engine in a Web Worker, streams frames back,
+        and renders them live. It holds no simulation state of its own: pause, and the truth is still
+        whatever the worker last sent.</p>
+
+      <div class="wire"><div class="wcap">Playground — full (sandbox) layout</div>
+        <div class="mock" style="grid-template-columns:1fr;">
+          <div class="box accent"><span class="bt">▶ Controls</span><span class="bd">run · pause · step · reset · speed (step→max) · seed · goal chip</span></div>
+          <div class="mock" style="grid-template-columns:minmax(0,1.05fr) minmax(0,1.3fr) minmax(0,.9fr)">
+            <div class="box"><span class="bt">Gene editor</span><span class="bd">colored code · diagnostics · completions · block toggle · Inject ▸</span></div>
+            <div class="box soup" style="min-height:150px"><span style="font-family:var(--fb);color:#fff;font-weight:600;font-size:.78rem;text-shadow:0 1px 3px rgba(0,0,0,.4)">Tank canvas — pan/zoom · click to inspect</span></div>
+            <div class="mock" style="grid-template-columns:1fr">
+              <div class="box"><span class="bt">Charts + HUD</span><span class="bd">population · genotypes · size histogram · readouts</span></div>
+              <div class="box"><span class="bt">Inspector</span><span class="bd">registers · flags · stack · disassembly · daughter fill</span></div>
+            </div>
+          </div>
+          <div class="box"><span class="bt">Goal strip</span><span class="bd">"Make your creature produce a baby." — progress + kid-friendly hint on fail</span></div>
+        </div>
+      </div>
+
+      <h3>Controls — every button is a worker command</h3>
+      <div class="tbl"><table>
+        <tr><th>Control</th><th>Does</th><th>Notes</th></tr>
+        <tr><td><b>Run / Pause</b></td><td>Free-runs the worker at the current cadence, or halts.</td><td>Run state is read back from frames, never held locally.</td></tr>
+        <tr><td><b>Step</b></td><td>One instruction, one frame.</td><td>The teaching control — watch a single copy-byte land.</td></tr>
+        <tr><td><b>Reset</b></td><td>Rebuilds the exact starting tank from the recipe.</td><td>A fresh engine + inject, not a rewind.</td></tr>
+        <tr><td><b>Speed</b></td><td>step · slow · normal · fast · max.</td><td>A cadence only — two speeds show the <em>same</em> frame at the same cycle.</td></tr>
+        <tr><td><b>Panels</b></td><td>Show/hide soup · registers · stack · code · stats · goal · tank.</td><td>Presentational; never touches the run.</td></tr>
+      </table></div>
+      <div class="note"><b>Two playgrounds, one page, zero interference.</b> Each owns its own worker
+        session — a lesson with three inline playgrounds runs three independent tanks. Under load the
+        host coalesces to the latest frame, so a slow device drops frames without ever desyncing.</div>
+    </section>
+
+    <section id="editor">
+      <div class="eyebrow">Surface component</div>
+      <h2>Gene editor</h2>
+      <p>Where a child writes a creature. Two views of one program: <b>worded text</b> and
+        <b>blocks</b> (a Scratch-like stack). Both edit the same underlying code, so a kid can start
+        in blocks and graduate to text without losing their creature.</p>
+      <div class="grid g2">
+        <div class="mini"><h4>Live coloring</h4><p>Every token is tinted by its role as you type —
+          the keyword palette, straight from the vocabulary.</p></div>
+        <div class="mini"><h4>Gentle diagnostics</h4><p>Errors read like a helpful teacher
+          ("<em>no landmark called <span style="color:var(--kw-marker)">copy</span></em>"), underlined
+          where they happen — never a stack trace.</p></div>
+        <div class="mini"><h4>Smart completions</h4><p>Only the instructions unlocked so far, plus the
+          program's own landmarks, each with its kid + machine tooltip.</p></div>
+        <div class="mini"><h4>Peek under the hood</h4><p>Hover a line to highlight the exact bytes it
+          compiles to; disassemble any live creature back into editable code.</p></div>
+      </div>
+      <p>The <b>Inject ▸</b> button is gated on a clean compile: no errors, no partial genome. On
+        success the compiled bytes go to the worker; on failure the kid-friendly diagnostics stay put
+        and the tank is untouched.</p>
+      <p><em>Editor library:</em> CodeMirror 6 is the recommended host — its decoration and completion
+        APIs map cleanly onto the view-model's spans, diagnostics, and completions.</p>
+    </section>
+
+    <section id="tank">
+      <div class="eyebrow">Surface component</div>
+      <h2>Tank canvas</h2>
+      <p>The exhibit. A canvas paints the pixel buffer each frame via <code>ImageData</code>; pan and
+        zoom are integer viewport transforms. A click runs a hit-test → soup address → the creature
+        living there, and opens the inspector. Birth and death animations are driven by the frame
+        <em>diff</em>, so motion is always truthful and cheap.</p>
+      <div class="grid g3">
+        <div class="mini"><h4>Color = lineage</h4><p>Genotype hue is a stable hash; a family spreads
+          as one color, and a mutant that drifts genotype keeps a related hue.</p></div>
+        <div class="mini"><h4>Sparks = thought</h4><p>White flecks mark where instruction pointers
+          are executing right now — the tank visibly "thinks".</p></div>
+        <div class="mini"><h4>Hover = read-out</h4><p>Hovering a cell previews its genotype label and
+          population without opening the full inspector.</p></div>
+      </div>
+    </section>
+
+    <section id="inspector">
+      <div class="eyebrow">Surface component</div>
+      <h2>Inspector</h2>
+      <p>Click any creature to dissect it. The worker resolves everything on its side and hands back
+        one read-only view, so the panel is a pure projection — no engine calls from the UI.</p>
+      <div class="tbl"><table>
+        <tr><th>Panel</th><th>Shows</th></tr>
+        <tr><td><b>Header</b></td><td>Genotype label, population of its kind, parent, age.</td></tr>
+        <tr><td><b>Registers &amp; flags</b></td><td>A · B · C · D notebooks; the E / S / Z flags as lit/unlit chips.</td></tr>
+        <tr><td><b>Stack</b></td><td>The 10-slot ring, top-of-stack marked.</td></tr>
+        <tr><td><b>Disassembly</b></td><td>The creature's code, the currently-executing line sparked — the same coloring as the editor.</td></tr>
+        <tr><td><b>Daughter</b></td><td>A fill bar: how much of the baby is written (integer %).</td></tr>
+      </table></div>
+      <p><b>Open in editor</b> hands the creature's exact genome to the gene editor — the same bytes,
+        three views (editor, tank, disassembly) of one creature.</p>
+    </section>
+
+    <section id="charts">
+      <div class="eyebrow">Surface component</div>
+      <h2>Charts &amp; HUD</h2>
+      <p>The "how's the tank doing" glance. A bounded ring buffer downsamples each series so long runs
+        never grow unbounded; the readout strip shows formatted scalars.</p>
+      <div class="grid g2">
+        <div class="mini"><h4>Time series</h4><p>Population and genotype-count over cycles; per-top-K
+          genotype lines so a child watches one lineage overtake another.</p></div>
+        <div class="mini"><h4>Size histogram</h4><p>Genome sizes as bars — the shape that shows small
+          parasites appearing under the big ancestor.</p></div>
+        <div class="mini"><h4>Readouts</h4><p>cycles · population · genotypes · births · deaths ·
+          fullness % · average size.</p></div>
+        <div class="mini"><h4>Rendering</h4><p>Inline SVG at these data sizes — an area fill, a faint
+          grid, an emphasized endpoint. The same care as the type.</p></div>
+      </div>
+    </section>
+
+    <section id="reader">
+      <div class="eyebrow">Surface</div>
+      <h2>Tutorial reader</h2>
+      <p>A scroll-based lesson: read a little, then a playground to try it, then a goal to prove it.
+        Lessons are authored in the content format and rendered from the lesson model — no separate
+        CMS, no MDX. Prose auto-links concept nouns and instruction names to their tooltips and wiki
+        pages; playgrounds mount lazily as they scroll into view and dispose when they leave.</p>
+      <div class="wire"><div class="wcap">Lesson page — scroll flow</div>
+        <div class="mock">
+          <div class="box"><span class="bt">Chapter 1 · Hello, soup</span><span class="bd">progress rail · unlocked instructions so far</span></div>
+          <div class="box"><span class="bt">Prose block</span><span class="bd">"Welcome to the <span style="color:var(--kw-concept)">soup</span> … mark spots with <span style="color:var(--kw-marker)">mark-0</span> and <span style="color:var(--kw-marker)">mark-1</span>."</span></div>
+          <div class="box accent"><span class="bt">▸ Inline playground (lazy)</span><span class="bd">the ancestor breeding — press play</span></div>
+          <div class="box"><span class="bt">Goal</span><span class="bd">"Make your creature produce a baby." → ✓ or a teaching hint</span></div>
+          <div class="box"><span class="bt">Next →</span><span class="bd">unlocks the next lesson when required goals pass</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="wiki">
+      <div class="eyebrow">Surface</div>
+      <h2>Instruction wiki</h2>
+      <p>Every one of the 32 instructions gets its own page — the reference a curious kid clicks into
+        from a tooltip. Identity comes straight from the vocabulary (never re-written); the page adds
+        depth: a plain-language animation, "try this" scenarios, related instructions, common
+        mistakes, and a link to the lesson that introduces it.</p>
+      <div class="card">
+        <div class="kwrow"><span class="kw act">copy-byte</span> <span class="tag">movii</span></div>
+        <p style="margin:.6em 0 .2em"><b>Kid:</b> copy one byte of yourself &nbsp;·&nbsp;
+          <b>Machine:</b> <code style="font-family:var(--fm)">soup[A] := soup[B]</code></p>
+        <p style="margin:.2em 0"><b>Animation:</b> "copies one piece of the mother into the baby — the
+          heart of making a copy."</p>
+        <p style="margin:.2em 0;color:var(--ink-2)"><b>See also:</b>
+          <span style="color:var(--kw-control)">make-space</span>,
+          <span style="color:var(--kw-control)">divide</span>,
+          <span style="color:var(--kw-control)">jump-back</span> &nbsp;·&nbsp;
+          <b>Introduced in:</b> Chapter 4 · Teach it to copy</p>
+        <p style="margin:.2em 0 0;color:var(--ink-2)"><b>Common mistake:</b> "this copies a single
+          piece, so you need a loop to build the whole baby."</p>
+      </div>
+    </section>
+
+    <section id="versus">
+      <div class="eyebrow">Surface</div>
+      <h2>Versus arena</h2>
+      <p>Local hotseat. Two (or more) players paste a genome; at cycle zero every creature is placed
+        in the same soup <em>simultaneously</em>, and they fight for the tank. Score is the live
+        population of each player's lineage at a threshold (cycles or generations); ties fall through
+        peak-population, births, and size tiebreakers to a winner or an honest draw.</p>
+      <div class="wire"><div class="wcap">Versus — match screen</div>
+        <div class="mock" style="grid-template-columns:1fr 1.4fr 1fr">
+          <div class="box"><span class="bt">Player A</span><span class="bd">genome editor · founder color</span></div>
+          <div class="box soup" style="min-height:130px"><span style="font-family:var(--fb);color:#fff;font-weight:600;font-size:.78rem;text-shadow:0 1px 3px rgba(0,0,0,.4)">shared soup · two founder colors spreading</span></div>
+          <div class="box"><span class="bt">Player B</span><span class="bd">genome editor · founder color</span></div>
+        </div>
+        <div class="mock" style="grid-template-columns:1fr;margin-top:6px">
+          <div class="box accent"><span class="bt">Scoreboard</span><span class="bd">live per-founder population · threshold countdown · WINNER at the buzzer · share link</span></div>
+        </div>
+      </div>
+      <div class="note">Fairness is built in: injection order is a seed-derived shuffle (no fixed
+        slot advantage), best-of-N rotates seeds, and the whole match is a <code>MatchDescriptor</code>
+        that replays to identical standings for anyone who opens the link.</div>
+    </section>
+
+    <section id="shell">
+      <div class="eyebrow">Surface</div>
+      <h2>App shell &amp; home</h2>
+      <p>The frame around everything: a slim top bar (wordmark, chapter progress, theme toggle,
+        reduced-motion), routing, and the home lobby. The shell is a pure reducer over app state —
+        navigation, theme, and lesson completion — with unlock gating delegated to the curriculum,
+        never re-implemented in the UI.</p>
+      <div class="grid g3">
+        <div class="mini"><h4>Home lobby</h4><p>A calm idle tank, "continue" to the current lesson,
+          and doors to sandbox and Versus.</p></div>
+        <div class="mini"><h4>Progress rail</h4><p>The design→emergence arc as a spine; completed
+          chapters filled, the next one glowing, later ones gently locked.</p></div>
+        <div class="mini"><h4>Accessibility</h4><p>Keyboard-operable controls, visible focus, honored
+          reduced-motion, and a legible palette in both themes.</p></div>
+      </div>
+    </section>
+
+    <section id="components">
+      <div class="eyebrow">Reference</div>
+      <h2>Component inventory</h2>
+      <p>Each React component binds one view-model we've already built and tested. The component owns
+        pixels and events; the view-model owns logic. That line is the whole architecture.</p>
+      <div class="tbl"><table>
+        <tr><th>Component</th><th>Binds</th><th>Owns</th></tr>
+        <tr><td><b>&lt;Playground&gt;</b></td><td><code>createPlayground</code> / worker session</td><td>Boots a worker, composes the panels, streams frames.</td></tr>
+        <tr><td><b>&lt;TankCanvas&gt;</b></td><td><code>toPixelBuffer</code>, <code>hitTest</code>, <code>diffFrames</code></td><td>Canvas paint, pan/zoom, click→inspect, birth/death motion.</td></tr>
+        <tr><td><b>&lt;GeneEditor&gt;</b></td><td><code>editor.viewModel</code></td><td>CodeMirror decorations, completion popup, block toggle, inject.</td></tr>
+        <tr><td><b>&lt;Inspector&gt;</b></td><td><code>toPanelModel</code></td><td>Register/flag/stack chips, disassembly rows, open-in-editor.</td></tr>
+        <tr><td><b>&lt;Charts&gt; / &lt;Readouts&gt;</b></td><td><code>ChartModel.ingest</code></td><td>SVG series, histogram bars, HUD scalars.</td></tr>
+        <tr><td><b>&lt;LessonReader&gt;</b></td><td><code>reader.toRenderModel</code></td><td>Prose spans, keyword tooltips, lazy playground mounts.</td></tr>
+        <tr><td><b>&lt;InstructionPage&gt;</b></td><td><code>toInstructionPageModel</code></td><td>Wiki layout, "try this" scenarios.</td></tr>
+        <tr><td><b>&lt;VersusArena&gt;</b></td><td><code>runMatch</code>, <code>attribute</code></td><td>Genome inputs, live scoreboard, winner, share link.</td></tr>
+        <tr><td><b>&lt;AppShell&gt;</b></td><td><code>shell.reduce</code>, <code>route</code></td><td>Top bar, router, persistence, theme.</td></tr>
+        <tr><td><b>useSession (hook)</b></td><td><code>createWorkerCore</code> in a real Worker</td><td>Posts commands, streams events, coalesces frames on rAF.</td></tr>
+      </table></div>
+    </section>
+
+    <section id="examples">
+      <div class="eyebrow">Reference</div>
+      <h2>Worked examples</h2>
+
+      <h3>A creature, as a child writes it</h3>
+      <p>The friendly, labelled form the gene editor shows — landmarks instead of raw templates. This
+        is a self-copier: reserve room, copy yourself byte by byte, then split off the baby.</p>
+      <pre class="code"><span class="k-mar">start:</span>
+  <span class="k-ctl">make-space</span>         <span class="c">; ask the soup for room for a daughter</span>
+  <span class="k-ctl">find-back</span> <span class="k-mar">start</span>   <span class="c">; where does my own code begin?</span>
+<span class="k-mar">loop:</span>
+  <span class="k-act">copy-byte</span>         <span class="c">; copy one byte of myself into the baby</span>
+  <span class="k-reg">grow-a</span>            <span class="c">; move the read head forward</span>
+  <span class="k-reg">grow-b</span>            <span class="c">; move the write head forward</span>
+  <span class="k-reg">shrink-c</span>          <span class="c">; one fewer byte to go</span>
+  <span class="k-ctl">if-zero</span>           <span class="c">; done when the counter hits zero?</span>
+  <span class="k-ctl">jump</span> <span class="k-mar">born</span>
+  <span class="k-ctl">jump-back</span> <span class="k-mar">loop</span>
+<span class="k-mar">born:</span>
+  <span class="k-ctl">divide</span>            <span class="c">; the baby becomes its own creature!</span></pre>
+      <div class="note"><b>Peek under the hood</b> shows this compiling through raw templates
+        (<code>mark-1 mark-1 …</code>) into the real 80-byte ancestor <code>0080aaa</code> — the same
+        genome the engine breeds true. The labels are the friendly surface; the bytes are authentic.</div>
+
+      <h3>The recipe behind a playground</h3>
+      <p>Every playground is a reproducible, shareable recipe — scenario, seed, starter genome, the
+        instruction subset that's unlocked, and an optional goal.</p>
+      <pre class="code"><span class="c">// what a lesson embeds; also the /sandbox share link</span>
+{ scenario: <span class="k-con">"soup-small"</span>, seed: <span class="k-val">1</span>,
+  starter: { kind: <span class="k-con">"genescript"</span>, source: <span class="k-con">"…the creature above…"</span> },
+  subset:  { kind: <span class="k-con">"classic32"</span> },
+  goal:    { kind: <span class="k-con">"replicates"</span>, params:{ within: <span class="k-val">5000</span> },
+             title: <span class="k-con">"Make your creature produce a baby."</span> } }</pre>
+
+      <h3>Goals a child can be set</h3>
+      <div class="tbl"><table>
+        <tr><th>Goal</th><th>Passes when…</th><th>Teaches</th></tr>
+        <tr><td><b>replicates</b></td><td>it makes a baby within N cycles</td><td>the whole copy → divide loop</td></tr>
+        <tr><td><b>reach-pop</b></td><td>the tank reaches P living creatures</td><td>growth &amp; the slicer sharing turns</td></tr>
+        <tr><td><b>survive</b></td><td>the lineage lives N cycles</td><td>the reaper &amp; staying established</td></tr>
+        <tr><td><b>shrink-genome</b></td><td>a descendant drops below S bytes</td><td>optimization pressure</td></tr>
+        <tr><td><b>diversity</b></td><td>N distinct genotypes appear</td><td>mutation &amp; variation</td></tr>
+        <tr><td><b>out-populate</b></td><td>you beat a rival by cycle C</td><td>the Versus win-condition</td></tr>
+      </table></div>
+      <p>On a miss, the goal never scolds — it teaches: a failed <b>replicates</b> for a creature that
+        lives but never splits returns a hint that names <code>divide</code> and suggests the smallest
+        next step, with any jargon hoverable.</p>
+    </section>
+
+    <section id="journey">
+      <div class="eyebrow">Reference</div>
+      <h2>A kid's first session — and the arc</h2>
+      <p>The curriculum is the emotional spine: five <b>design</b> chapters where you engineer a
+        creature that lives, then <b>life</b>, then <b>emergence</b> where evolution takes the wheel,
+        then <b>Versus</b>.</p>
+      <div class="tbl"><table>
+        <tr><th>Chapter</th><th>Phase</th><th>The moment</th></tr>
+        <tr><td><b>1 · Hello, soup</b></td><td>design</td><td>Drop landmarks, poke registers — meet the tank.</td></tr>
+        <tr><td><b>2 · Find yourself</b></td><td>design</td><td>A creature locates its own code and measures its size.</td></tr>
+        <tr><td><b>3 · Make a daughter</b></td><td>design</td><td>First <code>make-space</code> — reserve room for a baby.</td></tr>
+        <tr><td><b>4 · Teach it to copy</b></td><td>design</td><td>The copy loop clicks: <code>copy-byte</code> in a loop.</td></tr>
+        <tr><td><b>5 · Give birth</b></td><td>design</td><td><code>divide</code> — the tank fills with your creature. 🎉</td></tr>
+        <tr><td><b>6 · It fills the tank</b></td><td>life</td><td>Meet the reaper and the slicer; the tank reaches balance.</td></tr>
+        <tr><td><b>7 · Turn on the copy errors</b></td><td>emergence</td><td>Mutation on — genotypes start to drift.</td></tr>
+        <tr><td><b>8 · Survival of the fittest</b></td><td>emergence</td><td>Smaller, faster creatures win the soup.</td></tr>
+        <tr><td><b>9 · Parasites &amp; arms races</b></td><td>emergence</td><td>Tiny cheats borrow copy code; immunity answers.</td></tr>
+        <tr><td><b>10 · Versus</b></td><td>versus</td><td>Take your best creature into a match.</td></tr>
+      </table></div>
+      <p><b>First ten minutes:</b> land on a lobby with a tank already alive → "start learning" → read
+        two sentences → press <b>play</b> on the ancestor and watch it fill the tank → step once to
+        see a single <code>copy-byte</code> → the goal ticks green → next lesson unlocks. Curiosity,
+        then a win, then more rope.</p>
+    </section>
+
+    <section id="phases">
+      <div class="eyebrow">Reference</div>
+      <h2>Build phases</h2>
+      <div class="phase"><div class="pid">M-A</div><div><h4>Scaffold + worker + tokens</h4>
+        <p>The <code>packages/app</code> React/Vite project, workspace resolution, the real Web Worker
+          wrapper and <code>useSession</code> hook, the design-token/palette module, a minimal shell.
+          Done when a session boots the engine and streams frames into React.</p></div></div>
+      <div class="phase"><div class="pid">M-B</div><div><h4>Playground vertical slice <span class="tag slice">first shippable</span></h4>
+        <p>Tank canvas, controls, charts/HUD, inspector, and the gene editor composed into a live
+          Playground. Done when the ancestor visibly breeds true, edit+inject works, and click-to-inspect works.</p></div></div>
+      <div class="phase"><div class="pid">M-C</div><div><h4>Tutorial reader + wiki</h4>
+        <p>Lesson rendering with lazy playgrounds and tooltips, the 32 instruction pages, routing.</p></div></div>
+      <div class="phase"><div class="pid">M-D</div><div><h4>Versus arena</h4>
+        <p>Genome inputs, live scoreboard, winner, share links.</p></div></div>
+      <div class="phase"><div class="pid">M-E</div><div><h4>Shell, routing, persistence</h4>
+        <p>The reducer store, URL↔route, saved progress, theme + reduced-motion, deep links, a11y.</p></div></div>
+      <div class="phase"><div class="pid">M-F</div><div><h4>Design &amp; polish pass</h4>
+        <p>The full aquarium aesthetic, animations, responsive layouts, optional sound.</p></div></div>
+      <div class="phase"><div class="pid">M-G</div><div><h4>Docker + deploy</h4>
+        <p>Multi-stage Vite build → static bundle → served container, replacing the old environment.</p></div></div>
+    </section>
+
+    <section id="decisions">
+      <div class="eyebrow">Reference</div>
+      <h2>Open decisions</h2>
+      <div class="grid g3">
+        <div class="mini"><h4>Gene editor host</h4><p>CodeMirror 6 <em>(recommended)</em> vs a lighter
+          custom overlay. CM6's decoration + completion APIs fit the view-model directly.</p></div>
+        <div class="mini"><h4>Charts rendering</h4><p>Inline SVG <em>(recommended at these sizes)</em>
+          vs canvas. SVG gives crisp small multiples with little code.</p></div>
+        <div class="mini"><h4>Deploy target</h4><p>Keep the NAS-style nginx container on a fixed port,
+          or aim at a generic static host / registry?</p></div>
+      </div>
+      <div class="note">Nothing here blocks M-A. The recommendations above are safe defaults — flag any
+        you want changed and the scaffold adjusts.</div>
+    </section>
+
+    <div class="foot">tierra26 — a kids' artificial-life learning game on an authentic Tierra engine.
+      This blueprint binds the rendered app to six already-built, tested packages. Built to be revised.</div>
+  </main>
+</div>
+
+<script>
+(function(){
+  var b=document.getElementById('themeBtn');
+  var order=['system','light','dark'];
+  var cur=0;
+  function apply(){
+    var m=order[cur];
+    if(m==='system'){document.documentElement.removeAttribute('data-theme');b.textContent='◐ system';}
+    else{document.documentElement.setAttribute('data-theme',m);b.textContent=(m==='dark'?'● deep tank':'○ daylight');}
+    try{localStorage.setItem('t26-blueprint-theme',m);}catch(e){}
+  }
+  try{var s=localStorage.getItem('t26-blueprint-theme');if(s){cur=Math.max(0,order.indexOf(s));}}catch(e){}
+  apply();
+  b.addEventListener('click',function(){cur=(cur+1)%order.length;apply();});
+})();
+</script>
