@@ -79,10 +79,51 @@ describe('Cross-package integration (INT)', () => {
     for (const byte of a) assert.ok(byte >= 0 && byte < sub.n);
   });
 
-  // Pending — need content/ui/versus src:
-  it.todo('[INT-CONTENT-COMPILE] every shipped starter genome compiles under its subset + loads');
+  // Content layer wired (@tierra26/content):
+  it('[INT-CONTENT-COMPILE] every shipped starter genome compiles under its subset + loads', async () => {
+    const { STARTERS } = await import('../../content/src/lessons.ts');
+    const { normalizePlayground } = await import('../../content/src/play.ts');
+    let n = 0;
+    for (const [id, s] of Object.entries(STARTERS)) {
+      // normalizePlayground compiles the starter under its subset and verifies it loads.
+      const norm = normalizePlayground({
+        scenario: { seed: 1 }, seed: 1,
+        starter: { kind: 'genescript', source: s.source }, subset: s.subset,
+      });
+      assert.ok(norm.starter.bytes.length > 0, `starter ${id} compiled to bytes`);
+      const e = new Engine({ seed: 1, mutation: { flaw: 0, copy: 0, cosmic: 0 } });
+      assert.doesNotThrow(() => e.inject(norm.starter.bytes, { founderId: 1 }), `starter ${id} loads`);
+      n++;
+    }
+    assert.ok(n > 0, 'at least one shipped starter');
+  });
+
+  it('[INT-SUBSET-PORTABLE] a named subset emits identical bytes across content→genescript→engine', async () => {
+    const { normalizePlayground, toRunDescriptor } = await import('../../content/src/play.ts');
+    // A content PlaygroundConfig naming a subset → genescript compile → engine load, twice.
+    const cfg = {
+      scenario: { seed: 2 }, seed: 2,
+      starter: { kind: 'genescript' as const, source: 'grow-a\ncopy-byte\nmake-space\ndivide' },
+      subset: { kind: 'subset' as const, name: 'ch', verbs: ['movii', 'incA', 'mal', 'divide'] },
+    };
+    const a = normalizePlayground(cfg), b = normalizePlayground(cfg);
+    assert.deepEqual([...a.starter.bytes], [...b.starter.bytes]); // deterministic + portable
+    for (const byte of a.starter.bytes) assert.ok(byte >= 0 && byte < a.subset.n, 'legal under the subset');
+    // the same recipe replays bit-for-bit through the engine
+    const d1 = Engine.replay(toRunDescriptor(a)); const d2 = Engine.replay(toRunDescriptor(b));
+    assert.equal(dig(d1), dig(d2));
+  });
+
+  it('[INT-GOAL-DETERMINISM] a content goal-checker verdict is identical across same-seed runs', async () => {
+    const { checkGoal } = await import('../../content/src/goal.ts');
+    const goal = { id: 'g', kind: 'replicates' as const, params: { within: 5000 }, tier: 'required' as const, title: 'baby' };
+    const ctx = { scenario: { seed: 4 }, seed: 4, genome: ANC, maxCycles: 200_000 };
+    const r1 = checkGoal(goal, ctx); const r2 = checkGoal(goal, ctx);
+    assert.deepEqual(r1, r2);              // byte-identical verdict (passed/measured/atCycle/hint)
+    assert.equal(r1.passed, true);          // the ancestor replicates
+  });
+
+  // Pending — need ui/versus src:
   it.todo('[INT-FRAME-VIEWS] one ObservationFrame feeds tank/charts/inspector consistently');
-  it.todo('[INT-SUBSET-PORTABLE] a named subset emits identical bytes across content→genescript→engine');
-  it.todo('[INT-GOAL-DETERMINISM] a content goal-checker verdict is identical across same-seed runs');
   it.todo('[INT-VERSUS-MATCH-REPLAY] a MatchDescriptor replays identical standings + result');
 });
