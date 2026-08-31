@@ -3,7 +3,7 @@
 import { World, type WorldConfig, type WorldSnapshot } from './world.ts';
 import { classic32, buildSubset } from './isa.ts';
 import { DEFAULT_RATES, type MutationRates } from './mutation.ts';
-import { digest as statsDigest, type RunDigest } from './stats.ts';
+import { digest as statsDigest, live as statsLive, type RunDigest, type LiveStats } from './stats.ts';
 import type { InstructionSet } from './runtime.ts';
 import type { CreatureId } from './types.ts';
 
@@ -75,7 +75,8 @@ function toWorldConfig(s: Scenario): WorldConfig {
   };
 }
 
-export interface LiveStats { cycles: number; population: number; genotypes: number; births: number; deaths: number; fullness: number }
+// LiveStats is single-sourced in stats.ts (the rich shape ObservationFrame.stats also uses); re-export.
+export type { LiveStats } from './stats.ts';
 
 export class Engine {
   static readonly version = '0.0.0-m0';
@@ -116,16 +117,7 @@ export class Engine {
   run(nInstructions: number): void { this.world.run(nInstructions); }
   get cycles(): number { return this.world.cycles; }
 
-  stats(): LiveStats {
-    return {
-      cycles: this.world.cycles,
-      population: this.world.population(),
-      genotypes: this.world.genotypeCount(),
-      births: this.world.births,
-      deaths: this.world.deaths,
-      fullness: this.world.fullness(),
-    };
-  }
+  stats(): LiveStats { return statsLive(this.world); }
 }
 
 export { classic32, buildSubset } from './isa.ts';

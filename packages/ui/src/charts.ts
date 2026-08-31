@@ -105,15 +105,15 @@ function humanizeCycles(n: number): string {
 // avgSize is integer-rounded (the engine already floors Σsize/pop; round is a
 // safe no-op there and tolerates a synthetic float).
 function computeReadouts(s: LiveStats): Readouts {
-  const stats = s as LiveStats & { avgSize?: number; fullness?: number };
+  // LiveStats is single-sourced (engine stats.ts) and carries avgSize + fullness directly.
   return {
     cycles: humanizeCycles(s.cycles),
     population: s.population,
     genotypes: s.genotypes,
     births: s.births,
     deaths: s.deaths,
-    fullnessPct: Math.floor((stats.fullness ?? 0) * 100),
-    avgSize: Math.round(stats.avgSize ?? 0),
+    fullnessPct: Math.floor((s.fullness ?? 0) * 100),
+    avgSize: Math.round(s.avgSize ?? 0),
   };
 }
 
