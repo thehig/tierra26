@@ -365,8 +365,9 @@ svg.spark { display: block; width: 100%; height: 54px; }
 /* the oversized entity */
 .entity { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 20px;
   box-shadow: var(--shadow, 0 12px 40px -22px rgba(10,40,35,.4)); display: grid; gap: 18px;
-  grid-template-columns: minmax(0, 1.2fr) minmax(150px, .8fr); grid-template-areas: 'genome side' 'controls controls'; }
-@media (max-width: 560px) { .entity { grid-template-columns: 1fr; grid-template-areas: 'genome' 'side' 'controls'; } }
+  grid-template-columns: minmax(0, 1.2fr) minmax(150px, .8fr); grid-template-areas: 'world world' 'genome side' 'controls controls'; }
+@media (max-width: 560px) { .entity { grid-template-columns: 1fr; grid-template-areas: 'world' 'genome' 'side' 'controls'; } }
+.entity-world { grid-area: world; }
 .entity-genome { grid-area: genome; }
 .entity-side { grid-area: side; display: flex; flex-direction: column; gap: 16px; }
 .entity-controls { grid-area: controls; display: flex; align-items: center; gap: 12px; padding-top: 14px; border-top: 1px solid var(--line); }
@@ -374,7 +375,20 @@ svg.spark { display: block; width: 100%; height: 54px; }
 
 .dim { opacity: .32; transition: opacity .3s ease; }
 .lit { transform: scale(1.01); }
-.entity-genome.lit, .entity-controls.lit { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent); border-radius: 12px; }
+.entity-genome.lit, .entity-controls.lit, .entity-world.lit { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent); border-radius: 12px; }
+
+/* the magnified world: one cell per soup byte, coloured by who owns it */
+.world-grid { display: grid; gap: 2px; max-width: 320px; padding: 8px; border-radius: 12px;
+  background: var(--surface-2); border: 1px solid var(--line); }
+.wcell { aspect-ratio: 1; border-radius: 3px; background: color-mix(in srgb, var(--line) 40%, transparent); transition: background .25s ease, box-shadow .25s ease; }
+.wcell.mother { background: var(--accent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 50%, transparent); }
+.wcell.daughter { background: color-mix(in srgb, var(--accent) 38%, var(--surface)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent); }
+.wcell.baby { background: #8b7cf0; box-shadow: 0 0 0 1px color-mix(in srgb, #8b7cf0 55%, transparent); }
+
+/* the daughter (a reserved patch of world filling up into a copy) */
+.entity-daughter .dfill { height: 14px; border-radius: 8px; overflow: hidden; background: var(--surface); border: 1px solid var(--line); }
+.entity-daughter .dfill span { display: block; height: 100%; background: var(--accent); transition: width .2s ease; }
+.dfill-pct { display: inline-block; margin-top: 5px; font-family: var(--fm); font-size: .8rem; color: var(--faint); }
 
 .genome-blocks { display: flex; flex-direction: column; gap: 7px; }
 .gblock { position: relative; font-family: var(--fm); font-size: 1.05rem; font-weight: 500; padding: 11px 14px 11px 34px;

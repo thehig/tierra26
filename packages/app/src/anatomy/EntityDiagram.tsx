@@ -1,42 +1,50 @@
-// The oversized "anatomy of a creature": its genome blocks (with the reading head), its four
-// notebooks (registers), its flags, its save-pile, and its age — all big and friendly. A `focus`
-// (driven by scroll waypoints) spotlights one part at a time. Step controls run it tick by tick.
+// The oversized "anatomy of a creature" in its magnified world: the world grid (the creature, its
+// daughter, its babies), the genome blocks (with the reading head), the four notebooks, flags,
+// save-pile, daughter, and age. A `focus` (from scroll waypoints) spotlights one part at a time.
 import { useRef } from 'react';
 import { categoryVar } from '../design/palette.ts';
 import type { EntityState } from './useMicroEngine.ts';
 
-export type Focus = 'whole' | 'genome' | 'registers' | 'ip' | 'flags' | 'age' | 'run';
+export type Focus = 'whole' | 'world' | 'genome' | 'registers' | 'ip' | 'flags' | 'age' | 'daughter' | 'run';
 
 const REG_KEYS = ['A', 'B', 'C', 'D'] as const;
 const FLAG_KEYS = ['E', 'S', 'Z'] as const;
+const OWNER_CLASS = ['free', 'mother', 'daughter', 'baby'] as const;
 
 export function EntityDiagram({
-  state, focus, onStep, onReset, steps,
+  state, focus, onStep, onReset, onRun, onPause, running = false, steps,
 }: {
   state: EntityState;
   focus: Focus;
   onStep: () => void;
   onReset: () => void;
+  onRun?: () => void;
+  onPause?: () => void;
+  running?: boolean;
   steps: number;
 }) {
   const prevRegs = useRef(state.regs);
-  const changed = (k: (typeof REG_KEYS)[number]) => state.regs[k] !== prevRegs.current[k];
-  const wasChanged = { A: changed('A'), B: changed('B'), C: changed('C'), D: changed('D') };
+  const changed = { A: state.regs.A !== prevRegs.current.A, B: state.regs.B !== prevRegs.current.B, C: state.regs.C !== prevRegs.current.C, D: state.regs.D !== prevRegs.current.D };
   prevRegs.current = state.regs;
 
   const dim = (part: Focus) => (focus !== 'whole' && focus !== 'run' && focus !== part ? 'dim' : '');
+  const cols = Math.max(1, Math.round(Math.sqrt(state.worldSize)));
 
   return (
     <div className={`entity focus-${focus}`}>
+      <div className={`entity-world ${dim('world')} ${focus === 'world' ? 'lit' : ''}`} data-part="world">
+        <div className="part-label">its world</div>
+        <div className="world-grid" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
+          {state.world.map((o, i) => <span key={i} className={`wcell ${OWNER_CLASS[o]}`} />)}
+        </div>
+      </div>
+
       <div className={`entity-genome ${dim('genome')} ${focus === 'ip' ? 'lit' : ''}`} data-part="genome">
-        <div className="part-label">its genome — a stack of instruction blocks</div>
+        <div className="part-label">its genome — instruction blocks</div>
         <div className="genome-blocks">
           {state.blocks.map((b) => (
-            <div
-              key={b.index}
-              className={`gblock ${b.isLabel ? 'is-label' : ''} ${b.isIp ? 'is-ip' : ''}`}
-              style={{ borderColor: categoryVar(b.category), color: categoryVar(b.category) }}
-            >
+            <div key={b.index} className={`gblock ${b.isLabel ? 'is-label' : ''} ${b.isIp ? 'is-ip' : ''}`}
+              style={{ borderColor: categoryVar(b.category), color: categoryVar(b.category) }}>
               {b.isIp && <span className="reading-head" aria-label="reading head">▶</span>}
               <span className="gblock-text">{b.text}</span>
             </div>
@@ -49,9 +57,8 @@ export function EntityDiagram({
           <div className="part-label">four notebooks</div>
           <div className="reg-cards">
             {REG_KEYS.map((k) => (
-              <div className={`reg-card ${wasChanged[k] ? 'changed' : ''}`} key={k}>
-                <span className="reg-name">{k}</span>
-                <span className="reg-val">{state.regs[k]}</span>
+              <div className={`reg-card ${changed[k] ? 'changed' : ''}`} key={k}>
+                <span className="reg-name">{k}</span><span className="reg-val">{state.regs[k]}</span>
               </div>
             ))}
           </div>
@@ -59,17 +66,20 @@ export function EntityDiagram({
 
         <div className={`entity-flags ${dim('flags')}`} data-part="flags">
           <div className="part-label">flags</div>
-          <div className="flag-chips">
-            {FLAG_KEYS.map((f) => (
-              <span className={`flag-chip ${state.flags[f] ? 'on' : ''}`} key={f}>{f}</span>
-            ))}
-          </div>
+          <div className="flag-chips">{FLAG_KEYS.map((f) => <span className={`flag-chip ${state.flags[f] ? 'on' : ''}`} key={f}>{f}</span>)}</div>
         </div>
+
+        {(state.hasDaughter || state.population > 1) && (
+          <div className={`entity-daughter ${dim('daughter')}`} data-part="daughter">
+            <div className="part-label">{state.population > 1 ? 'a baby was born! 🎉' : 'the daughter'}</div>
+            <div className="dfill"><span style={{ width: `${state.daughterFillPct}%` }} /></div>
+            <span className="dfill-pct">{state.daughterFillPct}% filled</span>
+          </div>
+        )}
 
         <div className="entity-pile" data-part="pile">
           <div className="part-label">save-pile</div>
-          {state.stack.length === 0
-            ? <span className="pile-empty">empty</span>
+          {state.stack.length === 0 ? <span className="pile-empty">empty</span>
             : <span className="pile-cells">{state.stack.map((v, i) => <span className="pile-cell" key={i}>{v}</span>)}</span>}
         </div>
 
@@ -77,13 +87,17 @@ export function EntityDiagram({
           <span className="vital"><span className="vlabel">age</span><span className="vval">{state.age}</span></span>
           <span className="vital"><span className="vlabel">size</span><span className="vval">{state.size}</span></span>
           <span className="vital"><span className="vlabel">tick</span><span className="vval">{state.cycle}</span></span>
+          <span className="vital"><span className="vlabel">alive</span><span className="vval">{state.population}</span></span>
         </div>
       </div>
 
       <div className={`entity-controls ${focus === 'run' ? 'lit' : ''}`}>
-        <button className="btn primary" onClick={onStep}>⇥ Step one tick</button>
-        <button className="btn" onClick={onReset} disabled={steps === 0}>↺ Reset</button>
-        <span className="entity-steps">{steps === 0 ? 'press Step to run one instruction' : `${steps} tick${steps === 1 ? '' : 's'} run`}</span>
+        <button className="btn primary" onClick={onStep} disabled={running}>⇥ Step</button>
+        {onRun && (running
+          ? <button className="btn" onClick={onPause}>❚❚ Pause</button>
+          : <button className="btn" onClick={onRun}>▶ Run</button>)}
+        <button className="btn" onClick={onReset} disabled={steps === 0 && !running}>↺ Reset</button>
+        <span className="entity-steps">{steps === 0 ? 'press Step to run one instruction' : `${steps} tick${steps === 1 ? '' : 's'}`}</span>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@
 // chapter teaches ONE small idea (a command or two, one new entity attribute) with a short scrolly
 // explainer over a steppable demo creature, then a "your turn" micro-challenge checked live.
 // Phase-C chapters (population → evolution → versus) swap the step-through stage for the live tank.
+import { ANCESTOR_GS } from '@tierra26/genescript/ancestor.gs.ts';
 import type { Focus } from '../anatomy/EntityDiagram.tsx';
 import type { EntityState } from '../anatomy/useMicroEngine.ts';
 
@@ -9,14 +10,25 @@ export type MicroGoal =
   | { kind: 'regAtLeast'; reg: 'A' | 'B' | 'C' | 'D'; value: number; label: string }
   | { kind: 'regEquals'; reg: 'A' | 'B' | 'C' | 'D'; value: number; label: string }
   | { kind: 'daughter'; label: string }
+  | { kind: 'daughterFill'; pct: number; label: string }
   | { kind: 'born'; label: string };
 
+// The slice of engine state a goal reads — the full EntityState satisfies it, and tests can pass a
+// minimal object without building the whole thing.
+export interface EntityStateLike {
+  regs: { A: number; B: number; C: number; D: number };
+  hasDaughter: boolean;
+  daughterFillPct: number;
+  population: number;
+}
+
 // Latch-friendly: true the moment the goal is met at the current step.
-export function checkMicroGoal(g: MicroGoal, s: EntityState): boolean {
+export function checkMicroGoal(g: MicroGoal, s: EntityStateLike): boolean {
   switch (g.kind) {
     case 'regAtLeast': return s.regs[g.reg] >= g.value;
     case 'regEquals': return s.regs[g.reg] === g.value;
     case 'daughter': return s.hasDaughter;
+    case 'daughterFill': return s.daughterFillPct >= g.pct || s.population > 1; // filled, or already split off
     case 'born': return s.population >= 2;
   }
 }
@@ -93,18 +105,104 @@ const CHAPTERS_DATA: Chapter[] = [
     ],
     challenge: { prompt: 'Make notebook C reach 4.', starter: 'flip-bit\ndouble', goal: { kind: 'regAtLeast', reg: 'C', value: 4, label: 'C reaches 4' } },
   },
+  {
+    id: 'landmarks', no: '5', title: 'Landmarks', phase: 'change', prevId: 'doubling', ready: true,
+    lede: 'Signposts you can jump to.',
+    demo: 'here:\ngrow-a\ngrow-b',
+    waypoints: [
+      { focus: 'genome', title: 'A signpost', body: '`mark-0` and `mark-1` make a *landmark* — a signpost in your code, written like `here:`. On its own it does nothing; the reading head walks right past it.' },
+      { focus: 'ip', title: 'Why bother?', body: 'Landmarks are places you can *jump to*. Next chapter you’ll send the reading head back to one — and make your first loop.' },
+    ],
+  },
+  {
+    id: 'loops', no: '6', title: 'Go in circles', phase: 'change', prevId: 'landmarks', ready: true,
+    lede: 'Send the reading head back to a signpost, and blocks repeat.',
+    demo: 'top:\ngrow-a\njump-back top\nclear',
+    waypoints: [
+      { focus: 'ip', title: 'The loop', body: '`jump-back top` sends the reading head back up to the `top:` landmark. So `grow-a` runs again and again — a *loop*. (The `clear` at the bottom is a *wall* — it marks where the loop ends. A loop must always have a wall after it.)' },
+      { focus: 'registers', title: 'Watch A climb', body: 'Press *Run* and watch A shoot up. A loop is how a creature does a lot with just a few blocks.' },
+    ],
+    challenge: { prompt: 'Add a `jump-back top` line just above `clear` to make a loop, and push notebook A to 5.', starter: 'top:\ngrow-a\nclear', goal: { kind: 'regAtLeast', reg: 'A', value: 5, label: 'A reaches 5' } },
+  },
+  {
+    id: 'deciding', no: '7', title: 'Know when to stop', phase: 'change', prevId: 'loops', ready: true,
+    lede: 'A loop that never ends is stuck. This is how a creature decides.',
+    demo: 'flip-bit\nif-zero\nclear\ngrow-a',
+    waypoints: [
+      { focus: 'genome', title: 'Only if zero', body: '`if-zero` looks at notebook C. It lets the *next* block run only when C is zero — otherwise it skips it.' },
+      { focus: 'registers', title: 'The off-switch', body: 'Step through: C is 1 (not zero), so `if-zero` *skips* the `clear`. This is how a copy loop knows when it’s finished.' },
+    ],
+  },
+  {
+    id: 'sums', no: '8', title: 'Doing sums', phase: 'change', prevId: 'deciding', ready: true,
+    lede: 'Creatures do arithmetic to work things out — like their own size.',
+    demo: 'grow-a\ngrow-a\ngrow-a\ngrow-b\nsubtract',
+    waypoints: [
+      { focus: 'genome', title: 'Take away', body: '`subtract` does a sum: it puts *A minus B* into notebook C.' },
+      { focus: 'registers', title: 'A − B → C', body: 'Here A is 3 and B is 1, so `subtract` makes C = 2. Step through and see.' },
+    ],
+    challenge: { prompt: 'A is 3 and B is 1. Add `subtract` to put A − B into C (that’s 2).', starter: 'grow-a\ngrow-a\ngrow-a\ngrow-b', goal: { kind: 'regEquals', reg: 'C', value: 2, label: 'C becomes 2' } },
+  },
+  {
+    id: 'find', no: '9', title: 'Finding yourself', phase: 'change', prevId: 'sums', ready: true,
+    lede: 'A creature searches for its own landmarks to work out where it is.',
+    demo: 'spot:\nfind-back spot\ngrow-b',
+    waypoints: [
+      { focus: 'genome', title: 'Search', body: '`find-back` searches *backwards* for a landmark and remembers it — the address in A, its size in C. (`find` looks both ways; `find-forward` looks ahead.)' },
+      { focus: 'registers', title: 'Found it', body: 'Step through: after `find-back spot`, notebook C holds the landmark’s size. That’s how a creature measures its own parts.' },
+    ],
+    challenge: { prompt: 'Add a `find-back spot` line just above `grow-b`, so the creature finds its landmark (its size lands in C).', starter: 'spot:\ngrow-b', goal: { kind: 'regAtLeast', reg: 'C', value: 1, label: 'C holds a found size' } },
+  },
+  {
+    id: 'measure', no: '10', title: 'Measuring', phase: 'change', prevId: 'find', ready: true,
+    lede: 'Put it together: find your start and end, subtract, and you know your size.',
+    demo: 'start:\ngrow-a\ngrow-a\nfind-back start\nsubtract\ngrow-b',
+    waypoints: [
+      { focus: 'genome', title: 'How big am I?', body: 'Find the landmark at your *start* and the one at your *end*, then `subtract` their addresses. The answer is your *size* — how many blocks make up your body.' },
+      { focus: 'age', title: 'Ready to copy', body: 'Knowing your size is the last thing a creature needs before it can copy *itself*. Next: making room for a baby.' },
+    ],
+  },
+  {
+    id: 'make-room', no: '11', title: 'Make room', phase: 'daughter', prevId: 'measure', ready: true,
+    lede: 'Before copying itself, a creature reserves a patch of the world for its baby.',
+    demo: 'flip-bit\ndouble\ndouble\ndouble\ndouble\nmake-space',
+    waypoints: [
+      { focus: 'world', title: 'A patch of world', body: '`make-space` asks the soup for a block of empty world — the *daughter*. Notebook C says how big to make it.' },
+      { focus: 'daughter', title: 'The daughter appears', body: 'Watch a new region light up in the world — the daughter, empty and waiting. Only the mother may write there.' },
+    ],
+    challenge: { prompt: 'C is built up to 16. Add `make-space` to reserve room for a daughter.', starter: 'flip-bit\ndouble\ndouble\ndouble\ndouble', goal: { kind: 'daughter', label: 'a daughter is reserved' } },
+  },
+  {
+    id: 'copy-byte', no: '12', title: 'Copy one byte', phase: 'daughter', prevId: 'make-room', ready: true,
+    lede: 'The most important block of all — but one at a time.',
+    demo: 'flip-bit\ndouble\ndouble\ndouble\ndouble\nmake-space\ncopy-byte',
+    waypoints: [
+      { focus: 'genome', title: 'One byte', body: '`copy-byte` copies a single byte from the mother into the daughter. Just one.' },
+      { focus: 'daughter', title: 'Not enough', body: 'One byte barely fills the daughter. A whole body is dozens of bytes — so you `copy-byte` over and over. That’s a job for a loop.' },
+    ],
+  },
+  {
+    id: 'copy-loop', no: '13', title: 'The copy loop', phase: 'daughter', prevId: 'copy-byte', ready: true,
+    lede: 'Everything so far, together: a creature that copies its whole self.',
+    demo: ANCESTOR_GS,
+    waypoints: [
+      { focus: 'genome', title: 'A real creature', body: 'This is a full creature — much bigger now. It finds itself, makes room, and runs a copy loop: `copy-byte`, move along, `jump-back` until it’s done.' },
+      { focus: 'daughter', title: 'Watch it fill', body: 'Press *Run*. The reading head races round the loop and the daughter fills up, byte by byte, into a complete copy.' },
+    ],
+    challenge: { prompt: 'Press ▶ Run and watch the daughter fill up.', starter: ANCESTOR_GS, goal: { kind: 'daughterFill', pct: 60, label: 'the daughter is copied' } },
+  },
+  {
+    id: 'give-birth', no: '14', title: 'Give birth', phase: 'daughter', prevId: 'copy-loop', ready: true,
+    lede: 'The moment it all leads to.',
+    demo: ANCESTOR_GS,
+    waypoints: [
+      { focus: 'daughter', title: 'Split', body: 'Once the daughter is a full copy, `divide` sets her free as a brand-new creature — her own body, her own reading head, her own life.' },
+      { focus: 'world', title: 'Two, then many', body: 'Now there are two. Each will copy itself too. Press *Run* and watch your creature become a family.' },
+    ],
+    challenge: { prompt: 'Press ▶ Run until a baby is born (the world shows 2 creatures).', starter: ANCESTOR_GS, goal: { kind: 'born', label: 'your first baby is born! 🎉' } },
+  },
   // ── stubs — building next (still listed + gated) ──────────────────────────
   ...([
-    ['landmarks', '5', 'Landmarks', 'change', 'doubling'],
-    ['loops', '6', 'Go in circles', 'change', 'landmarks'],
-    ['deciding', '7', 'Know when to stop', 'change', 'loops'],
-    ['sums', '8', 'Doing sums', 'change', 'deciding'],
-    ['find', '9', 'Finding yourself', 'change', 'sums'],
-    ['measure', '10', 'Measuring', 'change', 'find'],
-    ['make-room', '11', 'Make room', 'daughter', 'measure'],
-    ['copy-byte', '12', 'Copy one byte', 'daughter', 'make-room'],
-    ['copy-loop', '13', 'The copy loop', 'daughter', 'copy-byte'],
-    ['give-birth', '14', 'Give birth', 'daughter', 'copy-loop'],
     ['tank', '15', 'A living tank', 'life', 'give-birth'],
     ['mutation', '16', 'Copy errors', 'evolve', 'tank'],
     ['selection', '17', 'Survival', 'evolve', 'mutation'],

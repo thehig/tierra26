@@ -23,7 +23,7 @@ export function MicroSandbox({ challenge, onSolved }: { challenge: Challenge; on
       <div className="ms-prompt"><span className="goaltag">Your turn</span> {challenge.prompt}</div>
       <div className="ms-grid">
         <GeneEditor value={source} onChange={setSource} title="your code" />
-        <EntityDiagram state={micro.state} focus="run" onStep={micro.step} onReset={micro.reset} steps={micro.steps} />
+        <EntityDiagram state={micro.state} focus="run" onStep={micro.step} onReset={micro.reset} onRun={micro.run} onPause={micro.pause} running={micro.running} steps={micro.steps} />
       </div>
       <div className={`ms-goal ${solved ? 'met' : ''}`}>
         <span className="gs-mark">{solved ? '✓' : '◦'}</span>

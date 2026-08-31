@@ -53,7 +53,7 @@ export function useRouter(): RouterCtx {
   return useContext(Ctx);
 }
 
-export function Link({ to, children, className }: { to: Target; children: ReactNode; className?: string }) {
+export function Link({ to, children, className, onNavigate }: { to: Target; children: ReactNode; className?: string; onNavigate?: () => void }) {
   const { navigate } = useRouter();
   const href = pathOf(to);
   return (
@@ -63,6 +63,7 @@ export function Link({ to, children, className }: { to: Target; children: ReactN
       onClick={(e) => {
         if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
         e.preventDefault();
+        onNavigate?.();
         navigate(to);
       }}
     >

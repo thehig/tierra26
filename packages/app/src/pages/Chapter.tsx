@@ -69,6 +69,9 @@ export function ChapterPage({ id }: { id: string }) {
             focus={chapter.waypoints[active]?.focus ?? 'whole'}
             onStep={demo.step}
             onReset={demo.reset}
+            onRun={demo.run}
+            onPause={demo.pause}
+            running={demo.running}
             steps={demo.steps}
           />
         )}
@@ -80,8 +83,8 @@ export function ChapterPage({ id }: { id: string }) {
 
       <div className="anatomy-next">
         {next
-          ? <Link className="btn primary" to={{ surface: 'learn', chapterId: next.id }}>Next: {next.title} →</Link>
-          : <Link className="btn" to="home">Back to the map</Link>}
+          ? <Link className="btn primary" to={{ surface: 'learn', chapterId: next.id }} onNavigate={() => completeLesson(chapter.id)}>Next: {next.title} →</Link>
+          : <Link className="btn" to="home" onNavigate={() => completeLesson(chapter.id)}>Finish · back to the map</Link>}
       </div>
     </div>
   );
