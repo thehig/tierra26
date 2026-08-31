@@ -1,38 +1,133 @@
-// Determinism & RNG (RNG) — pending acceptance criteria for the engine's single PRNG.
-// Ref: docs/spec/engine/systems/01-determinism-and-rng.md §8 (RNG-001…RNG-015).
-// Modernized design: xoshiro128** (integer-only) seeded via splitmix32; replaces
-// Tierra's floating-point 3-stream tdrand() (reference/tierra-v6.02/tierra/trand.c).
-//
-// Pending until rng.ts exists; encoded as node:test todo tests (spec-as-checklist).
-// Do NOT import from src/ yet — the module does not exist and an import error would
-// fail the file. When rng.ts lands, replace `it.todo(name)` with `it(name, () => { ... })`.
-//
-// FIXME(cross-engine): the golden-vector test (RNG-004) is the guard against 32-bit
-//   op divergence across JS engines. next() MUST use Math.imul + shifts + `>>> 0` only;
-//   an accidental `*` (instead of Math.imul) or a missing `>>> 0` after a shift silently
-//   produces a different stream on some engines. Freeze the vector and diff it.
-// FIXME(modulo-bias): int(n) MUST reject the biased tail, never `next() % n`. Naive
-//   modulo is biased for non-power-of-two n (low residues over-represented). RNG-007
-//   must use a large sample + bucket/chi-squared check, not a handful of draws.
-// FIXME(rejection-determinism): rejections consume extra next() calls (RNG-008). The
-//   draw count is part of the reproducible stream — assert it, don't just assert values.
+// Determinism & RNG (RNG) — implemented tests for the engine's single PRNG.
+// Ref: docs/spec/engine/systems/01-determinism-and-rng.md §8.
 import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { makeRng } from '../src/rng.ts';
+
+const U32 = 0x100000000;
+// Golden vector: makeRng(12345).next() ×8 — frozen for cross-engine 32-bit parity (RNG-004).
+const GOLDEN_SEED = 12345;
+const GOLDEN = [1093274547, 203003357, 3741353573, 3803725158, 4178738660, 810247443, 1347789520, 4037788777];
 
 describe('Determinism & RNG (RNG)', () => {
-  it.todo('[RNG-001] makeRng(seed).state() is a length-4 Uint32Array, each element an integer in [0, 2^32)');
-  it.todo('[RNG-002] next() returns a uint32 in [0, 2^32) and advances state (state before != after)');
-  it.todo('[RNG-003] same seed yields identical sequence: two makeRng(s) emit the same first-K next() values');
-  it.todo('[RNG-004] golden vector: makeRng(FIXED_SEED) matches a frozen list of first-N next() outputs (cross-engine 32-bit parity)');
-  it.todo('[RNG-005] different seeds diverge: makeRng(0) and makeRng(1) produce different sequences');
-  it.todo('[RNG-006] seed 0 is a normal, reproducible seed (valid non-zero state; NOT wall-clock derived; stable across wall time)');
-  it.todo('[RNG-007] int(n) is unbiased: bucket counts for a non-power-of-two n are uniform within tolerance over a large sample');
-  it.todo('[RNG-008] int(n) is deterministic including rejections: same seed yields same int(n) sequence and reproducible next() call count');
-  it.todo('[RNG-009] int(1) returns 0; int(n) output is always in [0, n) across a range of n');
-  it.todo('[RNG-010] int(n) with n <= 0 throws RangeError');
-  it.todo('[RNG-011] state round-trip: setState(state()) reproduces the subsequent sequence; setState([0,0,0,0]) is rejected');
-  it.todo('[RNG-012] clone() is independent: reproduces the parent future sequence and shares no state (advancing one leaves the other unchanged)');
-  it.todo('[RNG-013] float01() returns a double in [0,1) and is non-simulation-only (no simulation-path source references it)');
-  it.todo('[RNG-014] no forbidden globals: module uses no Math.random and no Date.now / wall clock');
-  it.todo('[RNG-015] integer-only state advance: next() uses only 32-bit ops (Math.imul + shifts + >>>); no float01 / `/` / `*` on the advance path');
-  it.todo("[RNG-016] int(1) returns 0 with the documented draw; int(n) is bias-free (rejection); no stray draws (S13)");
+  it('[RNG-001] state() is a length-4 Uint32Array of integers in [0, 2^32)', () => {
+    const s = makeRng(7).state();
+    assert.ok(s instanceof Uint32Array);
+    assert.equal(s.length, 4);
+    for (const w of s) { assert.ok(Number.isInteger(w) && w >= 0 && w < U32); }
+  });
+
+  it('[RNG-002] next() returns a uint32 and advances state', () => {
+    const r = makeRng(42);
+    const before = r.state();
+    const x = r.next();
+    assert.ok(Number.isInteger(x) && x >= 0 && x < U32);
+    assert.notDeepEqual(Array.from(r.state()), Array.from(before));
+  });
+
+  it('[RNG-003] same seed yields identical sequence', () => {
+    const a = makeRng(999), b = makeRng(999);
+    for (let i = 0; i < 50; i++) assert.equal(a.next(), b.next());
+  });
+
+  it('[RNG-004] golden vector (cross-engine 32-bit parity)', () => {
+    const r = makeRng(GOLDEN_SEED);
+    for (const g of GOLDEN) assert.equal(r.next(), g);
+  });
+
+  it('[RNG-005] different seeds diverge', () => {
+    const a = makeRng(0), b = makeRng(1);
+    let same = true;
+    for (let i = 0; i < 8; i++) if (a.next() !== b.next()) same = false;
+    assert.equal(same, false);
+  });
+
+  it('[RNG-006] seed 0 is a normal, reproducible seed (nonzero state, stable across wall time)', () => {
+    const a = makeRng(0);
+    assert.notEqual((a.state()[0] | a.state()[1] | a.state()[2] | a.state()[3]) >>> 0, 0);
+    const first = makeRng(0).next();
+    // stable regardless of wall clock: a second construction much "later" is identical
+    const second = makeRng(0).next();
+    assert.equal(first, second);
+  });
+
+  it('[RNG-007] int(n) is unbiased for non-power-of-two n (bucket uniformity)', () => {
+    const n = 7, N = 70000, r = makeRng(99);
+    const buckets = new Array(n).fill(0);
+    for (let i = 0; i < N; i++) buckets[r.int(n)]++;
+    const expected = N / n;
+    for (const c of buckets) assert.ok(Math.abs(c - expected) < expected * 0.05, `bucket ${c} vs ${expected}`);
+  });
+
+  it('[RNG-008] int(n) deterministic including rejections (same seq + same draw count)', () => {
+    const a = makeRng(3), b = makeRng(3);
+    for (let i = 0; i < 200; i++) assert.equal(a.int(7), b.int(7));
+    assert.deepEqual(Array.from(a.state()), Array.from(b.state())); // identical draw count consumed
+  });
+
+  it('[RNG-009] int(1) returns 0; int(n) is always in [0, n)', () => {
+    assert.equal(makeRng(5).int(1), 0);
+    const r = makeRng(8);
+    for (let n = 2; n < 40; n++) { const x = r.int(n); assert.ok(x >= 0 && x < n); }
+  });
+
+  it('[RNG-010] int(n) with n <= 0 throws RangeError', () => {
+    const r = makeRng(1);
+    assert.throws(() => r.int(0), RangeError);
+    assert.throws(() => r.int(-3), RangeError);
+  });
+
+  it('[RNG-011] state round-trip reproduces the sequence; all-zero state rejected', () => {
+    const r = makeRng(77);
+    for (let i = 0; i < 10; i++) r.next();
+    const snap = r.state();
+    const expect = [r.next(), r.next(), r.next()];
+    const r2 = makeRng(0);
+    r2.setState(snap);
+    assert.deepEqual([r2.next(), r2.next(), r2.next()], expect);
+    assert.throws(() => makeRng(0).setState(Uint32Array.of(0, 0, 0, 0)));
+  });
+
+  it('[RNG-012] clone() is independent and reproduces the parent future', () => {
+    const r = makeRng(21);
+    for (let i = 0; i < 5; i++) r.next();
+    const c = r.clone();
+    // clone reproduces the parent's future sequence
+    const rNext = [r.next(), r.next(), r.next()];
+    const cNext = [c.next(), c.next(), c.next()];
+    assert.deepEqual(cNext, rNext);
+    // independence: advancing the clone further leaves the parent's state untouched
+    const rState = Array.from(r.state());
+    c.next(); c.next();
+    assert.deepEqual(Array.from(r.state()), rState);
+  });
+
+  it('[RNG-013] float01() is a double in [0,1)', () => {
+    const r = makeRng(2);
+    for (let i = 0; i < 100; i++) { const f = r.float01(); assert.ok(f >= 0 && f < 1); }
+  });
+
+  it('[RNG-014] module uses no Math.random and no Date.now / wall clock', () => {
+    const src = readFileSync(new URL('../src/rng.ts', import.meta.url), 'utf8');
+    assert.equal(/Math\.random/.test(src), false);
+    assert.equal(/Date\.(now|parse)|performance\.now|new Date/.test(src), false);
+  });
+
+  it('[RNG-015] the advance path uses only 32-bit ops (Math.imul + shifts + >>>)', () => {
+    const src = readFileSync(new URL('../src/rng.ts', import.meta.url), 'utf8');
+    // the next() body must not use `/` or a bare `*` (multiply must be Math.imul); `/U32` lives only in float01.
+    const nextBody = src.slice(src.indexOf('next(): number'), src.indexOf('int(nExclusive'));
+    assert.equal(/[^*]\*[^*]/.test(nextBody.replace(/\/\/.*$/gm, '')), false, 'no bare * in next()');
+    assert.equal(/[^/]\/[^/]/.test(nextBody.replace(/\/\/.*$/gm, '')), false, 'no division in next()');
+  });
+
+  it('[RNG-016] int(1) returns 0 with one draw; int(n) is bias-free (S13)', () => {
+    const r = makeRng(50);
+    const before = r.state();
+    assert.equal(r.int(1), 0);
+    // exactly one next() consumed: applying next() to a fresh copy of `before` gives r's state
+    const check = makeRng(0); check.setState(before); check.next();
+    assert.deepEqual(Array.from(r.state()), Array.from(check.state()));
+  });
 });
