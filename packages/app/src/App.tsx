@@ -8,6 +8,7 @@ import { WikiIndex, WikiPage } from './pages/Wiki.tsx';
 import { SandboxPage } from './pages/Sandbox.tsx';
 import { VersusPage } from './pages/Versus.tsx';
 import { ConceptPage } from './pages/Concept.tsx';
+import { AnatomyPage } from './pages/Anatomy.tsx';
 
 function Surface({ route, dark }: { route: AppRoute | null; dark: boolean }) {
   if (!route) return <Home />;
@@ -17,6 +18,7 @@ function Surface({ route, dark }: { route: AppRoute | null; dark: boolean }) {
     case 'sandbox': return <SandboxPage dark={dark} />;
     case 'versus': return <VersusPage dark={dark} />;
     case 'concept': return <ConceptPage slug={route.slug} />;
+    case 'meet': return <AnatomyPage />;
     default: return <Home />;
   }
 }

@@ -2,9 +2,10 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { pathToRoute, routeToPath, type Route } from '@tierra26/ui/shell.ts';
 
-// The app adds a `concept` surface (concept explainer pages) on top of the shell's routes.
+// The app adds `concept` (explainer pages) and `meet` (the anatomy onboarding) surfaces.
 export type ConceptRoute = { surface: 'concept'; slug: string };
-export type AppRoute = Route | ConceptRoute;
+export type MeetRoute = { surface: 'meet' };
+export type AppRoute = Route | ConceptRoute | MeetRoute;
 type Target = AppRoute | 'home';
 
 interface RouterCtx {
@@ -17,9 +18,11 @@ const Ctx = createContext<RouterCtx>({ route: null, navigate: () => {} });
 function pathOf(to: Target): string {
   if (to === 'home') return '/';
   if (to.surface === 'concept') return '/concept/' + encodeURIComponent(to.slug);
+  if (to.surface === 'meet') return '/meet';
   return routeToPath(to);
 }
 function routeOf(path: string): AppRoute | null {
+  if (/^\/meet\/?/.test(path)) return { surface: 'meet' };
   const conceptMatch = /^\/concept\/([^/?#]+)/.exec(path);
   if (conceptMatch) return { surface: 'concept', slug: decodeURIComponent(conceptMatch[1]!) };
   return pathToRoute(path);

@@ -21,11 +21,9 @@ export function Home() {
           and — chapters later — mutate and evolve. Everything you write is real machine code.
         </p>
         <div className="hero-cta">
-          {next && (
-            <Link className="btn primary" to={{ surface: 'lesson', lessonId: next.id }}>
-              {completed.size > 0 ? 'Continue learning' : 'Start learning'}
-            </Link>
-          )}
+          {completed.size === 0
+            ? <Link className="btn primary" to={{ surface: 'meet' }}>Start learning</Link>
+            : next && <Link className="btn primary" to={{ surface: 'lesson', lessonId: next.id }}>Continue learning</Link>}
           <Link className="btn" to={{ surface: 'sandbox' }}>Free play</Link>
           <Link className="btn" to={{ surface: 'versus' }}>Versus</Link>
           <Link className="btn" to={{ surface: 'wiki' }}>Instructions</Link>
@@ -35,6 +33,10 @@ export function Home() {
       <section className="lessons">
         <h2>Lessons</h2>
         <div className="lesson-list">
+          <Link className="lesson-card intro" to={{ surface: 'meet' }}>
+            <span className="lc-ch">Chapter 0 · start here</span>
+            <span className="lc-title">Meet a creature</span>
+          </Link>
           {LESSONS.map((l) => {
             const m = CURRICULUM.lessons[l.id];
             const done = isCompleted(l.id);
