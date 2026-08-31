@@ -3,7 +3,7 @@
 // auto-step the bigger self-copiers. Reports live state + a per-cell world map so the world is seen.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Engine } from '@tierra26/engine';
-import { classic32 } from '@tierra26/engine/isa.ts';
+import { classic32, DICTIONARY } from '@tierra26/engine/isa.ts';
 import { compile } from '@tierra26/genescript/comp.ts';
 import { disassemble } from '@tierra26/genescript/disasm.ts';
 import { entry } from '@tierra26/genescript/vocab.ts';
@@ -30,6 +30,7 @@ export interface EntityState {
   compileError: boolean;
   halted: boolean;      // a straight-line program that has run its last block (reading head left its body)
   world: CellOwner[];   // one owner per soup byte (the magnified world)
+  worldGene: (string | null)[]; // GeneScript name at each occupied cell (null = free) — for the magnifier
   worldSize: number;    // == soup size (for grid layout)
 }
 
@@ -45,9 +46,11 @@ function empty(worldSize: number, compileError: boolean): EntityState {
     blocks: [], regs: { A: 0, B: 0, C: 0, D: 0 }, flags: { E: false, S: false, Z: false },
     stack: [], ipLine: -1, age: 0, size: 0, cycle: 0, alive: false,
     hasDaughter: false, daughterFillPct: 0, population: 0, compileError, halted: false,
-    world: new Array(worldSize).fill(0), worldSize,
+    world: new Array(worldSize).fill(0), worldGene: new Array(worldSize).fill(null), worldSize,
   };
 }
+
+const geneOf = (byte: number): string | null => DICTIONARY[byte]?.gene ?? null;
 
 export function useMicroEngine(source: string, soupSize = 256) {
   const compiled = useMemo(() => { try { const r = compile(source, classic32); return { bytes: r.bytes, error: r.bytes.length === 0 }; } catch { return { bytes: new Uint8Array(), error: true }; } }, [source]);
@@ -72,10 +75,11 @@ export function useMicroEngine(source: string, soupSize = 256) {
     if (!e) return empty(soupSize, compiled.error);
     const c = e.world.creatures.get(idRef.current);
     const world: CellOwner[] = new Array(soupSize).fill(0);
+    const worldGene: (string | null)[] = new Array(soupSize).fill(null);
     for (const cr of e.world.creatures.values()) {
       const owner: CellOwner = cr.id === idRef.current ? 1 : 3;
-      for (let i = 0; i < cr.size; i++) { const a = e.world.soup.ad(cr.start + i); if (a < soupSize) world[a] = owner; }
-      if (cr.dauStart >= 0) for (let i = 0; i < cr.dauSize; i++) { const a = e.world.soup.ad(cr.dauStart + i); if (a < soupSize && world[a] === 0) world[a] = 2; }
+      for (let i = 0; i < cr.size; i++) { const a = e.world.soup.ad(cr.start + i); if (a < soupSize) { world[a] = owner; worldGene[a] = geneOf(e.world.soup.read(cr.start + i)); } }
+      if (cr.dauStart >= 0) for (let i = 0; i < cr.dauSize; i++) { const a = e.world.soup.ad(cr.dauStart + i); if (a < soupSize && world[a] === 0) { world[a] = 2; worldGene[a] = geneOf(e.world.soup.read(cr.dauStart + i)); } }
     }
     let ipLine = -1;
     if (c) { const rel = ((c.cpu.ip - c.start) % soupSize + soupSize) % soupSize; const a = disasm.annotations[rel]; if (a) ipLine = a.lineIndex; }
@@ -101,7 +105,7 @@ export function useMicroEngine(source: string, soupSize = 256) {
       population: e.world.creatures.size,
       compileError: false,
       halted: !c ? false : (c.cpu.ip - c.start < 0 || c.cpu.ip - c.start >= c.size),
-      world, worldSize: soupSize,
+      world, worldGene, worldSize: soupSize,
     };
   }, [disasm, compiled, soupSize]);
 

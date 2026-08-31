@@ -8,12 +8,9 @@ async function setEditor(page: Page, text: string) {
   await cm.click();
   await page.keyboard.press('Control+A');
   await page.keyboard.press('Delete');
-  // Type line by line so the editor's newline handling can't merge lines.
-  const lines = text.split('\n');
-  for (let i = 0; i < lines.length; i++) {
-    if (i > 0) await page.keyboard.press('Enter');
-    await page.keyboard.type(lines[i]!);
-  }
+  // insertText inserts the whole thing at once — no per-key autocomplete to merge lines (a typed
+  // Enter can otherwise accept a completion instead of a newline). Reliable across headed/headless.
+  await page.keyboard.insertText(text);
 }
 
 test.describe('challenge sandbox', () => {

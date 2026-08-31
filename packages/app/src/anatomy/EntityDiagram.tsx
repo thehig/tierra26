@@ -3,6 +3,7 @@
 // save-pile, daughter, and age. A `focus` (from scroll waypoints) spotlights one part at a time.
 import { useEffect, useRef, useState } from 'react';
 import { categoryVar } from '../design/palette.ts';
+import { opcodeEmoji } from './opcodeEmoji.ts';
 import type { EntityState } from './useMicroEngine.ts';
 
 export type Focus = 'whole' | 'world' | 'genome' | 'registers' | 'ip' | 'flags' | 'age' | 'daughter' | 'run';
@@ -30,6 +31,9 @@ export function EntityDiagram({
   // Block ↔ cell bridge: hovering a genome block rings its world cell, and vice-versa. Because the
   // creature sits at soup address 0, a block's address IS its world-cell index — they share a number.
   const [hovered, setHovered] = useState<number | null>(null);
+  // Hovering the world raises a magnifier loupe: solid colours stay in the grid, but the cells under
+  // the cursor are shown big, with each cell's opcode emoji inside its ownership-coloured border.
+  const [loupe, setLoupe] = useState<{ cell: number; x: number; y: number } | null>(null);
 
   // The genome list has a bounded height and scrolls internally (a real genome is dozens of blocks),
   // so keep the reading head in view — scrolling only the list, never the page.
@@ -50,14 +54,16 @@ export function EntityDiagram({
     <div className="entity-wrap">
     <div className={`entity focus-${focus}`}>
       <div className={`entity-world ${dim('world')} ${focus === 'world' ? 'lit' : ''}`} data-part="world">
-        <div className="part-label">its world</div>
-        <div className="world-grid" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
+        <div className="part-label">its world · hover to inspect 🔍</div>
+        <div className="world-grid" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
+          onMouseLeave={() => { setHovered(null); setLoupe(null); }}>
           {state.world.map((o, i) => (
             <span key={i} className={`wcell ${OWNER_CLASS[o]} ${i === hovered ? 'link' : ''}`}
-              onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(null)} />
+              onMouseMove={(e) => { setHovered(i); setLoupe({ cell: i, x: e.clientX, y: e.clientY }); }} />
           ))}
         </div>
       </div>
+      {loupe && <WorldLoupe state={state} cols={cols} {...loupe} />}
 
       <div className={`entity-genome ${dim('genome')} ${focus === 'ip' ? 'lit' : ''}`} data-part="genome">
         <div className="part-label">its genome — numbered instruction blocks</div>
@@ -128,6 +134,37 @@ export function EntityDiagram({
         </span>
       </div>
     </div>
+    </div>
+  );
+}
+
+// The magnifier: a floating loupe showing the 5×5 neighbourhood around the hovered cell, each cell's
+// opcode as an emoji inside its ownership-coloured border, with the centre cell's block named below.
+function WorldLoupe({ state, cols, cell, x, y }: { state: EntityState; cols: number; cell: number; x: number; y: number }) {
+  const R = 2, N = 2 * R + 1;
+  const rows = Math.ceil(state.worldSize / cols);
+  const cr = Math.floor(cell / cols), cc = cell % cols;
+  const cells: { idx: number; center: boolean }[] = [];
+  for (let dr = -R; dr <= R; dr++) for (let dc = -R; dc <= R; dc++) {
+    const rr = cr + dr, ccc = cc + dc;
+    const inside = rr >= 0 && rr < rows && ccc >= 0 && ccc < cols;
+    cells.push({ idx: inside ? rr * cols + ccc : -1, center: dr === 0 && dc === 0 });
+  }
+  const vw = typeof window !== 'undefined' ? window.innerWidth : 1200;
+  const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
+  const left = Math.min(x + 18, vw - 200);
+  const top = Math.min(y + 18, vh - 220);
+  const centerGene = state.worldGene[cell];
+  return (
+    <div className="wloupe" style={{ left, top }}>
+      <div className="wloupe-grid" style={{ gridTemplateColumns: `repeat(${N}, 1fr)` }}>
+        {cells.map((c, k) => {
+          const owner = c.idx >= 0 ? state.world[c.idx]! : 0;
+          const gene = c.idx >= 0 ? state.worldGene[c.idx]! : null;
+          return <span key={k} className={`wl-cell ${OWNER_CLASS[owner]} ${c.center ? 'center' : ''} ${c.idx < 0 ? 'oob' : ''}`}>{opcodeEmoji(gene)}</span>;
+        })}
+      </div>
+      <div className="wloupe-cap">{centerGene ? <code>{centerGene}</code> : 'empty space'}</div>
     </div>
   );
 }

@@ -392,7 +392,22 @@ svg.spark { display: block; width: 100%; height: 54px; }
 .wcell.mother { background: var(--accent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 50%, transparent); }
 .wcell.daughter { background: color-mix(in srgb, var(--accent) 38%, var(--surface)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent); }
 .wcell.baby { background: #8b7cf0; box-shadow: 0 0 0 1px color-mix(in srgb, #8b7cf0 55%, transparent); }
-.wcell { cursor: default; }
+.world-grid { cursor: zoom-in; }
+.wcell { cursor: zoom-in; }
+/* the world magnifier — a floating loupe of the cells under the cursor, opcodes as emoji */
+.wloupe { position: fixed; z-index: 60; pointer-events: none; padding: 8px; border-radius: 12px;
+  background: var(--surface); border: 1px solid var(--line); box-shadow: 0 12px 34px -10px rgba(0,0,0,.4); }
+.wloupe-grid { display: grid; gap: 3px; }
+.wl-cell { width: 30px; height: 30px; display: grid; place-items: center; font-size: 17px; line-height: 1;
+  border-radius: 6px; border: 2px solid color-mix(in srgb, var(--line) 60%, transparent); background: var(--surface-2); }
+.wl-cell.free { opacity: .45; }
+.wl-cell.oob { visibility: hidden; }
+.wl-cell.mother { border-color: var(--accent); }
+.wl-cell.daughter { border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+.wl-cell.baby { border-color: #8b7cf0; }
+.wl-cell.center { box-shadow: 0 0 0 2px var(--ink); }
+.wloupe-cap { margin-top: 6px; text-align: center; font-size: .78rem; color: var(--ink-2); }
+.wloupe-cap code { font-family: var(--fm); font-weight: 600; }
 /* block ↔ cell bridge: hovering either rings the matching one */
 .wcell.link { box-shadow: 0 0 0 2px var(--ink), 0 0 0 4px color-mix(in srgb, var(--accent) 60%, transparent); z-index: 1; }
 .gblock.link { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 55%, transparent); }
