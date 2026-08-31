@@ -2,17 +2,27 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { pathToRoute, routeToPath, type Route } from '@tierra26/ui/shell.ts';
 
-type Target = Route | 'home';
+// The app adds a `concept` surface (concept explainer pages) on top of the shell's routes.
+export type ConceptRoute = { surface: 'concept'; slug: string };
+export type AppRoute = Route | ConceptRoute;
+type Target = AppRoute | 'home';
 
 interface RouterCtx {
-  route: Route | null;
+  route: AppRoute | null;
   navigate: (to: Target) => void;
 }
 
 const Ctx = createContext<RouterCtx>({ route: null, navigate: () => {} });
 
 function pathOf(to: Target): string {
-  return to === 'home' ? '/' : routeToPath(to);
+  if (to === 'home') return '/';
+  if (to.surface === 'concept') return '/concept/' + encodeURIComponent(to.slug);
+  return routeToPath(to);
+}
+function routeOf(path: string): AppRoute | null {
+  const conceptMatch = /^\/concept\/([^/?#]+)/.exec(path);
+  if (conceptMatch) return { surface: 'concept', slug: decodeURIComponent(conceptMatch[1]!) };
+  return pathToRoute(path);
 }
 function currentPath(): string {
   return typeof location !== 'undefined' ? location.pathname + location.search : '/';
@@ -31,7 +41,7 @@ export function RouterProvider({ children }: { children: ReactNode }) {
     setPath(p);
     window.scrollTo(0, 0);
   }, []);
-  return <Ctx.Provider value={{ route: pathToRoute(path), navigate }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ route: routeOf(path), navigate }}>{children}</Ctx.Provider>;
 }
 
 export function useRouter(): RouterCtx {

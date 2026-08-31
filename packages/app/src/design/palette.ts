@@ -33,8 +33,8 @@ export function cellColor(colorIndex: number, klass: CellClass, bright: BrightTi
   if (klass === 3) return dark ? [72, 86, 80, 255] : [150, 162, 156, 255]; // dead-noise grey
   if (bright === 2) return [255, 255, 255, 255];                            // IP spark
   const h = hueForIndex(colorIndex);
-  const s = dark ? 0.62 : 0.66;
-  let l = klass === 2 ? (dark ? 0.44 : 0.62) : (dark ? 0.56 : 0.46);        // daughter dimmer/lighter
+  const s = dark ? 0.74 : 0.78;                                             // punchy, aquarium-bright hues
+  let l = klass === 2 ? (dark ? 0.46 : 0.63) : (dark ? 0.58 : 0.47);        // daughter dimmer/lighter
   if (bright === 1) l = dark ? l - 0.10 : l + 0.09;                          // dim tier
   l = Math.min(0.92, Math.max(0.12, l));
   const [r, g, b] = hslToRgb(h, s, l);
@@ -46,8 +46,22 @@ export function categoryVar(category: KeywordCategory): string {
   return `var(--kw-${category})`;
 }
 
-// Versus color-by-founder: match the scoreboard hues (1 = register blue, 2 = action coral).
-export const FOUNDER_RGBA: Record<number, [number, number, number]> = { 1: [47, 109, 224], 2: [217, 83, 47] };
+// A CSS stroke color for a genotype's per-species chart line — the same stable hue the tank uses.
+export function genotypeStroke(genotypeId: number, dark: boolean): string {
+  const h = Math.round(hueForIndex(genotypeId));
+  return `hsl(${h} ${dark ? 62 : 60}% ${dark ? 60 : 46}%)`;
+}
+
+// Versus color-by-founder: match the scoreboard hues (up to 4 players).
+export const FOUNDER_RGBA: Record<number, [number, number, number]> = {
+  1: [47, 109, 224],  // register blue
+  2: [217, 83, 47],   // action coral
+  3: [30, 154, 86],   // control green
+  4: [188, 132, 27],  // value amber
+};
+export const FOUNDER_VAR: Record<number, string> = {
+  1: 'var(--kw-register)', 2: 'var(--kw-action)', 3: 'var(--kw-control)', 4: 'var(--kw-value)',
+};
 function clamp(x: number): number { return x < 0 ? 0 : x > 255 ? 255 : Math.round(x); }
 
 export function founderCellColor(founderId: number, klass: CellClass, bright: BrightTier, dark: boolean): RGBA {

@@ -1,21 +1,22 @@
 // The app shell: nav + theme/motion (persisted via the prefs store) + a router that
 // dispatches on the current surface.
-import type { Route } from '@tierra26/ui/shell.ts';
-import { RouterProvider, useRouter, Link } from './router/router.tsx';
+import { RouterProvider, useRouter, Link, type AppRoute } from './router/router.tsx';
 import { PrefsProvider, usePrefs } from './store/prefs.tsx';
 import { Home } from './pages/Home.tsx';
 import { LessonPage } from './pages/LessonPage.tsx';
 import { WikiIndex, WikiPage } from './pages/Wiki.tsx';
 import { SandboxPage } from './pages/Sandbox.tsx';
 import { VersusPage } from './pages/Versus.tsx';
+import { ConceptPage } from './pages/Concept.tsx';
 
-function Surface({ route, dark }: { route: Route | null; dark: boolean }) {
+function Surface({ route, dark }: { route: AppRoute | null; dark: boolean }) {
   if (!route) return <Home />;
   switch (route.surface) {
     case 'lesson': return <LessonPage lessonId={route.lessonId} dark={dark} />;
     case 'wiki': return route.verb ? <WikiPage verb={route.verb} dark={dark} /> : <WikiIndex />;
     case 'sandbox': return <SandboxPage dark={dark} />;
     case 'versus': return <VersusPage dark={dark} />;
+    case 'concept': return <ConceptPage slug={route.slug} />;
     default: return <Home />;
   }
 }

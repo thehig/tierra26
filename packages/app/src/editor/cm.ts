@@ -7,6 +7,7 @@ import { autocompletion, type CompletionSource } from '@codemirror/autocomplete'
 import { parse } from '@tierra26/genescript/gs.ts';
 import { classic32 } from '@tierra26/engine/isa.ts';
 import { viewModel, keywordTooltip, type EditorState as GeneState } from '@tierra26/ui/editor.ts';
+import { takesTarget } from '@tierra26/genescript/vocab.ts';
 
 // Build the view-model for a source string under the full classic-32 set.
 export function geneState(source: string): GeneState {
@@ -36,17 +37,26 @@ export const keywordColoring = ViewPlugin.fromClass(
   { decorations: (v) => v.decorations },
 );
 
-// --- completions: the unlocked verbs + program labels, from the view-model ---
+// --- completions: subset verbs at the start of a line; program LABELS after a control verb
+// that takes a target (jump/jump-back/call/find/…), both from the view-model. ---
 const verbCompletions: CompletionSource = (ctx) => {
   const word = ctx.matchBefore(/[\w-]*/);
   if (!word || (word.from === word.to && !ctx.explicit)) return null;
   const line = ctx.state.doc.lineAt(ctx.pos);
+  const before = line.text.slice(0, ctx.pos - line.from);
+  const firstWord = before.trim().split(/\s+/)[0] ?? '';
+  // In the target slot iff the line's first token is a target-taking verb and we're past it.
+  const inTargetSlot = firstWord.length > 0 && takesTarget(firstWord) && /\s/.test(before.trimStart().slice(firstWord.length));
   const vm = viewModel(geneState(ctx.state.doc.toString()));
-  const items = vm.completions({ line: line.number, col: ctx.pos - line.from + 1, kind: 'verb' });
+  const items = vm.completions({ line: line.number, col: ctx.pos - line.from + 1, kind: inTargetSlot ? 'target' : 'verb' });
   if (items.length === 0) return null;
   return {
     from: word.from,
-    options: items.map((it) => ({ label: it.insert, type: 'keyword', detail: it.tooltip.kid })),
+    options: items.map((it) => ({
+      label: it.insert,
+      type: it.source === 'program-label' ? 'variable' : 'keyword',
+      detail: it.tooltip.kid,
+    })),
   };
 };
 

@@ -55,6 +55,7 @@ describe('Vocabulary & Keywords (VOCAB)', () => {
     for (const v of VOCAB) {
       assert.ok(v.kid.length > 0);
       assert.equal(/opcode/i.test(v.kid), false);
+      assert.equal(/\bstack\b/i.test(v.kid), false, `kid says "stack" (DIAG §4 rule 4)`); // use "save-pile"
       for (const mn of cryptic) assert.equal(v.kid.includes(mn), false, `kid mentions ${mn}`);
     }
   });

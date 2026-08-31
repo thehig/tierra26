@@ -47,7 +47,7 @@ export function Playground({
         <div className="tankwrap"><TankCanvas frame={session.state.frame} dark={dark} onPick={(a) => session.inspect(a)} /></div>
         <div className="pg-side">
           <Hud state={session.state} />
-          <Charts frame={session.state.frame} />
+          <Charts frame={session.state.frame} dark={dark} />
         </div>
         {goal && status && (
           <div className={`goalstatus ${status.passed ? 'met' : ''}`}>
@@ -89,7 +89,7 @@ export function Playground({
         </div>
         <div className="pg-side">
           <Hud state={session.state} />
-          <Charts frame={session.state.frame} />
+          <Charts frame={session.state.frame} dark={dark} />
           <Inspector
             view={session.state.inspect}
             cycle={session.state.cycle}

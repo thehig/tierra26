@@ -1,11 +1,17 @@
-// The exhibit. Paints one worker frame to a 64x64 canvas via ImageData, CSS-scaled up.
-// Color-by genotype (default) or founder (Versus). A birth bloom — driven by diffFrames —
-// briefly brightens newly-born cells, honoring reduced-motion. Click → inspect.
-import { useEffect, useRef } from 'react';
+// The exhibit. Paints one worker frame to a 64x64 offscreen buffer (genotype- or founder-colored,
+// with a diffFrames birth bloom), then blits a pan/zoom viewport window onto the visible canvas.
+// Drag to pan, wheel to zoom; click routes through the viewport to a soup address to inspect.
+import { useEffect, useRef, useState } from 'react';
 import type { ObservationFrame } from '@tierra26/ui/protocol.ts';
 import { tankFrameFromObservation, toPixelBuffer, makePixelBuffer, cellToAddress, diffFrames, type PixelBuffer, type TankFrameView } from '@tierra26/ui/tank-view.ts';
 import { cellColor, founderCellColor, type CellClass, type BrightTier } from '../design/palette.ts';
 import { usePrefs } from '../store/prefs.tsx';
+
+const N = 64;                       // grid dimension
+const MAX_ZOOM = 8;
+const clamp = (v: number, lo: number, hi: number) => (v < lo ? lo : v > hi ? hi : v);
+
+interface Viewport { zoom: number; ox: number; oy: number } // ox/oy in cells
 
 export function TankCanvas({
   frame, dark, onPick, colorBy = 'genotype',
@@ -17,24 +23,43 @@ export function TankCanvas({
 }) {
   const { reducedMotion } = usePrefs();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const pbRef = useRef<PixelBuffer>(makePixelBuffer(64, 64));
+  const offscreenRef = useRef<HTMLCanvasElement | null>(null);
+  const pbRef = useRef<PixelBuffer>(makePixelBuffer(N, N));
   const prevTf = useRef<TankFrameView | null>(null);
   const bloom = useRef<Uint8Array | null>(null);
   const frameRef = useRef<ObservationFrame | null>(frame);
   frameRef.current = frame;
 
+  const [vp, setVp] = useState<Viewport>({ zoom: 1, ox: 0, oy: 0 });
+  const vpRef = useRef(vp);
+  vpRef.current = vp;
+  const drag = useRef<{ x: number; y: number; ox: number; oy: number; moved: boolean } | null>(null);
+
+  // Blit the current offscreen buffer through the viewport onto the visible canvas.
+  function blit() {
+    const cv = canvasRef.current, off = offscreenRef.current;
+    if (!cv || !off) return;
+    const ctx = cv.getContext('2d');
+    if (!ctx) return;
+    const { zoom, ox, oy } = vpRef.current;
+    const win = N / zoom;
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0, 0, N, N);
+    ctx.drawImage(off, ox, oy, win, win, 0, 0, N, N);
+  }
+
+  // Repaint the offscreen buffer when a new frame arrives, then blit.
   useEffect(() => {
-    const cv = canvasRef.current;
-    if (!cv || !frame) return;
+    if (!frame) return;
+    let off = offscreenRef.current;
+    if (!off) { off = document.createElement('canvas'); off.width = N; off.height = N; offscreenRef.current = off; }
+    const octx = off.getContext('2d');
+    if (!octx) return;
     const tf = tankFrameFromObservation(frame);
     const pb = toPixelBuffer(tf, pbRef.current);
     pbRef.current = pb;
-    const ctx = cv.getContext('2d');
-    if (!ctx) return;
     const n = pb.width * pb.height;
-    if (cv.width !== pb.width || cv.height !== pb.height) { cv.width = pb.width; cv.height = pb.height; }
 
-    // birth bloom: decay, then light up cells that gained occupancy this frame (diffFrames).
     if (!bloom.current || bloom.current.length !== n) bloom.current = new Uint8Array(n);
     const glow = bloom.current;
     if (!reducedMotion) {
@@ -46,8 +71,8 @@ export function TankCanvas({
     }
     prevTf.current = tf;
 
-    const founderOf = frame.tank.founderOf; // per grid cell (engine STAT); undefined on old frames
-    const img = ctx.createImageData(pb.width, pb.height);
+    const founderOf = frame.tank.founderOf;
+    const img = octx.createImageData(pb.width, pb.height);
     for (let i = 0; i < n; i++) {
       const klass = pb.klass[i] as CellClass;
       const bright = pb.bright[i] as BrightTier;
@@ -59,28 +84,76 @@ export function TankCanvas({
       const o = i * 4;
       img.data[o] = r; img.data[o + 1] = g; img.data[o + 2] = b; img.data[o + 3] = 255;
     }
-    ctx.putImageData(img, 0, 0);
+    octx.putImageData(img, 0, 0);
+    blit();
   }, [frame, dark, colorBy, reducedMotion]);
 
-  function handleClick(e: React.MouseEvent<HTMLCanvasElement>) {
-    const f = frameRef.current;
-    const cv = canvasRef.current;
-    if (!f || !cv || !onPick) return;
+  // Re-blit on viewport change (no frame recompute).
+  useEffect(() => { blit(); }, [vp]);
+
+  function screenToCell(clientX: number, clientY: number): { x: number; y: number } {
+    const cv = canvasRef.current!;
     const rect = cv.getBoundingClientRect();
-    const tf = tankFrameFromObservation(f);
-    const x = Math.min(tf.width - 1, Math.max(0, Math.floor(((e.clientX - rect.left) / rect.width) * tf.width)));
-    const y = Math.min(tf.height - 1, Math.max(0, Math.floor(((e.clientY - rect.top) / rect.height) * tf.height)));
-    onPick(cellToAddress(x, y, tf));
+    const { zoom, ox, oy } = vpRef.current;
+    const win = N / zoom;
+    const x = clamp(Math.floor(ox + ((clientX - rect.left) / rect.width) * win), 0, N - 1);
+    const y = clamp(Math.floor(oy + ((clientY - rect.top) / rect.height) * win), 0, N - 1);
+    return { x, y };
+  }
+
+  function onWheel(e: React.WheelEvent<HTMLCanvasElement>) {
+    e.preventDefault();
+    const { x, y } = screenToCell(e.clientX, e.clientY);
+    setVp((v) => {
+      const zoom = clamp(e.deltaY < 0 ? v.zoom + 1 : v.zoom - 1, 1, MAX_ZOOM);
+      const win = N / zoom;
+      // keep the cell under the cursor roughly fixed
+      const ox = clamp(x - win / 2, 0, N - win);
+      const oy = clamp(y - win / 2, 0, N - win);
+      return zoom === 1 ? { zoom: 1, ox: 0, oy: 0 } : { zoom, ox, oy };
+    });
+  }
+  function onPointerDown(e: React.PointerEvent<HTMLCanvasElement>) {
+    (e.target as HTMLCanvasElement).setPointerCapture(e.pointerId);
+    drag.current = { x: e.clientX, y: e.clientY, ox: vp.ox, oy: vp.oy, moved: false };
+  }
+  function onPointerMove(e: React.PointerEvent<HTMLCanvasElement>) {
+    const d = drag.current;
+    if (!d) return;
+    const cv = canvasRef.current!;
+    const rect = cv.getBoundingClientRect();
+    const win = N / vpRef.current.zoom;
+    const dx = ((e.clientX - d.x) / rect.width) * win;
+    const dy = ((e.clientY - d.y) / rect.height) * win;
+    if (Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 3) d.moved = true;
+    setVp((v) => ({ ...v, ox: clamp(d.ox - dx, 0, N - win), oy: clamp(d.oy - dy, 0, N - win) }));
+  }
+  function onPointerUp(e: React.PointerEvent<HTMLCanvasElement>) {
+    const d = drag.current;
+    drag.current = null;
+    if (!d || d.moved) return; // a real drag — not a click
+    const f = frameRef.current;
+    if (!f || !onPick) return;
+    const { x, y } = screenToCell(e.clientX, e.clientY);
+    onPick(cellToAddress(x, y, tankFrameFromObservation(f)));
   }
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={64}
-      height={64}
-      className="tank"
-      aria-label="the living soup — click a creature to inspect it"
-      onClick={handleClick}
-    />
+    <div className="tankview">
+      <canvas
+        ref={canvasRef}
+        width={N}
+        height={N}
+        className="tank"
+        aria-label="the living soup — drag to pan, scroll to zoom, click a creature to inspect it"
+        onWheel={onWheel}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+      />
+      {vp.zoom > 1 && (
+        <button className="tank-reset" onClick={() => setVp({ zoom: 1, ox: 0, oy: 0 })} title="reset view">⤢ {vp.zoom}×</button>
+      )}
+    </div>
   );
 }

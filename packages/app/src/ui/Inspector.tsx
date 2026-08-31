@@ -23,6 +23,7 @@ export function Inspector({
         <span className="insp-geno">{p.header.genotype}</span>
         <span className="insp-sub">×{p.header.population} · age {p.header.age}</span>
       </div>
+      <div className="insp-ids">creature #{p.header.id} · parent #{p.header.parent}</div>
 
       <div className="chips">
         {p.registers.map((r) => (
@@ -31,6 +32,19 @@ export function Inspector({
         {p.flags.map((f) => (
           <span className={`chip flag ${f.on ? 'on' : ''}`} key={f.name}>{f.name}</span>
         ))}
+      </div>
+
+      <div className="stack">
+        <span className="stack-label">save-pile</span>
+        {p.stackRows.length === 0
+          ? <span className="stack-empty">empty</span>
+          : (
+            <span className="stack-cells">
+              {p.stackRows.map((s) => (
+                <span className={`stack-cell ${s.isTop ? 'top' : ''}`} key={s.index} title={s.isTop ? 'top of pile' : `slot ${s.index}`}>{s.value}</span>
+              ))}
+            </span>
+          )}
       </div>
 
       {p.daughter && (

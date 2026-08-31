@@ -7,6 +7,8 @@ import { EditorState } from '@codemirror/state';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { completionKeymap } from '@codemirror/autocomplete';
 import { viewModel } from '@tierra26/ui/editor.ts';
+import { fromAst, type Block } from '@tierra26/genescript/block.ts';
+import { parse } from '@tierra26/genescript/gs.ts';
 import { keywordColoring, geneCompletions, geneState, keywordHover } from './cm.ts';
 import { buildPeekModel } from './peek.ts';
 
@@ -23,6 +25,7 @@ export function GeneEditor({
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   const [peek, setPeek] = useState(false);
+  const [blocks, setBlocks] = useState(false);
 
   useEffect(() => {
     const view = new EditorView({
@@ -56,6 +59,7 @@ export function GeneEditor({
   const vm = useMemo(() => viewModel(geneState(value)), [value]);
   const errors = vm.diagnostics.filter((d) => d.severity === 'error');
   const peekModel = useMemo(() => (peek ? buildPeekModel(value) : null), [peek, value]);
+  const blockDoc = useMemo(() => (blocks ? fromAst(parse(value)) : null), [blocks, value]);
 
   return (
     <div className="editor">
@@ -67,12 +71,11 @@ export function GeneEditor({
             Inject ▸
           </button>
         )}
-        <button
-          className={`btn ghost peek-toggle ${peek ? 'on' : ''}`}
-          aria-pressed={peek}
-          onClick={() => setPeek((p) => !p)}
-        >
+        <button className={`btn ghost peek-toggle ${peek ? 'on' : ''}`} aria-pressed={peek} onClick={() => setPeek((p) => !p)}>
           👁 peek
+        </button>
+        <button className={`btn ghost peek-toggle ${blocks ? 'on' : ''}`} aria-pressed={blocks} onClick={() => setBlocks((b) => !b)}>
+          ◫ blocks
         </button>
         <span className="editor-status">
           {vm.compiled.injectable
@@ -87,7 +90,30 @@ export function GeneEditor({
           ))}
         </ul>
       )}
+      {blockDoc && <BlockStack blocks={blockDoc.blocks} />}
       {peekModel && <PeekPane model={peekModel} />}
+    </div>
+  );
+}
+
+// The same program rendered as a stack of colored blocks (a read-only "two views of one program"
+// view). Text stays the source of truth; this mirrors the AST via fromAst.
+function BlockStack({ blocks }: { blocks: Block[] }) {
+  if (blocks.length === 0) return <div className="blocks empty">Write a line to see it as blocks.</div>;
+  return (
+    <div className="blocks">
+      {blocks.map((b) => {
+        const label =
+          b.kind === 'label' ? `${b.name}:` :
+          b.kind === 'control' ? `${b.verb}${b.target ? ' ' + b.target : ''}` :
+          b.kind === 'raw' ? `raw ${b.raw}` :
+          b.verb ?? '';
+        return (
+          <div key={b.nodeId} className={`block b-${b.kind}`} style={{ borderColor: `var(--kw-${b.color})`, color: `var(--kw-${b.color})` }}>
+            {label}
+          </div>
+        );
+      })}
     </div>
   );
 }
