@@ -55,7 +55,13 @@ export interface Chapter {
   waypoints: Waypoint[];
   demo?: string;         // steppable example the explainer stage shows
   challenge?: Challenge; // "your turn"
+  soup?: number;         // world size (cells); small tutorial worlds show every opcode emoji at once
 }
+
+// Small enough that a tutorial creature (and its daughter) fits and every cell's emoji is legible;
+// the ancestor chapters override this with a bigger world + the hover magnifier.
+export const TUTORIAL_SOUP = 36; // 6×6
+export const chapterSoup = (c: Chapter | undefined): number => c?.soup ?? TUTORIAL_SOUP;
 
 // ── Phase A · read & change one creature ───────────────────────────────────
 const CHAPTERS_DATA: Chapter[] = [
@@ -213,7 +219,7 @@ const CHAPTERS_DATA: Chapter[] = [
   {
     id: 'copy-loop', no: '15', title: 'The copy loop', phase: 'daughter', prevId: 'copy-byte', ready: true,
     lede: 'Everything so far, together: a creature that copies its whole self.',
-    demo: ANCESTOR_GS,
+    soup: 256, demo: ANCESTOR_GS,
     waypoints: [
       { focus: 'genome', title: 'A real creature', body: 'This is a full creature — much bigger now. It finds itself, makes room, and runs a copy loop: `copy-byte`, move along, `jump-back` until it’s done.' },
       { focus: 'daughter', title: 'Watch it fill', body: 'Press *Run*. The reading head races round the loop and the daughter fills up, byte by byte, into a complete copy.' },
@@ -223,7 +229,7 @@ const CHAPTERS_DATA: Chapter[] = [
   {
     id: 'give-birth', no: '16', title: 'Give birth', phase: 'daughter', prevId: 'copy-loop', ready: true,
     lede: 'The moment it all leads to.',
-    demo: ANCESTOR_GS,
+    soup: 256, demo: ANCESTOR_GS,
     waypoints: [
       { focus: 'daughter', title: 'Split', body: 'Once the daughter is a full copy, `divide` sets her free as a brand-new creature — her own body, her own reading head, her own life.' },
       { focus: 'world', title: 'Two, then many', body: 'Now there are two. Each will copy itself too. Press *Run* and watch your creature become a family.' },

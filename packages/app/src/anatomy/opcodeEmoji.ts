@@ -1,20 +1,22 @@
-// One emoji per opcode (GeneScript name), shown in the world magnifier so you can read a creature's
-// body in place. Grouped by what the block does; register variants share a family but the magnifier
-// caption always names the exact block. Tweak freely — this map is the whole source of truth.
+// One DISTINCT emoji per opcode (GeneScript name), grouped by what the block does. Shown both in the
+// genome viewer (next to each block) and in the world (small tutorial worlds render it in every cell;
+// big worlds reveal it under the hover magnifier), so the two views reinforce each other. All 32 are
+// unique — tweak freely, this map is the whole source of truth.
 export const OPCODE_EMOJI: Record<string, string> = {
-  // landmarks / templates
+  // landmarks / templates (nop0 / nop1)
   'mark-0': '🔵', 'mark-1': '🔴',
-  // bit & number tricks (work on notebook C)
-  'flip-bit': '🎲', 'double': '✖️', 'clear': '🧹', 'if-zero': '❓',
+  // bit & number tricks (notebook C)
+  'flip-bit': '🪙', 'double': '✖️', 'clear': '🧹', 'if-zero': '❓',
   'subtract': '➖', 'subtract-into-a': '🔻',
   // grow / shrink a notebook
   'grow-a': '🌱', 'grow-b': '🌿', 'grow-c': '🌳', 'shrink-c': '🍂',
-  // save-pile (push / pop)
-  'save-a': '📥', 'save-b': '📦', 'save-c': '🧰', 'save-d': '🗄️',
-  'load-a': '📤', 'load-b': '📬', 'load-c': '📭', 'load-d': '📮',
+  // save-pile: push
+  'save-a': '📥', 'save-b': '💾', 'save-c': '🧺', 'save-d': '🗄️',
+  // save-pile: pop
+  'load-a': '📤', 'load-b': '📂', 'load-c': '🧲', 'load-d': '🎣',
   // move the reading head
-  'jump': '↪️', 'jump-back': '↩️', 'call': '📞', 'return': '🔙',
-  // copying
+  'jump': '⏩', 'jump-back': '⏪', 'call': '📞', 'return': '🔙',
+  // copying between notebooks / bytes
   'copy-c-to-d': '🔃', 'copy-a-to-b': '🔄', 'copy-byte': '✂️',
   // searching for landmarks
   'find': '🔍', 'find-back': '🔎', 'find-forward': '🔦',

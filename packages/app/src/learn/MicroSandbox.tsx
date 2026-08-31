@@ -6,9 +6,9 @@ import { EntityDiagram } from '../anatomy/EntityDiagram.tsx';
 import { useMicroEngine } from '../anatomy/useMicroEngine.ts';
 import { checkMicroGoal, type Challenge } from './chapters.ts';
 
-export function MicroSandbox({ challenge, onSolved }: { challenge: Challenge; onSolved?: () => void }) {
+export function MicroSandbox({ challenge, soup, onSolved }: { challenge: Challenge; soup?: number; onSolved?: () => void }) {
   const [source, setSource] = useState(challenge.starter);
-  const micro = useMicroEngine(source);
+  const micro = useMicroEngine(source, soup);
   const [solved, setSolved] = useState(false);
 
   useEffect(() => {

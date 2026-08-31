@@ -49,17 +49,22 @@ export function EntityDiagram({
 
   const dim = (part: Focus) => (focus !== 'whole' && focus !== 'run' && focus !== part ? 'dim' : '');
   const cols = Math.max(1, Math.round(Math.sqrt(state.worldSize)));
+  // A small tutorial world shows every opcode emoji right in the grid (no hover needed); a big world
+  // (the ancestor) stays solid colours and reveals emoji under the hover magnifier.
+  const small = state.worldSize <= 49;
 
   return (
     <div className="entity-wrap">
     <div className={`entity focus-${focus}`}>
       <div className={`entity-world ${dim('world')} ${focus === 'world' ? 'lit' : ''}`} data-part="world">
-        <div className="part-label">its world · hover to inspect 🔍</div>
-        <div className="world-grid" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
+        <div className="part-label">{small ? 'its world' : 'its world · hover to inspect 🔍'}</div>
+        <div className={`world-grid ${small ? 'emoji' : ''}`} style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
           onMouseLeave={() => { setHovered(null); setLoupe(null); }}>
           {state.world.map((o, i) => (
             <span key={i} className={`wcell ${OWNER_CLASS[o]} ${i === hovered ? 'link' : ''}`}
-              onMouseMove={(e) => { setHovered(i); setLoupe({ cell: i, x: e.clientX, y: e.clientY }); }} />
+              onMouseMove={(e) => { setHovered(i); if (!small) setLoupe({ cell: i, x: e.clientX, y: e.clientY }); }}>
+              {small ? opcodeEmoji(state.worldGene[i]) : null}
+            </span>
           ))}
         </div>
       </div>
@@ -75,6 +80,7 @@ export function EntityDiagram({
               <div className={`gblock ${b.isLabel ? 'is-label' : ''} ${b.isIp ? 'is-ip' : ''} ${b.addr === hovered ? 'link' : ''}`}
                 style={{ borderColor: categoryVar(b.category), color: categoryVar(b.category) }}>
                 {b.isIp && <span className="reading-head" aria-label="reading head">▶</span>}
+                <span className="gblock-emoji" aria-hidden="true">{b.emoji}</span>
                 <span className="gblock-text">{b.text}</span>
               </div>
             </div>

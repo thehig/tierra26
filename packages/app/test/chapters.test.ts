@@ -6,13 +6,14 @@ import { Engine } from '@tierra26/engine';
 import { classic32 } from '@tierra26/engine/isa.ts';
 import { compile } from '@tierra26/genescript/comp.ts';
 import { ANCESTOR_GS } from '@tierra26/genescript/ancestor.gs.ts';
-import { CHAPTERS, checkMicroGoal, type MicroGoal, type EntityStateLike } from '../src/learn/chapters.ts';
+import { CHAPTERS, checkMicroGoal, chapterSoup, type MicroGoal, type EntityStateLike } from '../src/learn/chapters.ts';
 
 const SOUP = 256;
 
-// Run a genome in the micro-engine and return true if the goal is ever met within `budget` steps.
-function solves(source: string, goal: MicroGoal, budget: number): boolean {
-  const e = new Engine({ seed: 1, soupSize: SOUP, mutation: { flaw: 0, copy: 0, cosmic: 0 } });
+// Run a genome in the micro-engine (at the chapter's actual world size) and return true if the goal
+// is ever met within `budget` steps.
+function solves(source: string, goal: MicroGoal, budget: number, soup = SOUP): boolean {
+  const e = new Engine({ seed: 1, soupSize: soup, mutation: { flaw: 0, copy: 0, cosmic: 0 } });
   const id = e.inject(compile(source, classic32).bytes, { founderId: 1 });
   for (let t = 0; t < budget; t++) {
     const c = e.world.creatures.get(id);
@@ -65,7 +66,7 @@ describe('brick-by-brick chapters', () => {
     it(`ch${ch.no} "${ch.title}" challenge is solvable`, () => {
       const sol = SOLUTIONS[ch.id];
       expect(sol, `no reference solution for ${ch.id}`).toBeDefined();
-      expect(solves(sol!.source, ch.challenge!.goal, sol!.budget)).toBe(true);
+      expect(solves(sol!.source, ch.challenge!.goal, sol!.budget, chapterSoup(ch))).toBe(true);
     });
   }
 
@@ -77,7 +78,7 @@ describe('brick-by-brick chapters', () => {
     if (!ch.challenge) continue;
     it(`ch${ch.no} "${ch.title}" starter does not self-solve`, () => {
       const runsToSolve = RUN_THE_STARTER.has(ch.id);
-      expect(solves(ch.challenge!.starter, ch.challenge!.goal, runsToSolve ? 8000 : 500)).toBe(runsToSolve);
+      expect(solves(ch.challenge!.starter, ch.challenge!.goal, runsToSolve ? 8000 : 500, chapterSoup(ch))).toBe(runsToSolve);
     });
   }
 

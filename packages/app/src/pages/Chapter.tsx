@@ -5,7 +5,7 @@ import { Scrolly, type ScrollyStep } from '../anatomy/Scrolly.tsx';
 import { EntityDiagram } from '../anatomy/EntityDiagram.tsx';
 import { useMicroEngine } from '../anatomy/useMicroEngine.ts';
 import { MicroSandbox } from '../learn/MicroSandbox.tsx';
-import { chapterById, nextChapter } from '../learn/chapters.ts';
+import { chapterById, nextChapter, chapterSoup } from '../learn/chapters.ts';
 import { usePrefs } from '../store/prefs.tsx';
 import { Link } from '../router/router.tsx';
 
@@ -31,7 +31,7 @@ export function ChapterPage({ id }: { id: string }) {
   const chapter = chapterById(id);
   const { completeLesson } = usePrefs();
   // Hooks must run unconditionally — the demo engine gets '' when there's no chapter/demo.
-  const demo = useMicroEngine(chapter?.demo ?? '');
+  const demo = useMicroEngine(chapter?.demo ?? '', chapterSoup(chapter));
   const next = chapter ? nextChapter(chapter.id) : undefined;
 
   if (!chapter) {
@@ -78,7 +78,7 @@ export function ChapterPage({ id }: { id: string }) {
       />
 
       {chapter.challenge && (
-        <MicroSandbox challenge={chapter.challenge} onSolved={() => completeLesson(chapter.id)} />
+        <MicroSandbox challenge={chapter.challenge} soup={chapterSoup(chapter)} onSolved={() => completeLesson(chapter.id)} />
       )}
 
       <div className="anatomy-next">
