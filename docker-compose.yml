@@ -1,7 +1,0 @@
-services:
-  tierra26:
-    build: .
-    container_name: tierra26
-    ports:
-      - "8026:80"
-    restart: unless-stopped
