@@ -29,6 +29,23 @@ export interface WorldConfig {
 
 interface Interval { start: Addr; size: number; }
 
+export interface CreatureSnapshot {
+  id: CreatureId; parentId: CreatureId; start: Addr; size: number;
+  reg: Int32Array; ip: Addr; stack: Int32Array; sp: number;
+  flagE: boolean; flagS: boolean; flagZ: boolean;
+  dauStart: Addr; dauSize: number; dauWritten: number; dauWriteMask: Uint8Array | null;
+  bornAtCycle: number; errorCount: number; genotypeId: number; founderId: number;
+}
+export interface WorldSnapshot {
+  cycles: number; nextId: number; births: number; deaths: number;
+  generations: number; genAccum: number; avgSizeVal: number; cursor: number;
+  rngState: Uint32Array; soup: Uint8Array;
+  mutationState: import('./mutation.ts').MutationState;
+  founders: Uint32Array;
+  genebank: import('./genebank.ts').GenotypeInfo[];
+  allocs: Interval[]; slicerQ: CreatureId[]; reaperQ: CreatureId[]; creatures: CreatureSnapshot[];
+}
+
 export class World implements IWorld {
   soup: Soup;
   rng: Rng;
@@ -295,6 +312,53 @@ export class World implements IWorld {
     while (this.cycles < target && this.creatures.size > 0 && guard++ < 100000000) {
       this.runSlice();
     }
+  }
+
+  // ---- snapshot / restore (in-process deep freeze; cfg held by reference) ----
+  snapshot(): WorldSnapshot {
+    const creatures: CreatureSnapshot[] = [];
+    for (const id of this.slicerQ) { // slicer-queue order (deterministic)
+      const c = this.creatures.get(id)!;
+      creatures.push({
+        id: c.id, parentId: c.parentId, start: c.start, size: c.size,
+        reg: Int32Array.from(c.cpu.reg), ip: c.cpu.ip, stack: Int32Array.from(c.cpu.stack), sp: c.cpu.sp,
+        flagE: c.cpu.flagE, flagS: c.cpu.flagS, flagZ: c.cpu.flagZ,
+        dauStart: c.dauStart, dauSize: c.dauSize, dauWritten: c.dauWritten,
+        dauWriteMask: c.dauWriteMask ? Uint8Array.from(c.dauWriteMask) : null,
+        bornAtCycle: c.bornAtCycle, errorCount: c.errorCount, genotypeId: c.genotypeId, founderId: c.founderId,
+      });
+    }
+    return {
+      cycles: this.cycles, nextId: this.nextId, births: this.births, deaths: this.deaths,
+      generations: this.generations, genAccum: this.genAccum, avgSizeVal: this.avgSizeVal, cursor: this.cursor,
+      rngState: this.rng.state(), soup: Uint8Array.from(this.soup.bytes),
+      mutationState: this.mutation.state(), founders: Uint32Array.from(this.founders),
+      genebank: this.genebank.toRecords(), allocs: this.allocs.map((a) => ({ ...a })),
+      slicerQ: this.slicerQ.slice(), reaperQ: this.reaperQ.slice(), creatures,
+    };
+  }
+
+  static fromSnapshot(cfg: WorldConfig, s: WorldSnapshot): World {
+    const w = new World(cfg);
+    w.cycles = s.cycles; w.nextId = s.nextId; w.births = s.births; w.deaths = s.deaths;
+    w.generations = s.generations; w.genAccum = s.genAccum; w.avgSizeVal = s.avgSizeVal; w.cursor = s.cursor;
+    w.rng.setState(s.rngState); w.soup.bytes.set(s.soup);
+    w.mutation.setState(s.mutationState); w.founders = Uint32Array.from(s.founders);
+    w.genebank = Genebank.fromRecords(s.genebank);
+    w.allocs = s.allocs.map((a) => ({ ...a }));
+    w.slicerQ = s.slicerQ.slice(); w.reaperQ = s.reaperQ.slice();
+    w.creatures = new Map();
+    for (const cs of s.creatures) {
+      const c = makeCreature(cs.id, cs.start, cs.size, cs.parentId, cs.founderId, cs.bornAtCycle);
+      c.cpu.reg.set(cs.reg); c.cpu.ip = cs.ip; c.cpu.stack.set(cs.stack); c.cpu.sp = cs.sp;
+      c.cpu.flagE = cs.flagE; c.cpu.flagS = cs.flagS; c.cpu.flagZ = cs.flagZ;
+      c.dauStart = cs.dauStart; c.dauSize = cs.dauSize; c.dauWritten = cs.dauWritten;
+      c.dauWriteMask = cs.dauWriteMask ? Uint8Array.from(cs.dauWriteMask) : null;
+      c.errorCount = cs.errorCount; c.genotypeId = cs.genotypeId;
+      w.creatures.set(c.id, c);
+    }
+    w.recomputeSearchLimit();
+    return w;
   }
 
   population(): number { return this.creatures.size; }

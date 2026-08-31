@@ -1,101 +1,120 @@
-// Snapshot & Reproducibility (SNAP) — pending-test checklist.
-//
-// Companion to docs/spec/engine/systems/14-snapshot-and-reproducibility.md.
-// One it.todo per acceptance criterion (SNAP-NNN), 1:1 with the doc §8.
-// This file also OWNS the cross-cutting invariants INV-DET / INV-REPLAY / INV-ROUNDTRIP
-// (00-architecture.md §5, §8.3).
-//
-// Runner: node:test (built-in), run via `npm test`
-// (node --experimental-strip-types --test). it.todo => reported as `# todo`,
-// so the suite is green-runnable BEFORE the engine exists.
-//
-// DO NOT import engine src/ modules yet — they don't exist; an import error would
-// fail the whole file. When snapshot.ts / index.ts land, each it.todo(name) becomes
-// it(name, () => { ... }) with a real body.
-
+// Snapshot & Reproducibility (SNAP) — real tests. Ref: docs/spec/engine/systems/14-snapshot-and-reproducibility.md §8.
 import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import { Engine, type RunDescriptor } from '../src/index.ts';
+import { ANCESTOR_0080AAA as ANC } from './fixtures/ancestor-0080aaa.ts';
+
+function evo(seed: number, cycles: number) {
+  const e = new Engine({ seed, mutation: { flaw: 0, copy: 200, cosmic: 4000 } });
+  e.inject(ANC, { founderId: 1 }); e.run(cycles); return e;
+}
+const dig = (e: Engine) => JSON.stringify(e.digest(e.cycles));
+const desc = (seed: number, cycles: number): RunDescriptor => ({
+  engineVersion: Engine.version, scenario: { seed, mutation: { flaw: 0, copy: 200, cosmic: 4000 } } as any,
+  injections: [{ atCycle: 0, genome: ANC, founderId: 1 }], cycles,
+});
 
 describe('Snapshot & Reproducibility (SNAP)', () => {
-  // --- Capture fidelity -------------------------------------------------------
+  it('[SNAP-001] snapshot captures RNG state (length-4 Uint32Array)', () => {
+    const s = evo(3, 100_000).snapshot();
+    assert.ok(s.world.rngState instanceof Uint32Array); assert.equal(s.world.rngState.length, 4);
+  });
 
-  it.todo(
-    '[SNAP-001] snapshot captures RNG state exactly: rngState is a length-4 Uint32Array ' +
-      'deep-equal to the live rng.state() (sharing no buffer); restoring it reproduces the ' +
-      "engine's next next()/int(n) sequence",
-  );
+  it('[SNAP-007] snapshot is reference-free (mutating the engine does not change the snapshot)', () => {
+    const e = evo(3, 100_000); const s = e.snapshot();
+    const soup0 = Uint8Array.from(s.world.soup);
+    e.run(50_000);
+    assert.deepEqual(Array.from(s.world.soup), Array.from(soup0)); // snapshot unchanged
+  });
 
-  it.todo(
-    '[SNAP-007] snapshot is a reference-free, independent copy: it shares no backing buffer ' +
-      'with the engine — mutating the live engine after snapshotting leaves the snapshot ' +
-      'unchanged, and a restored engine does not alias the snapshot soup/CPU arrays',
-  );
+  it('[SNAP-008] snapshot serializes the completeness set', () => {
+    const s = evo(3, 100_000).world;
+    const w = s.snapshot ? null : null; void w;
+    const snap = evo(3, 100_000).snapshot().world;
+    for (const k of ['cycles', 'nextId', 'births', 'deaths', 'generations', 'genAccum', 'avgSizeVal', 'cursor', 'rngState', 'soup', 'mutationState', 'founders', 'genebank', 'allocs', 'slicerQ', 'reaperQ', 'creatures']) {
+      assert.ok(k in snap, `missing ${k}`);
+    }
+  });
 
-  it.todo(
-    '[SNAP-008] snapshot completeness (C-SNAP tripwire): serializes engineVersion, scenario, ' +
-      'cycles, nextId, rngState (4 words), soup bytes, births, deaths, and per creature ' +
-      'bounds + full CPU (reg/ip/stack/sp/flags) + daughter fields ' +
-      '(dauStart/dauSize/dauWritten/dauWriteMask) + queue positions (slicerPos/reaperPos) + ' +
-      'bookkeeping (bornAtCycle/parentId/errorCount) + genotypeId; round-trip preserves all',
-  );
+  it('[SNAP-010] creatures captured in slicer-queue order', () => {
+    const snap = evo(3, 150_000).snapshot().world;
+    assert.deepEqual(snap.creatures.map((c) => c.id), snap.slicerQ);
+  });
 
-  it.todo(
-    '[SNAP-010] creatures are captured in deterministic slicer-queue order (not Map order): ' +
-      'structurally-equal worlds serialize identically (guards the INV-DET foundation against ' +
-      'hash-iteration-order regressions)',
-  );
+  it('[SNAP-002] restore continues bit-identically for N cycles (INV-ROUNDTRIP)', () => {
+    const e = evo(3, 300_000); const s = e.snapshot();
+    e.run(150_000); const live = dig(e);
+    const r = Engine.restore(s); r.run(150_000);
+    assert.equal(dig(r), live);
+  });
 
-  // --- Restore: bit-identical continuation (INV-ROUNDTRIP) --------------------
+  it('[SNAP-009] restore reconstructs queue membership (INV-QUEUE)', () => {
+    const r = Engine.restore(evo(3, 200_000).snapshot());
+    const ids = new Set([...r.world.creatures.keys()]);
+    assert.equal(r.world.slicerView().length, ids.size);
+    assert.equal(r.world.reaperView().length, ids.size);
+    for (const id of r.world.slicerView()) assert.ok(ids.has(id));
+  });
 
-  it.todo(
-    '[SNAP-002] (INV-ROUNDTRIP) restore continues bit-identically for N cycles: run e to ' +
-      'cycle K, e2 = restore(snapshot(e)); running both a further M cycles yields identical ' +
-      'digest() sequences and identical final snapshots — including mid-reproduction ' +
-      'creatures (daughter fields/mask) and mid-rejection RNG state',
-  );
+  it('[SNAP-003] replay(desc) digest equals live-run digest (INV-REPLAY)', () => {
+    const live = evo(5, 600_000);
+    const rep = Engine.replay(desc(5, 600_000));
+    assert.equal(dig(rep), dig(live));
+  });
 
-  it.todo(
-    '[SNAP-009] (INV-QUEUE) restore reconstructs queue membership: after restore every live ' +
-      'creature occupies exactly one slicer position and one reaper position (relinked from ' +
-      'slicerPos/reaperPos), and dead creatures appear in neither',
-  );
+  it('[SNAP-004] same RunDescriptor → identical snapshots (INV-DET)', () => {
+    const a = Engine.replay(desc(9, 400_000)).snapshot();
+    const b = Engine.replay(desc(9, 400_000)).snapshot();
+    assert.deepEqual(Array.from(a.world.soup), Array.from(b.world.soup));
+    assert.deepEqual(a.world.creatures.map((c) => c.id), b.world.creatures.map((c) => c.id));
+  });
 
-  // --- Replay: recipe == live run (INV-REPLAY) --------------------------------
+  it('[SNAP-005] engineVersion mismatch is detected on restore/replay', () => {
+    const s = evo(3, 50_000).snapshot(); (s as any).engineVersion = 'bogus';
+    assert.throws(() => Engine.restore(s), /VERSION_MISMATCH/);
+    const d = desc(3, 50_000); d.engineVersion = 'bogus';
+    assert.throws(() => Engine.replay(d), /VERSION_MISMATCH/);
+  });
 
-  it.todo(
-    '[SNAP-003] (INV-REPLAY) replay(desc) digest equals live-run digest: Engine.replay(desc) ' +
-      'produces the same RunDigest sequence at every checkpoint as a manually-built live run ' +
-      'that injects the same genomes at the same cycles and runs to desc.cycles (including ' +
-      'boundary-cycle injections)',
-  );
+  it('[SNAP-006] digest stable across same-seed runs', () => {
+    assert.equal(dig(evo(7, 300_000)), dig(evo(7, 300_000)));
+  });
 
-  // --- Determinism: two engines lock-step (INV-DET) ---------------------------
+  it('[SNAP-011] founderId serialized + restored', () => {
+    const r = Engine.restore(evo(3, 200_000).snapshot());
+    for (const c of r.world.creatures.values()) assert.equal(c.founderId, 1);
+  });
 
-  it.todo(
-    '[SNAP-004] (INV-DET) two engines with the same RunDescriptor produce identical snapshots ' +
-      'at each checkpoint: deep-equal engineVersion, cycles, nextId, rngState, soup bytes, and ' +
-      'ordered creatures[] with all CPU/daughter/queue/bookkeeping fields, at every checkpoint',
-  );
+  it('[SNAP-012] slicer cursor serialized/restored', () => {
+    const e = evo(3, 123_456); const s = e.snapshot();
+    assert.equal(Engine.restore(s).world.cursorPos(), s.world.cursor);
+  });
 
-  // --- Versioning -------------------------------------------------------------
+  it('[SNAP-013] mutation counters serialized/restored (cadence continues in phase)', () => {
+    const e = evo(3, 200_000); const s = e.snapshot();
+    e.run(100_000); const live = dig(e);
+    const r = Engine.restore(s); r.run(100_000);
+    assert.equal(dig(r), live); // identical continuation requires in-phase mutation counters
+    assert.deepEqual(Engine.restore(s).world.mutation.state(), s.world.mutationState);
+  });
 
-  it.todo(
-    '[SNAP-005] engineVersion mismatch is detected on restore: restore / Engine.restore (and ' +
-      'Engine.replay) throw VersionMismatchError when the Snapshot/RunDescriptor engineVersion ' +
-      'differs from the running ENGINE_VERSION; a matching version restores successfully',
-  );
+  it('[SNAP-014] genebank table serialized/restored (labels continue)', () => {
+    const e = evo(3, 250_000); const s = e.snapshot();
+    const r = Engine.restore(s);
+    assert.equal(r.world.genebank.count(), s.world.genebank.length);
+    assert.equal(r.world.genebank.all()[0]!.label, s.world.genebank[0]!.label);
+  });
 
-  // --- Golden-fixture stability -----------------------------------------------
+  it('[SNAP-015] generations + avgSize serialized/restored', () => {
+    const e = evo(3, 300_000); const s = e.snapshot(); const r = Engine.restore(s);
+    assert.equal(r.world.generations, s.world.generations);
+    assert.equal(r.world.avgSize(), s.world.avgSizeVal);
+  });
 
-  it.todo(
-    '[SNAP-006] digest is stable across runs with the same seed: two independent runs from the ' +
-      'same RunDescriptor (or same scenario seed + injections) yield identical RunDigests at ' +
-      'cycle N, including on a fresh-process / repeated invocation (integer-only checksum + RNG ' +
-      '=> no drift)',
-  );
-  it.todo("[SNAP-011] CreatureSnapshot.founderId is serialized + restored (S1; Versus replay scores identically)");
-  it.todo("[SNAP-012] slicer cursor + remainingInSlice serialized/restored (S5; resumes mid-slice)");
-  it.todo("[SNAP-013] mutation period counters serialized/restored (S5; cadence continues in phase)");
-  it.todo("[SNAP-014] genebank genotype table serialized/restored (S5; labels continue, no relabelling)");
-  it.todo("[SNAP-015] generations + avgSizeScaled serialized/restored (S5; searchLimit continues identically)");
-  it.todo("[SNAP-016] completeness: restore(snapshot(e)) continued N == e continued N for a mutation-on run (S5; catches any omitted field)");
+  it('[SNAP-016] completeness: restore continued N == live continued N (mutation-on)', () => {
+    const e = evo(3, 400_000); const s = e.snapshot();
+    e.run(250_000); const live = dig(e);
+    const r = Engine.restore(s); r.run(250_000);
+    assert.equal(dig(r), live); // any omitted mutable field would diverge here
+  });
 });

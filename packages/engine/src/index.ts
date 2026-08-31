@@ -1,10 +1,15 @@
 // Public engine API — Scenario config + defaults + the Engine facade over World.
 // Ref: docs/spec/engine/systems/15-engine-api-and-scenarios.md.
-import { World, type WorldConfig } from './world.ts';
+import { World, type WorldConfig, type WorldSnapshot } from './world.ts';
 import { classic32, buildSubset } from './isa.ts';
 import { DEFAULT_RATES, type MutationRates } from './mutation.ts';
+import { digest as statsDigest, type RunDigest } from './stats.ts';
 import type { InstructionSet } from './runtime.ts';
 import type { CreatureId } from './types.ts';
+
+export interface Injection { atCycle: number; genome: Uint8Array; founderId?: number }
+export interface RunDescriptor { engineVersion: string; scenario: Scenario; injections: Injection[]; cycles: number }
+export interface Snapshot { engineVersion: string; scenario: Scenario; world: WorldSnapshot }
 
 export type MalMode = 'first-fit' | 'better-fit' | 'random' | 'near-mother' | 'near-dx' | 'near-sp';
 export interface SubsetSpec { base: 'classic32'; include: string[]; name?: string }
@@ -74,13 +79,35 @@ export interface LiveStats { cycles: number; population: number; genotypes: numb
 
 export class Engine {
   static readonly version = '0.0.0-m0';
-  readonly scenario: Scenario;
-  readonly world: World;
+  scenario: Scenario;
+  world: World;
 
   constructor(scenario: Partial<Scenario> = {}) {
     this.scenario = normalizeScenario(scenario);
     this.world = new World(toWorldConfig(this.scenario));
   }
+
+  snapshot(): Snapshot { return { engineVersion: Engine.version, scenario: this.scenario, world: this.world.snapshot() }; }
+
+  static restore(s: Snapshot): Engine {
+    if (s.engineVersion !== Engine.version) throw new Error('VERSION_MISMATCH');
+    const e = new Engine(s.scenario);
+    e.world = World.fromSnapshot(toWorldConfig(e.scenario), s.world);
+    return e;
+  }
+
+  static replay(desc: RunDescriptor): Engine {
+    if (desc.engineVersion !== Engine.version) throw new Error('VERSION_MISMATCH');
+    const e = new Engine(desc.scenario);
+    for (const inj of [...desc.injections].sort((a, b) => a.atCycle - b.atCycle)) {
+      if (inj.atCycle > e.cycles) e.run(inj.atCycle - e.cycles);
+      e.inject(inj.genome, { founderId: inj.founderId ?? 0 });
+    }
+    if (desc.cycles > e.cycles) e.run(desc.cycles - e.cycles);
+    return e;
+  }
+
+  digest(atCycle: number): RunDigest { return statsDigest(this.world, atCycle); }
 
   inject(genome: Uint8Array, opts?: { founderId?: number }): CreatureId {
     return this.world.spawn(genome, opts?.founderId ?? 0);
