@@ -22,6 +22,8 @@ export interface SessionApi {
   step(): void;
   reset(): void;
   setSpeed(framesPerSecond: number, instructionsPerFrame: number): void;
+  inspect(addr: number): void;
+  injectGenome(bytes: Uint8Array): void;
 }
 
 export function useSession(boot: PlaygroundBoot): SessionApi {
@@ -86,6 +88,8 @@ export function useSession(boot: PlaygroundBoot): SessionApi {
   const setSpeed = useCallback((framesPerSecond: number, instructionsPerFrame: number) => {
     send({ type: 'setSpeed', framesPerSecond, instructionsPerFrame });
   }, [send]);
+  const inspect = useCallback((addr: number) => { send({ type: 'requestInspect', addr }); }, [send]);
+  const injectGenome = useCallback((bytes: Uint8Array) => { send({ type: 'inject', genome: bytes }); }, [send]);
 
-  return { state, play, pause, step, reset, setSpeed };
+  return { state, play, pause, step, reset, setSpeed, inspect, injectGenome };
 }

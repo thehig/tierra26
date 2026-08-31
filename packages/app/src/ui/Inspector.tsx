@@ -1,0 +1,56 @@
+// Dissect one creature. Pure projection of the worker-owned InspectView — no engine calls.
+import { toPanelModel, makeDisassembler } from '@tierra26/ui/inspector.ts';
+import { disassemble } from '@tierra26/genescript/disasm.ts';
+import { classic32 } from '@tierra26/engine/isa.ts';
+import type { InspectView } from '@tierra26/ui/protocol.ts';
+
+const disasm = makeDisassembler(disassemble, classic32);
+
+export function Inspector({
+  view, cycle, onOpenInEditor,
+}: {
+  view: InspectView | null;
+  cycle: number;
+  onOpenInEditor: (genome: Uint8Array) => void;
+}) {
+  if (!view) return <div className="inspector empty">Click a creature in the soup to look inside it.</div>;
+  const p = toPanelModel(view, disasm, cycle);
+  if (!p) return <div className="inspector empty">Nothing is living at that spot.</div>;
+
+  return (
+    <div className="inspector">
+      <div className="insp-head">
+        <span className="insp-geno">{p.header.genotype}</span>
+        <span className="insp-sub">×{p.header.population} · age {p.header.age}</span>
+      </div>
+
+      <div className="chips">
+        {p.registers.map((r) => (
+          <span className="chip reg" key={r.name}><b>{r.name}</b>{r.value}</span>
+        ))}
+        {p.flags.map((f) => (
+          <span className={`chip flag ${f.on ? 'on' : ''}`} key={f.name}>{f.name}</span>
+        ))}
+      </div>
+
+      {p.daughter && (
+        <div className="daughter">
+          <span className="dlabel">daughter</span>
+          <span className="dbar"><span style={{ width: `${p.daughter.fillPct}%` }} /></span>
+          <span className="dpct">{p.daughter.fillPct}%</span>
+        </div>
+      )}
+
+      <div className="disasm">
+        {p.disassembly.map((row) => (
+          <div className={`drow ${row.isIp ? 'ip' : ''}`} key={row.line}>
+            <span className="dln">{row.line}</span>
+            <span className="dtx">{row.text}</span>
+          </div>
+        ))}
+      </div>
+
+      <button className="btn" onClick={() => onOpenInEditor(p.openInEditorGenome)}>Open in editor</button>
+    </div>
+  );
+}

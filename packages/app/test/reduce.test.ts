@@ -32,6 +32,12 @@ describe('session reducer', () => {
     expect(initialSessionState).toEqual(before);
   });
 
+  it('an inspectResult stores the view for the inspector', () => {
+    const view = { address: 0, occupied: true, genotypeLabel: '0080aaa' } as any;
+    const s = reduceSession(initialSessionState, { type: 'inspectResult', sessionId: S, addr: 0, view } as any);
+    expect(s.inspect).toBe(view);
+  });
+
   it('ignores acks and unknown events', () => {
     const s = reduceSession(initialSessionState, { type: 'ack', sessionId: S, command: 'step' } as any);
     expect(s).toEqual(initialSessionState);

@@ -1,13 +1,21 @@
 // The exhibit. Paints one worker frame to a 64x64 canvas via ImageData, CSS-scaled up.
-// Pure projection of the frame through the tank view-model + the palette — no engine calls.
+// A click maps the pixel → grid cell → soup address and asks the worker to inspect it.
 import { useEffect, useRef } from 'react';
 import type { ObservationFrame } from '@tierra26/ui/protocol.ts';
-import { tankFrameFromObservation, toPixelBuffer, makePixelBuffer, type PixelBuffer } from '@tierra26/ui/tank-view.ts';
+import { tankFrameFromObservation, toPixelBuffer, makePixelBuffer, cellToAddress, type PixelBuffer } from '@tierra26/ui/tank-view.ts';
 import { cellColor, type CellClass, type BrightTier } from '../design/palette.ts';
 
-export function TankCanvas({ frame, dark }: { frame: ObservationFrame | null; dark: boolean }) {
+export function TankCanvas({
+  frame, dark, onPick,
+}: {
+  frame: ObservationFrame | null;
+  dark: boolean;
+  onPick?: (address: number) => void;
+}) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const pbRef = useRef<PixelBuffer>(makePixelBuffer(64, 64));
+  const frameRef = useRef<ObservationFrame | null>(frame);
+  frameRef.current = frame;
 
   useEffect(() => {
     const cv = canvasRef.current;
@@ -28,5 +36,25 @@ export function TankCanvas({ frame, dark }: { frame: ObservationFrame | null; da
     ctx.putImageData(img, 0, 0);
   }, [frame, dark]);
 
-  return <canvas ref={canvasRef} width={64} height={64} className="tank" aria-label="the living soup" />;
+  function handleClick(e: React.MouseEvent<HTMLCanvasElement>) {
+    const f = frameRef.current;
+    const cv = canvasRef.current;
+    if (!f || !cv || !onPick) return;
+    const rect = cv.getBoundingClientRect();
+    const tf = tankFrameFromObservation(f);
+    const x = Math.min(tf.width - 1, Math.max(0, Math.floor(((e.clientX - rect.left) / rect.width) * tf.width)));
+    const y = Math.min(tf.height - 1, Math.max(0, Math.floor(((e.clientY - rect.top) / rect.height) * tf.height)));
+    onPick(cellToAddress(x, y, tf));
+  }
+
+  return (
+    <canvas
+      ref={canvasRef}
+      width={64}
+      height={64}
+      className="tank"
+      aria-label="the living soup — click a creature to inspect it"
+      onClick={handleClick}
+    />
+  );
 }

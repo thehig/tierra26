@@ -19,6 +19,17 @@ export default defineConfig({
   plugins: [react()],
   resolve: { alias },
   worker: { format: 'es' },
+  build: {
+    rollupOptions: {
+      output: {
+        // Split heavy vendors so the app chunk stays small and caches well.
+        manualChunks: {
+          react: ['react', 'react-dom'],
+          codemirror: ['@codemirror/view', '@codemirror/state', '@codemirror/commands', '@codemirror/autocomplete'],
+        },
+      },
+    },
+  },
   test: {
     environment: 'node',
     include: ['test/**/*.test.ts'],
