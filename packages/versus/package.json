@@ -1,0 +1,12 @@
+{
+  "name": "@tierra26/versus",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "tierra26 Versus mode — competitive matches: players inject genomes simultaneously into one soup; scored by lineage population at a threshold",
+  "scripts": {
+    "test": "node --experimental-strip-types --test \"test/**/*.test.ts\"",
+    "test:watch": "node --experimental-strip-types --test --watch \"test/**/*.test.ts\"",
+    "spec": "node --experimental-strip-types --test-reporter=spec --test \"test/**/*.test.ts\""
+  }
+}
