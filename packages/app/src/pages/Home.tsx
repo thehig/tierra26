@@ -1,13 +1,16 @@
 // The lobby: the pitch + the authored lessons (with progress) + doors to sandbox/versus/wiki.
+import { useMemo } from 'react';
 import { LESSONS } from '@tierra26/content/lessons.ts';
-import { CURRICULUM } from '@tierra26/content/progress.ts';
+import { CURRICULUM, computeUnlocked } from '@tierra26/content/progress.ts';
 import { Link } from '../router/router.tsx';
 import { usePrefs } from '../store/prefs.tsx';
 
 export function Home() {
-  const { isCompleted } = usePrefs();
-  // The next uncompleted authored lesson — the one to nudge toward.
-  const nextIdx = LESSONS.findIndex((l) => !isCompleted(l.id));
+  const { isCompleted, completed } = usePrefs();
+  // Availability is the real prerequisite DAG: a lesson unlocks once its requires-closure
+  // is complete (computeUnlocked.available). The frontier is the first available, undone lesson.
+  const available = useMemo(() => computeUnlocked(CURRICULUM, { completed }).available, [completed]);
+  const next = LESSONS.find((l) => available.has(l.id) && !isCompleted(l.id));
 
   return (
     <div className="page home">
@@ -18,9 +21,9 @@ export function Home() {
           and — chapters later — mutate and evolve. Everything you write is real machine code.
         </p>
         <div className="hero-cta">
-          {LESSONS[Math.max(0, nextIdx)] && (
-            <Link className="btn primary" to={{ surface: 'lesson', lessonId: LESSONS[Math.max(0, nextIdx)]!.id }}>
-              {nextIdx > 0 ? 'Continue learning' : 'Start learning'}
+          {next && (
+            <Link className="btn primary" to={{ surface: 'lesson', lessonId: next.id }}>
+              {completed.size > 0 ? 'Continue learning' : 'Start learning'}
             </Link>
           )}
           <Link className="btn" to={{ surface: 'sandbox' }}>Free play</Link>
@@ -32,10 +35,10 @@ export function Home() {
       <section className="lessons">
         <h2>Lessons</h2>
         <div className="lesson-list">
-          {LESSONS.map((l, i) => {
+          {LESSONS.map((l) => {
             const m = CURRICULUM.lessons[l.id];
             const done = isCompleted(l.id);
-            const locked = i > 0 && !isCompleted(LESSONS[i - 1]!.id) && !done;
+            const locked = !available.has(l.id) && !done; // prereqs not yet complete (a done lesson is never locked)
             return (
               <Link key={l.id} className={`lesson-card${done ? ' done' : ''}${locked ? ' locked' : ''}`} to={{ surface: 'lesson', lessonId: l.id }}>
                 <span className="lc-ch">Chapter {m?.chapter} {locked && <span className="lc-lock" aria-label="not yet unlocked">🔒</span>}{done && <span className="lc-check">✓</span>}</span>
