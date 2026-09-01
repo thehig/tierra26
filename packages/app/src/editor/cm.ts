@@ -2,12 +2,17 @@
 // and subset-aware completions. All facts come from @tierra26/genescript + @tierra26/ui —
 // this file stores no opcode, color, or keyword constant (C-UI-SOURCE).
 import { EditorView, Decoration, ViewPlugin, hoverTooltip, type DecorationSet, type ViewUpdate } from '@codemirror/view';
-import { RangeSetBuilder, type EditorState as CMState } from '@codemirror/state';
+import { RangeSetBuilder, Facet, Compartment, type EditorState as CMState } from '@codemirror/state';
 import { autocompletion, type CompletionSource } from '@codemirror/autocomplete';
 import { parse } from '@tierra26/genescript/gs.ts';
 import { classic32 } from '@tierra26/engine/isa.ts';
 import { viewModel, keywordTooltip, type EditorState as GeneState } from '@tierra26/ui/editor.ts';
-import { entry, entryOfMnemonic, mnemonicToVerb, takesTarget } from '@tierra26/genescript/vocab.ts';
+import { entry, entryOfMnemonic, verbToMnemonic, mnemonicToVerb, takesTarget } from '@tierra26/genescript/vocab.ts';
+
+// The current language mode, carried in editor state so completions can offer the right token form.
+// GeneEditor supplies it and reconfigures the compartment when the mode flips.
+export const langModeFacet = Facet.define<boolean, boolean>({ combine: (v) => v[0] ?? false });
+export const langModeCompartment = new Compartment();
 
 // Build the view-model for a source string under the full classic-32 set.
 export function geneState(source: string): GeneState {
@@ -52,23 +57,26 @@ export const keywordColoring = ViewPlugin.fromClass(
 // --- completions: subset verbs at the start of a line; program LABELS after a control verb
 // that takes a target (jump/jump-back/call/find/…), both from the view-model. ---
 const verbCompletions: CompletionSource = (ctx) => {
+  const advanced = ctx.state.facet(langModeFacet);
   const word = ctx.matchBefore(/[\w-]*/);
   if (!word || (word.from === word.to && !ctx.explicit)) return null;
   const line = ctx.state.doc.lineAt(ctx.pos);
   const before = line.text.slice(0, ctx.pos - line.from);
   const firstWord = before.trim().split(/\s+/)[0] ?? '';
-  // In the target slot iff the line's first token is a target-taking verb and we're past it.
-  const inTargetSlot = firstWord.length > 0 && takesTarget(firstWord) && /\s/.test(before.trimStart().slice(firstWord.length));
+  // In the target slot iff the line's first token is a target-taking verb (resolve a mnemonic to its
+  // gene first, so it works in advanced mode too) and we're past it.
+  const firstGene = mnemonicToVerb(firstWord) ?? firstWord;
+  const inTargetSlot = firstGene.length > 0 && takesTarget(firstGene) && /\s/.test(before.trimStart().slice(firstWord.length));
   const vm = viewModel(geneState(ctx.state.doc.toString()));
   const items = vm.completions({ line: line.number, col: ctx.pos - line.from + 1, kind: inTargetSlot ? 'target' : 'verb' });
   if (items.length === 0) return null;
   return {
     from: word.from,
-    options: items.map((it) => ({
-      label: it.insert,
-      type: it.source === 'program-label' ? 'variable' : 'keyword',
-      detail: it.tooltip.kid,
-    })),
+    options: items.map((it) => {
+      // advanced mode inserts the real mnemonic for verbs; program labels are names, never swapped.
+      const insert = advanced && it.source !== 'program-label' ? (verbToMnemonic(it.insert) ?? it.insert) : it.insert;
+      return { label: insert, type: it.source === 'program-label' ? 'variable' : 'keyword', detail: it.tooltip.kid };
+    }),
   };
 };
 

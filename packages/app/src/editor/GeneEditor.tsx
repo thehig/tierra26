@@ -9,7 +9,7 @@ import { completionKeymap } from '@codemirror/autocomplete';
 import { viewModel } from '@tierra26/ui/editor.ts';
 import { fromAst, type Block } from '@tierra26/genescript/block.ts';
 import { parse } from '@tierra26/genescript/gs.ts';
-import { keywordColoring, geneCompletions, geneState, keywordHover } from './cm.ts';
+import { keywordColoring, geneCompletions, geneState, keywordHover, langModeFacet, langModeCompartment } from './cm.ts';
 import { buildPeekModel } from './peek.ts';
 import { useLanguageMode } from '../design/languageMode.tsx';
 import { toMnemonicSource, toGeneSource } from './langSwap.ts';
@@ -47,6 +47,7 @@ export function GeneEditor({
           keywordColoring,
           keywordHover,
           geneCompletions,
+          langModeCompartment.of(langModeFacet.of(advancedRef.current)),
           EditorView.lineWrapping,
           EditorView.updateListener.of((u) => {
             if (!u.docChanged) return;
@@ -70,6 +71,8 @@ export function GeneEditor({
     if (desired !== v.state.doc.toString()) {
       v.dispatch({ changes: { from: 0, to: v.state.doc.length, insert: desired } });
     }
+    // keep completions offering the right token form
+    v.dispatch({ effects: langModeCompartment.reconfigure(langModeFacet.of(advanced)) });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, advanced]);
 
