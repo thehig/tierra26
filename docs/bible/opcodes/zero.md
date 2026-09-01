@@ -1,6 +1,7 @@
 ---
 mnemonic: zero
 name: clear
+emoji: 🧹
 category: action
 reads: []
 writes: [C]

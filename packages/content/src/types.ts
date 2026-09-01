@@ -409,3 +409,83 @@ export interface IdResolver {
 export function hasErrors(ds: readonly { severity: Severity }[]): boolean {
   return ds.some((d) => d.severity === 'error');
 }
+
+// ============================================================================
+// DOCLANG — the `<Tag>` document model (docs/**/*.md)
+// Owner: src/doclang.ts (parse + validate), src/manifest.ts (the tag vocabulary).
+//
+// A doc is frontmatter + a markdown body in which any block may be a component
+// tag. It is the one authored format behind BOTH the Bible pages (opcode /
+// concept definitions, which double as tooltips) and the waypoint-guided
+// lessons. Declarative only (C-CON-DATA); the AST carries no rendering.
+// ============================================================================
+
+import type { PValue } from './parseval.ts';
+
+/** Frontmatter is per-kind (an opcode page and a lesson share no schema), so the
+ *  parser records raw declarative values and the KIND's validator checks them. */
+export type DocFrontmatter = Readonly<Record<string, PValue>>;
+
+export type DocKind = 'lesson' | 'opcode' | 'concept';
+
+/** An inline component tag lifted out of a prose run, so the validator can
+ *  check <Chip opcode="nope"/> without the renderer having to re-parse. */
+export interface DocInlineTagRef {
+  kind: 'tag';
+  name: string;
+  attrs: Readonly<Record<string, PValue>>;
+  text?: string;
+  loc: Loc;
+}
+
+export type DocInlineRef = InlineRef | DocInlineTagRef;
+
+/** A run of markdown prose. `markdown` is verbatim; `refs` indexes the inline
+ *  {term} / `verb` / <Chip/> spans, as ProseNode does for the [01] format. */
+export interface DocProseNode {
+  kind: 'prose';
+  markdown: string;
+  refs: DocInlineRef[];
+  loc: Loc;
+}
+
+/** A component tag. `children` is empty when the manifest marks the tag `raw`
+ *  or `none`; `text` is present only for `raw` (verbatim, dedented). */
+export interface DocTagNode {
+  kind: 'tag';
+  name: string; // canonical PascalCase (kebab input is normalised at parse)
+  attrs: Readonly<Record<string, PValue>>;
+  children: DocNode[];
+  text?: string;
+  loc: Loc;
+}
+
+export interface DocErrorNode {
+  kind: 'error';
+  raw: string;
+  diagnostic: Diagnostic;
+  loc: Loc;
+}
+
+export type DocNode = DocProseNode | DocTagNode | DocErrorNode;
+
+export interface DocAst {
+  kind: DocKind;
+  slug: string;
+  file: string; // repo-relative, forward slashes — diagnostics point at it
+  frontmatter: DocFrontmatter | null;
+  body: DocNode[];
+}
+
+export interface DocParseResult {
+  ast: DocAst;
+  diagnostics: Diagnostic[];
+}
+
+// ---- the scroll-waypoint event model ---------------------------------------
+// A waypoint today can only HIGHLIGHT one part of the stage. Modelling the
+// payload as a list (rather than a single `focus` field) means a new kind of
+// scroll event is a manifest row, not a refactor.
+export type StageEvent =
+  | { kind: 'focus'; part: string } // one of EntityDiagram's Focus values
+  | { kind: 'at'; step: number };   // step the demo to tick N when this waypoint centres

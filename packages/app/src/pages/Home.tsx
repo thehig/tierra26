@@ -1,5 +1,5 @@
 // The lobby: the pitch + the brick-by-brick chapter map (with progress) + doors to sandbox/versus/wiki.
-import { CHAPTERS } from '../learn/chapters.ts';
+import { CHAPTERS } from '../learn/lessons.ts';
 import { Link } from '../router/router.tsx';
 import { usePrefs } from '../store/prefs.tsx';
 import { WipMark } from '../learn/WipMark.tsx';

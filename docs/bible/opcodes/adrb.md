@@ -1,6 +1,7 @@
 ---
 mnemonic: adrb
 name: find-back
+emoji: 🔎
 category: control
 reads: []
 writes: [A, C]

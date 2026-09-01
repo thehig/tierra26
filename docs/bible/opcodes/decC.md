@@ -1,6 +1,7 @@
 ---
 mnemonic: decC
 name: shrink-c
+emoji: 🍂
 category: register
 reads: [C]
 writes: [C]

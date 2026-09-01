@@ -2,6 +2,9 @@
 **/dist
 .git
 .claude
-docs
 reference
-*.md
+# `docs` is BUILD INPUT now, not documentation: the Vite `tierra:content` plugin
+# reads docs/**/*.md at build time. Excluding it produces an app with no lessons
+# and no Bible. Narrowed from `*.md` to `/*.md` for the same reason — that
+# pattern would otherwise strip every markdown file inside docs/.
+/*.md

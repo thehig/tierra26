@@ -1,12 +1,18 @@
 // Locks the brick-by-brick curriculum against the real engine: every ready chapter's demo and
 // challenge-starter must compile, and every challenge must be *solvable* — the intended solution,
 // run in the same micro-engine the lesson uses (seed 1, soup 256, no mutation), reaches its goal.
+//
+// The curriculum is now authored in docs/lessons/*.md and reaches this test through
+// the same build-time pipeline the app uses, so this is also the migration's
+// acceptance test: a genome mis-transcribed into markdown fails here. The
+// reference answers come from each document's own <Solution> tag rather than a
+// table in this file, so a challenge and its answer cannot drift apart.
 import { describe, it, expect } from 'vitest';
 import { Engine } from '@tierra26/engine';
 import { classic32 } from '@tierra26/engine/isa.ts';
 import { compile } from '@tierra26/genescript/comp.ts';
-import { ANCESTOR_GS } from '@tierra26/genescript/ancestor.gs.ts';
-import { CHAPTERS, checkMicroGoal, chapterSoup, type MicroGoal, type EntityStateLike } from '../src/learn/chapters.ts';
+import { checkMicroGoal, chapterSoup, type MicroGoal, type EntityStateLike } from '../src/learn/chapters.ts';
+import { CHAPTERS } from '../src/learn/lessons.ts';
 
 const SOUP = 256;
 
@@ -32,26 +38,26 @@ function solves(source: string, goal: MicroGoal, budget: number, soup = SOUP): b
   return false;
 }
 
-// The intended solution for each challenge chapter (what a learner would arrive at).
-const SOLUTIONS: Record<string, { source: string; budget: number }> = {
-  'count-up':   { source: 'grow-a\ngrow-a\ngrow-a', budget: 20 },
-  'count-down': { source: 'grow-c\ngrow-c\ngrow-c\nshrink-c\nshrink-c', budget: 20 },
-  'zero-flip':  { source: 'clear\nflip-bit', budget: 20 },
-  'doubling':   { source: 'flip-bit\ndouble\ndouble', budget: 20 },
-  'body-is-code': { source: 'grow-a\ngrow-b\ngrow-c\ngrow-a\ngrow-b\ngrow-c', budget: 5 },
-  'loops':      { source: 'top:\ngrow-a\njump-back top\nclear', budget: 60 },
-  'sums':       { source: 'grow-a\ngrow-a\ngrow-a\ngrow-b\nsubtract', budget: 20 },
-  'find':       { source: 'spot:\ngrow-a\nfind-back spot\ngrow-b', budget: 20 },
-  'make-room':  { source: 'flip-bit\ndouble\ndouble\ndouble\ndouble\nmake-space', budget: 20 },
-  'copy-loop':  { source: ANCESTOR_GS, budget: 8000 },
-  'give-birth': { source: ANCESTOR_GS, budget: 8000 },
-};
+// Every ready chapter's reference answer, taken from its document.
+const SOLUTIONS: Record<string, { source: string; budget: number }> = Object.fromEntries(
+  CHAPTERS.flatMap((c) => (c.solution ? [[c.id, c.solution] as const] : [])),
+);
 
 describe('brick-by-brick chapters', () => {
   const ready = CHAPTERS.filter((c) => c.ready);
 
   it('has ready chapters wired in a chain', () => {
     expect(ready.length).toBeGreaterThanOrEqual(14);
+    // Every chapter after the first names its predecessor, so the map's linear
+    // unlock gate and the document order agree.
+    CHAPTERS.forEach((c, i) => {
+      expect(c.prevId, `${c.id} prevId`).toBe(i === 0 ? null : CHAPTERS[i - 1]!.id);
+    });
+  });
+
+  it('carries every chapter across from the documents', () => {
+    expect(CHAPTERS.length).toBe(22);
+    expect(CHAPTERS.map((c) => c.no)).toEqual(CHAPTERS.map((_, i) => String(i)));
   });
 
   for (const ch of ready) {

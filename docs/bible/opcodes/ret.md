@@ -1,6 +1,7 @@
 ---
 mnemonic: ret
 name: return
+emoji: 🔙
 category: control
 reads: []
 writes: []

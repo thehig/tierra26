@@ -7,7 +7,8 @@
     "packages/*"
   ],
   "scripts": {
-    "test": "npm test --workspaces --if-present",
+    "test": "npm run gen:bindings -- --check && npm test --workspaces --if-present",
+    "gen:bindings": "node --experimental-strip-types scripts/gen-bindings.ts",
     "build": "npm run build --workspace @tierra26/app",
     "dev": "npm run dev --workspace @tierra26/app",
     "docker:build": "docker build -t tierra26 .",

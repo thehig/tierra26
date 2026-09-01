@@ -1,6 +1,7 @@
 ---
 mnemonic: subCAB
 name: subtract
+emoji: ➖
 category: register
 reads: [A, B]
 writes: [C]

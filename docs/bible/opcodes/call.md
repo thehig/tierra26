@@ -1,6 +1,7 @@
 ---
 mnemonic: call
 name: call
+emoji: 📞
 category: control
 reads: []
 writes: []

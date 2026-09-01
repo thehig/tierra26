@@ -1,6 +1,7 @@
 ---
 mnemonic: subAAC
 name: subtract-into-a
+emoji: 🔻
 category: register
 reads: [A, C]
 writes: [A]

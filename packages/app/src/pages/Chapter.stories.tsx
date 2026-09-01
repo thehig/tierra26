@@ -1,4 +1,4 @@
-// One story per chapter of the brick-by-brick tutorial (learn/chapters.ts), in curriculum order and
+// One story per chapter of the brick-by-brick tutorial (docs/lessons/*.md), in curriculum order and
 // named exactly as the chapter is named in the app, so the whole path is browsable — and
 // regression-testable — from Storybook.
 //
@@ -14,7 +14,8 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect } from 'storybook/test';
 import { PrefsProvider } from '../store/prefs.tsx';
 import { RouterProvider } from '../router/router.tsx';
-import { CHAPTERS, chapterById, type Chapter } from '../learn/chapters.ts';
+import type { Chapter } from '../learn/chapters.ts';
+import { CHAPTERS, chapterById } from '../learn/lessons.ts';
 import { withViewport, viewportArgType, viewportOptions, type WithViewport } from '../design/viewports.tsx';
 import { ChapterPage } from './Chapter.tsx';
 
@@ -32,7 +33,7 @@ export default meta;
 type Story = StoryObj<Args>;
 
 // A story's name IS the chapter's name — with the warning triangle in front when it isn't built yet.
-const storyName = (c: Chapter) => (c.ready ? c.title : `⚠️ ${c.title}`);
+const storyName = (c: Pick<Chapter, 'ready' | 'title'>) => (c.ready ? c.title : `⚠️ ${c.title}`);
 
 // Every implemented chapter renders the same three things: the hero, one scrolly card per waypoint
 // over the steppable stage, and the "your turn" sandbox exactly when the chapter defines a challenge.
@@ -40,7 +41,7 @@ const rendersChapter = (id: string): NonNullable<Story['play']> => async ({ canv
   const ch = chapterById(id)!;
   await expect(c.querySelector('.anatomy-hero h1')!.textContent).toBe(ch.title);
   await expect(c.querySelector('.anatomy-hero .wip-mark')).toBeNull(); // implemented → no warning triangle
-  await expect(c.querySelectorAll('.scrolly-step').length).toBe(ch.waypoints.length);
+  await expect(c.querySelectorAll('.scrolly-step').length).toBe(ch.waypoints);
   await expect(c.querySelector('.entity-wrap')).toBeTruthy();
   await expect(!!c.querySelector('.ms-goal')).toBe(!!ch.challenge);
 };

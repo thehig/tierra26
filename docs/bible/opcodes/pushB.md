@@ -1,6 +1,7 @@
 ---
 mnemonic: pushB
 name: save-b
+emoji: 💾
 category: register
 reads: [B]
 writes: []

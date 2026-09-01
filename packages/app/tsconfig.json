@@ -20,5 +20,7 @@
       "@tierra26/versus/*": ["../versus/src/*"]
     }
   },
-  "include": ["src", "vite.config.ts", "test"]
+  // vite.config.ts and build/ are Node-side; they typecheck under tsconfig.node.json
+  // so browser source never sees Node globals.
+  "include": ["src", "test"]
 }

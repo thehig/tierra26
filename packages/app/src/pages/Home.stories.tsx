@@ -3,7 +3,7 @@ import { expect } from 'storybook/test';
 import { defaultAppState, reduce, persist } from '@tierra26/ui/shell.ts';
 import { PrefsProvider } from '../store/prefs.tsx';
 import { RouterProvider } from '../router/router.tsx';
-import { CHAPTERS } from '../learn/chapters.ts';
+import { CHAPTERS } from '../learn/lessons.ts';
 import { withViewport, viewportArgType, viewportOptions, type ViewportArgs } from '../design/viewports.tsx';
 import { Home } from './Home.tsx';
 

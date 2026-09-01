@@ -1,6 +1,7 @@
 ---
 mnemonic: popA
 name: load-a
+emoji: 📤
 category: register
 reads: []
 writes: [A]

@@ -1,6 +1,7 @@
 ---
 mnemonic: shl
 name: double
+emoji: ✖️
 category: action
 reads: [C]
 writes: [C]

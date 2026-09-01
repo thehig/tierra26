@@ -1,6 +1,7 @@
 ---
 mnemonic: divide
 name: divide
+emoji: 👶
 category: control
 reads: []
 writes: []

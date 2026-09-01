@@ -76,7 +76,23 @@ function empty(worldSize: number, compileError: boolean): EntityState {
 
 const geneOf = (byte: number): string | null => DICTIONARY[byte]?.gene ?? null;
 
-export function useMicroEngine(source: string, soupSize = 256) {
+/** An authored starting CPU state — what <State a="3" flags="[Z]" ip="2"/> means.
+ *  A lesson often needs to show what an instruction does FROM a given position
+ *  ("A is 3 and B is 1, now subtract") without spending waypoints getting there. */
+export interface InitialState {
+  regs?: Partial<Record<'A' | 'B' | 'C' | 'D', number>>;
+  flags?: readonly ('E' | 'S' | 'Z')[];
+  stack?: readonly number[];
+  /** Reading-head offset from the creature's own start, not an absolute address. */
+  ip?: number;
+}
+
+const REG_INDEX = { A: 0, B: 1, C: 2, D: 3 } as const;
+
+export function useMicroEngine(source: string, soupSize = 256, initial?: InitialState) {
+  // `initial` is an object literal at most call sites, so a fresh identity every
+  // render would rebuild the engine every render. Key the deps on its content.
+  const initialKey = JSON.stringify(initial ?? null);
   const compiled = useMemo((): { bytes: Uint8Array; error: boolean; sourceMap: SourceMap | null; program: Program | null } => {
     try {
       const program = parse(source);
@@ -139,7 +155,31 @@ export function useMicroEngine(source: string, soupSize = 256) {
     const e = new Engine({ seed: 1, soupSize, mutation: { flaw: 0, copy: 0, cosmic: 0 } });
     idRef.current = e.inject(compiled.bytes, { founderId: 1 });
     engineRef.current = e;
-  }, [compiled, soupSize]);
+
+    // Seed the authored starting state. This is a post-inject write to the
+    // creature's own CPU, not an engine change — the engine stays king.
+    const init: InitialState | null = JSON.parse(initialKey);
+    const c = init ? e.world.creatures.get(idRef.current) : undefined;
+    if (init && c) {
+      for (const [name, idx] of Object.entries(REG_INDEX)) {
+        const v = init.regs?.[name as keyof typeof REG_INDEX];
+        if (typeof v === 'number') c.cpu.reg[idx] = v | 0;
+      }
+      if (init.flags) {
+        c.cpu.flagE = init.flags.includes('E');
+        c.cpu.flagS = init.flags.includes('S');
+        c.cpu.flagZ = init.flags.includes('Z');
+      }
+      if (init.stack) {
+        // Bottom-first, matching how the save-pile is read out for display.
+        for (let i = 0; i < init.stack.length && i < c.cpu.stack.length; i++) {
+          c.cpu.stack[i] = init.stack[i]! | 0;
+        }
+        c.cpu.sp = Math.min(init.stack.length, c.cpu.stack.length);
+      }
+      if (typeof init.ip === 'number') c.cpu.ip = e.world.soup.ad(c.start + init.ip);
+    }
+  }, [compiled, soupSize, initialKey]);
 
   const read = useCallback((): EntityState => {
     const e = engineRef.current;
@@ -233,5 +273,26 @@ export function useMicroEngine(source: string, soupSize = 256) {
     rafRef.current = requestAnimationFrame(loop);
   }, [read, stopRun, isHalted]);
 
-  return { state, step, reset, run, pause: stopRun, running, steps };
+  // Jump to an exact tick. A scroll waypoint that says `at="6"` needs the stage
+  // to SHOW tick 6 whichever direction the reader scrolled from, so this rebuilds
+  // from the authored start rather than stepping relative to wherever we are —
+  // the engine is deterministic, so replaying is exact and cheap at these sizes.
+  const stepTo = useCallback((tick: number) => {
+    stopRun();
+    build();
+    const e = engineRef.current;
+    if (e) {
+      for (let i = 0; i < tick; i++) {
+        const c = e.world.creatures.get(idRef.current);
+        if (!c) break;
+        const rel = c.cpu.ip - c.start;
+        if (rel < 0 || rel >= c.size) break; // halted — no point stepping into empty soup
+        e.step();
+      }
+    }
+    setState(read());
+    setSteps(tick);
+  }, [build, read, stopRun]);
+
+  return { state, step, reset, run, pause: stopRun, running, steps, stepTo };
 }

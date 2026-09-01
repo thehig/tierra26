@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect } from 'storybook/test';
 import { MicroSandbox } from './MicroSandbox.tsx';
-import { chapterById, type Challenge } from './chapters.ts';
+import type { Challenge } from './chapters.ts';
+import { chapterById } from './lessons.ts';
 
 const sixCells: Challenge = {
   prompt: 'Make your body fill exactly 6 cells.',

@@ -1,10 +1,14 @@
-// Gene ⇄ mnemonic source transform for the editor's advanced view. GeneScript is one statement per
+// Gene ⇄ mnemonic source transform. Lives in genescript (not the app) because the
+// build-time doc loader needs it too: docs author genomes in REAL MNEMONICS, and
+// toGeneSource() turns them back into the gene form the compiler takes.
+//
+// Originally the editor's advanced view. GeneScript is one statement per
 // line; only the FIRST token of a statement is a verb, so a safe swap replaces just that token via the
 // VOCAB bijection and leaves everything else exactly as typed: labels (`top:`), control targets (the
 // second word), `raw <mnemonic>` lines, comments (`# …`), and all whitespace. Never-fail: an
 // unrecognised token is left untouched. The editor keeps the app's source in GENE form (so it always
 // compiles) and only renders/edits the mnemonic form as a view.
-import { verbToMnemonic, mnemonicToVerb } from '@tierra26/genescript/vocab.ts';
+import { verbToMnemonic, mnemonicToVerb } from './vocab.ts';
 
 function swapLine(line: string, toMnemonic: boolean): string {
   const hash = line.indexOf('#');

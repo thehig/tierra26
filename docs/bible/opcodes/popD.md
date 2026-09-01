@@ -1,6 +1,7 @@
 ---
 mnemonic: popD
 name: load-d
+emoji: 🎣
 category: register
 reads: []
 writes: [D]

@@ -1,6 +1,7 @@
 ---
 mnemonic: incC
 name: grow-c
+emoji: 🌳
 category: register
 reads: [C]
 writes: [C]

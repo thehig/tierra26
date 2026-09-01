@@ -1,6 +1,7 @@
 ---
 mnemonic: mal
 name: make-space
+emoji: 🏗️
 category: control
 reads: [C]
 writes: [A]

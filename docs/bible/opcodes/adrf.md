@@ -1,6 +1,7 @@
 ---
 mnemonic: adrf
 name: find-forward
+emoji: 🔦
 category: control
 reads: []
 writes: [A, C]

@@ -27,6 +27,7 @@
     "@storybook/addon-mcp": "latest",
     "@storybook/addon-vitest": "^10.5.10",
     "@storybook/react-vite": "^10.5.10",
+    "@types/node": "^26.4.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.0",

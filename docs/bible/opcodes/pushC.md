@@ -1,6 +1,7 @@
 ---
 mnemonic: pushC
 name: save-c
+emoji: 🧺
 category: register
 reads: [C]
 writes: []

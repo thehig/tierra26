@@ -1,6 +1,7 @@
 ---
 mnemonic: not0
 name: flip-bit
+emoji: 🪙
 category: action
 reads: [C]
 writes: [C]

@@ -1,6 +1,7 @@
 ---
 mnemonic: incB
 name: grow-b
+emoji: 🌿
 category: register
 reads: [B]
 writes: [B]

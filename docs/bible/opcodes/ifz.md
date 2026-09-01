@@ -1,6 +1,7 @@
 ---
 mnemonic: ifz
 name: if-zero
+emoji: ❓
 category: control
 reads: [C]
 writes: []

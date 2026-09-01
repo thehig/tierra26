@@ -1,0 +1,12 @@
+{
+  // The Node-side of the app package: the Vite config and the build plugins it
+  // pulls in. Kept separate from tsconfig.json so `node:fs`/`process` typecheck
+  // here WITHOUT leaking Node globals into browser source.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "lib": ["ES2022"],
+    "noEmit": true
+  },
+  "include": ["vite.config.ts", "build"]
+}

@@ -1,6 +1,7 @@
 ---
 mnemonic: incA
 name: grow-a
+emoji: 🌱
 category: register
 reads: [A]
 writes: [A]

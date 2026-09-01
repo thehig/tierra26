@@ -5,6 +5,8 @@ WORKDIR /app
 # Manifests + lockfile first (better layer caching), then the workspace sources.
 COPY package.json package-lock.json ./
 COPY packages ./packages
+# The authored content the build compiles in (see the tierra:content Vite plugin).
+COPY docs ./docs
 
 RUN npm ci
 RUN npm run build --workspace @tierra26/app

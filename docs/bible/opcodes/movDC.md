@@ -1,6 +1,7 @@
 ---
 mnemonic: movDC
 name: copy-c-to-d
+emoji: 🔃
 category: register
 reads: [C]
 writes: [D]

@@ -1,6 +1,7 @@
 ---
 mnemonic: movii
 name: copy-byte
+emoji: ✂️
 category: action
 reads: [A, B]
 writes: []

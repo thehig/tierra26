@@ -14,8 +14,12 @@ const REG_KEYS = ['A', 'B', 'C', 'D'] as const;
 const FLAG_KEYS = ['E', 'S', 'Z'] as const;
 const OWNER_CLASS = ['free', 'mother', 'daughter', 'baby'] as const;
 
+/** Whether a display affordance is forced on/off, or picked from the world size. */
+export type Auto = 'on' | 'off' | 'auto';
+
 export function EntityDiagram({
   state, focus, onStep, onReset, onRun, onPause, running = false, steps,
+  emoji = 'auto', loupe: loupeMode = 'auto',
 }: {
   state: EntityState;
   focus: Focus;
@@ -25,6 +29,10 @@ export function EntityDiagram({
   onPause?: () => void;
   running?: boolean;
   steps: number;
+  /** Show each cell's opcode emoji in the world grid. 'auto' = small worlds only. */
+  emoji?: Auto;
+  /** Hover magnifier over the world grid. 'auto' = big worlds only. */
+  loupe?: Auto;
 }) {
   const prevRegs = useRef(state.regs);
   const changed = { A: state.regs.A !== prevRegs.current.A, B: state.regs.B !== prevRegs.current.B, C: state.regs.C !== prevRegs.current.C, D: state.regs.D !== prevRegs.current.D };
@@ -74,26 +82,30 @@ export function EntityDiagram({
   };
   const cols = Math.max(1, Math.round(Math.sqrt(state.worldSize)));
   // A small tutorial world shows every opcode emoji right in the grid (no hover needed); a big world
-  // (the ancestor) stays solid colours and reveals emoji under the hover magnifier.
+  // (the ancestor) stays solid colours and reveals emoji under the hover magnifier. `auto` keeps that
+  // rule; a document can override either independently (<EntityDesigner emoji="on" loupe="on">), which
+  // is what makes the diagram instancable rather than implicitly sized.
   const small = state.worldSize <= 49;
+  const showEmoji = emoji === 'auto' ? small : emoji === 'on';
+  const showLoupe = loupeMode === 'auto' ? !small : loupeMode === 'on';
 
   return (
     <div className="entity-wrap">
     <div className={`entity focus-${focus}`}>
       <div className={`entity-world ${spot('world')}`} data-part="world">
-        <div className="part-label">{small ? 'world' : 'world · hover to inspect 🔍'}</div>
-        <div className={`world-grid ${small ? 'emoji' : ''}`} style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+        <div className="part-label">{showLoupe ? 'world · hover to inspect 🔍' : 'world'}</div>
+        <div className={`world-grid ${showEmoji ? 'emoji' : ''}`} style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
           onMouseLeave={() => { clearHover(); setLoupe(null); }}>
           {state.world.map((o, i) => (
             <span key={i} className={`wcell ${OWNER_CLASS[o]} ${cellLit(i) ? 'link' : ''} ${i === ipAddr ? 'ip' : ''}`}
-              onMouseMove={(e) => { setHovered(rangeOfCell(i)); if (!small) setLoupe({ cell: i, x: e.clientX, y: e.clientY }); }}>
-              {small ? opcodeEmoji(state.worldGene[i]) : null}
+              onMouseMove={(e) => { setHovered(rangeOfCell(i)); if (showLoupe) setLoupe({ cell: i, x: e.clientX, y: e.clientY }); }}>
+              {showEmoji ? opcodeEmoji(state.worldGene[i]) : null}
             </span>
           ))}
         </div>
         {/* the big world stays solid, so pin the magnifier under it, centred on the reading head — it
             follows the ▶ as you Step, showing the current instruction in context without hovering. */}
-        {!small && ipAddr >= 0 && (
+        {showLoupe && ipAddr >= 0 && (
           <div className="world-focus">
             <div className="part-label">reading head ▶</div>
             <div className="step-loupe"><LoupeView state={state} cols={cols} cell={ipAddr} rowR={1} /></div>

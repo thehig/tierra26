@@ -12,7 +12,7 @@ import { parse } from '@tierra26/genescript/gs.ts';
 import { keywordColoring, geneCompletions, geneState, keywordHover, langModeFacet, langModeCompartment } from './cm.ts';
 import { buildPeekModel } from './peek.ts';
 import { useLanguageMode } from '../design/languageMode.tsx';
-import { toMnemonicSource, toGeneSource } from './langSwap.ts';
+import { toMnemonicSource, toGeneSource } from '@tierra26/genescript/langswap.ts';
 
 export function GeneEditor({
   value, onChange, onInject, title = 'Gene editor',

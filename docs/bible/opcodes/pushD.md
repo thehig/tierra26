@@ -1,6 +1,7 @@
 ---
 mnemonic: pushD
 name: save-d
+emoji: 🗄️
 category: register
 reads: [D]
 writes: []

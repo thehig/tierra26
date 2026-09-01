@@ -1,6 +1,7 @@
 ---
 mnemonic: popC
 name: load-c
+emoji: 🧲
 category: register
 reads: []
 writes: [C]

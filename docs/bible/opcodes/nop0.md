@@ -1,6 +1,7 @@
 ---
 mnemonic: nop0
 name: mark-0
+emoji: 🔵
 category: marker
 reads: []
 writes: []

@@ -1,55 +1,40 @@
-// THE BINDINGS FILE — the editable friendly layer over the fixed instruction set. Each opcode is keyed
-// by its MNEMONIC (the real, immutable opcode identity, e.g. `incA`); the `name` is the friendly
-// single-word GeneScript name shown in simple mode, and `emoji` is its glyph. Edit these in the
-// Datasheet's Bindings editor, Export, and overwrite the two blocks below. The mnemonics never change.
+// THE BINDINGS — the friendly layer over the fixed instruction set.
 //
-// `name` rules (enforced by the editor): one word — letters, digits and hyphens only, no spaces or
-// other symbols (e.g. `grow-a`, `copy-byte`).
+// These are no longer authored here. The source of truth is the Bible:
+//
+//     docs/bible/opcodes/<mnemonic>.md   frontmatter: name, emoji, category
+//     docs/bible/concepts/<slug>.md      frontmatter: emoji (glyph-bound kinds)
+//
+// Edit a name or an emoji THERE, then run `npm run gen:bindings`, which
+// regenerates packages/genescript/src/bindings.generated.ts. The mnemonic is
+// the engine's immutable identity and never changes; `name` is only what a
+// learner reads, so a rebind can never change what compiles.
+//
+// This module stays as the app's lookup surface — same functions, same shapes,
+// now keyed off the generated data — so every call site is untouched.
 import { allVerbs, verbToMnemonic } from '@tierra26/genescript/vocab.ts';
+import {
+  CONCEPT_BINDINGS as GEN_CONCEPTS,
+  OPCODE_BINDINGS,
+  isValidName,
+} from '@tierra26/genescript/bindings.generated.ts';
 
 export interface Binding { name: string; emoji: string; }
 
-// ── opcodes (all 32), keyed by mnemonic ──────────────────────────────────────────────────────────
-export const BINDINGS: Record<string, Binding> = {
-  nop0: { name: 'mark-0', emoji: '🔵' },
-  nop1: { name: 'mark-1', emoji: '🔴' },
-  not0: { name: 'flip-bit', emoji: '🪙' },
-  shl: { name: 'double', emoji: '✖️' },
-  zero: { name: 'clear', emoji: '🧹' },
-  ifz: { name: 'if-zero', emoji: '❓' },
-  subCAB: { name: 'subtract', emoji: '➖' },
-  subAAC: { name: 'subtract-into-a', emoji: '🔻' },
-  incA: { name: 'grow-a', emoji: '🌱' },
-  incB: { name: 'grow-b', emoji: '🌿' },
-  decC: { name: 'shrink-c', emoji: '🍂' },
-  incC: { name: 'grow-c', emoji: '🌳' },
-  pushA: { name: 'save-a', emoji: '📥' },
-  pushB: { name: 'save-b', emoji: '💾' },
-  pushC: { name: 'save-c', emoji: '🧺' },
-  pushD: { name: 'save-d', emoji: '🗄️' },
-  popA: { name: 'load-a', emoji: '📤' },
-  popB: { name: 'load-b', emoji: '📂' },
-  popC: { name: 'load-c', emoji: '🧲' },
-  popD: { name: 'load-d', emoji: '🎣' },
-  jmpo: { name: 'jump', emoji: '⏩' },
-  jmpb: { name: 'jump-back', emoji: '⏪' },
-  call: { name: 'call', emoji: '📞' },
-  ret: { name: 'return', emoji: '🔙' },
-  movDC: { name: 'copy-c-to-d', emoji: '🔃' },
-  movBA: { name: 'copy-a-to-b', emoji: '🔄' },
-  movii: { name: 'copy-byte', emoji: '✂️' },
-  adro: { name: 'find', emoji: '🔍' },
-  adrb: { name: 'find-back', emoji: '🔎' },
-  adrf: { name: 'find-forward', emoji: '🔦' },
-  mal: { name: 'make-space', emoji: '🏗️' },
-  divide: { name: 'divide', emoji: '👶' },
-};
+/** All 32 opcode bindings, keyed by mnemonic (the real, immutable identity). */
+export const BINDINGS: Readonly<Record<string, Binding>> = Object.freeze(
+  Object.fromEntries(
+    Object.values(OPCODE_BINDINGS).map((b) => [b.mnemonic, { name: b.name, emoji: b.emoji }]),
+  ),
+);
 
-// ── block-kind concepts. A label is the one glyph-bound kind; `raw` and `target` are structural
-//    treatments (a hatched "byte" frame and a ↳ connector), not emoji, so they are not editable here.
-export const CONCEPT_BINDINGS: Record<string, Binding> = {
-  label: { name: 'label', emoji: '🪧' },
-};
+// Block-kind concepts. A label is the one glyph-bound kind; `raw` and `target` are
+// structural treatments (a hatched "byte" frame and a ↳ connector), not emoji.
+export const CONCEPT_BINDINGS: Readonly<Record<string, Binding>> = Object.freeze(
+  Object.fromEntries(
+    Object.values(GEN_CONCEPTS).map((c) => [c.slug, { name: c.name, emoji: c.emoji }]),
+  ),
+);
 
 // ── derived lookups by gene/verb (the app keys emoji + names by gene; bindings key by mnemonic) ──
 const nameByVerb = new Map(allVerbs().map((v) => [v.verb, BINDINGS[v.mnemonic]?.name ?? v.verb]));
@@ -63,4 +48,4 @@ export function emojiForVerb(verb: string): string { return emojiByVerb.get(verb
 export function bindingForVerb(verb: string): Binding | undefined { const mn = verbToMnemonic(verb); return mn ? BINDINGS[mn] : undefined; }
 
 /** A friendly name is one word: letters, digits and hyphens only (no spaces or other symbols). */
-export function isValidName(name: string): boolean { return /^[A-Za-z0-9]+(-[A-Za-z0-9]+)*$/.test(name); }
+export { isValidName };

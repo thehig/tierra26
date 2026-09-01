@@ -1,9 +1,19 @@
 // The instruction wiki: an index grouped by color role, and a per-verb page.
-import { allVerbs, entry } from '@tierra26/genescript/vocab.ts';
+//
+// The per-verb body is the Bible — docs/bible/opcodes/<mnemonic>.md — rendered
+// through the doc pipeline. The page keeps only what is presentation: the
+// language-mode-aware title, the "try it" playgrounds, and the intro-lesson
+// link. Facts about the instruction come from the document.
+import { allVerbs, entry, entryOfMnemonic } from '@tierra26/genescript/vocab.ts';
 import { pageOf } from '@tierra26/content/instrpage.ts';
 import { CURRICULUM } from '@tierra26/content/progress.ts';
 import { toInstructionPageModel } from '@tierra26/ui/reader.ts';
 import { LazyPlayground } from '../reader/LazyPlayground.tsx';
+import { DocRenderer } from '../doc/DocRenderer.tsx';
+import { opcodeDoc, fm } from '../doc/docs.ts';
+import { Chip } from '../doc/Chip.tsx';
+import { useLanguageMode } from '../design/languageMode.tsx';
+import { simpleName } from '../design/bindings.ts';
 import { Link } from '../router/router.tsx';
 
 const CATEGORY_ORDER = ['control', 'register', 'action', 'marker'] as const;
@@ -31,8 +41,15 @@ export function WikiIndex() {
 }
 
 export function WikiPage({ verb, dark }: { verb: string; dark: boolean }) {
-  const page = pageOf(verb);
-  if (!page) {
+  const advanced = useLanguageMode() === 'advanced';
+  // The route may carry either spelling. Bible pages cross-link by MNEMONIC
+  // (`[mal](mal.md)`) while the wiki index links by gene name (`make-space`),
+  // and both have to land here.
+  const v = entry(verb) ?? entryOfMnemonic(verb);
+  const doc = opcodeDoc(verb);
+  const page = v ? pageOf(v.verb) : undefined;
+
+  if (!v || (!doc && !page)) {
     return (
       <div className="page">
         <h1>Unknown instruction</h1>
@@ -40,44 +57,49 @@ export function WikiPage({ verb, dark }: { verb: string; dark: boolean }) {
       </div>
     );
   }
-  const m = toInstructionPageModel(page);
-  const cat = entry(verb)?.category ?? 'concept';
-  const introTitle = CURRICULUM.lessons[m.introLesson]?.title;
+
+  // INSTRPAGE still owns what the Bible does not carry: the editable "try it"
+  // scenarios, and the `targets` animation data OpcodeTooltip renders.
+  const m = page ? toInstructionPageModel(page) : undefined;
+  const introTitle = m ? CURRICULUM.lessons[m.introLesson]?.title : undefined;
+
+  const display = advanced ? v.mnemonic : simpleName(v.verb);
+  const other = advanced ? simpleName(v.verb) : v.mnemonic;
 
   return (
     <div className="page wiki-page">
-      <div className="crumb"><Link to={{ surface: 'wiki' }}>Instructions</Link> <span>/</span> {m.verb}</div>
-      <h1 className={`cm-kw-${cat} verb-title`}>{m.verb}</h1>
-      <p className="verb-kid">{m.kid}</p>
-      <div className="verb-machine"><span className="tagpill">{m.mnemonic}</span> <code>{m.machine}</code></div>
-      <p className="verb-anim">{m.animation.summary}</p>
+      <div className="crumb"><Link to={{ surface: 'wiki' }}>Instructions</Link> <span>/</span> {display}</div>
 
-      <h3>Try it</h3>
-      {m.scenarios.map((sc) => (
-        <LazyPlayground key={sc.id} config={sc.config} dark={dark} prompt={sc.prompt} />
-      ))}
+      <h1 className="verb-title">
+        <Chip opcode={v.mnemonic} />
+      </h1>
+      <div className="verb-machine">
+        <span className="tagpill">{other}</span> <code>{v.machine}</code>
+        {fm(doc, 'can_error') === 'true' && <span className="tagpill">can raise E</span>}
+      </div>
 
-      {m.commonMistakes.length > 0 && (
+      {doc ? (
+        <DocRenderer body={doc.ast.body} dark={dark} skipLeadingHeading />
+      ) : (
+        <p className="verb-kid">{v.kid}</p>
+      )}
+
+      {m && m.scenarios.length > 0 && (
         <>
-          <h3>Watch out for</h3>
-          <ul className="mistakes">{m.commonMistakes.map((t, i) => <li key={i}>{t}</li>)}</ul>
+          <h3>Try it</h3>
+          {m.scenarios.map((sc) => (
+            <LazyPlayground key={sc.id} config={sc.config} dark={dark} prompt={sc.prompt} />
+          ))}
         </>
       )}
 
-      <div className="verb-foot">
-        {m.seeAlso.length > 0 && (
-          <div className="seealso">
-            See also: {m.seeAlso.map((s, i) => (
-              <span key={s.verb}>{i > 0 ? ', ' : ''}<Link to={{ surface: 'wiki', verb: s.verb }}>{s.verb}</Link></span>
-            ))}
-          </div>
-        )}
-        {introTitle && (
+      {introTitle && m && (
+        <div className="verb-foot">
           <div className="introlesson">
             Introduced in <Link to={{ surface: 'lesson', lessonId: m.introLesson }}>{introTitle}</Link>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

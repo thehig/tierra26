@@ -1,6 +1,7 @@
 ---
 mnemonic: popB
 name: load-b
+emoji: 📂
 category: register
 reads: []
 writes: [B]

@@ -1,6 +1,7 @@
 ---
 mnemonic: jmpo
 name: jump
+emoji: ⏩
 category: control
 reads: []
 writes: []

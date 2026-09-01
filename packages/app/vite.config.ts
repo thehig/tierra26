@@ -5,9 +5,19 @@ import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import path from 'node:path';
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
+import { tierraContent } from './build/tierraContent.ts';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const pkgs = ['engine', 'genescript', 'content', 'ui', 'versus'];
+
+// packages/app -> packages -> repo root -> docs. Passed to the plugin explicitly
+// rather than derived inside it, so the plugin has no opinion about where it sits.
+const docsDir = resolve(here, '../../docs');
+
+// Vitest projects do NOT inherit the root `plugins` array from `extends: true`,
+// so the content plugin has to be listed on each project as well as at the root.
+// Without it a test importing `virtual:tierra-content` fails to resolve.
+const content = () => tierraContent({ docsDir });
 
 // Resolve `@tierra26/<pkg>` → that package's src (bare → src/index.ts, subpath → src/<path>).
 // The pure packages import each other via relative .ts paths, which resolve on disk; this alias
@@ -20,7 +30,7 @@ const alias = pkgs.flatMap(p => [{
   replacement: resolve(here, `../${p}/src`) + '/$1'
 }]);
 export default defineConfig({
-  plugins: [react()],
+  plugins: [content(), react()],
   resolve: {
     alias
   },

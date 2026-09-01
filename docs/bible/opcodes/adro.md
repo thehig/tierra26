@@ -1,6 +1,7 @@
 ---
 mnemonic: adro
 name: find
+emoji: 🔍
 category: control
 reads: []
 writes: [A, C]

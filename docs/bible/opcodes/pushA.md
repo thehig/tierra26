@@ -1,6 +1,7 @@
 ---
 mnemonic: pushA
 name: save-a
+emoji: 📥
 category: register
 reads: [A]
 writes: []

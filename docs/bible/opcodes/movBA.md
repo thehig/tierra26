@@ -1,6 +1,7 @@
 ---
 mnemonic: movBA
 name: copy-a-to-b
+emoji: 🔄
 category: register
 reads: [A]
 writes: [B]

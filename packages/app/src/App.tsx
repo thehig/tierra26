@@ -33,8 +33,8 @@ function Surface({ route, dark }: { route: AppRoute | null; dark: boolean }) {
     case 'wiki': return route.verb ? <WikiPage verb={route.verb} dark={dark} /> : <WikiIndex />;
     case 'sandbox': return <SandboxPage dark={dark} />;
     case 'versus': return <VersusPage dark={dark} />;
-    case 'concept': return <ConceptPage slug={route.slug} />;
-    case 'learn': return <ChapterPage id={route.chapterId} />;
+    case 'concept': return <ConceptPage slug={route.slug} dark={dark} />;
+    case 'learn': return <ChapterPage id={route.chapterId} dark={dark} />;
     default: return <Home />;
   }
 }

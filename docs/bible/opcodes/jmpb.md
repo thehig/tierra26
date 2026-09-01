@@ -1,6 +1,7 @@
 ---
 mnemonic: jmpb
 name: jump-back
+emoji: ⏪
 category: control
 reads: []
 writes: []

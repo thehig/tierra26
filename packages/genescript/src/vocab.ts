@@ -1,8 +1,16 @@
 // GeneScript vocabulary — the verb↔mnemonic table, derived from the engine's DICTIONARY so verb
-// facts have a single source (C-GS-SOURCE / C-GS-NOOPCODES: no opcode literals here). Adds the
-// Nintendo-palette category, tooltip text, and which verbs take a label target.
+// facts have a single source (C-GS-SOURCE / C-GS-NOOPCODES: no opcode literals here).
 // Ref: docs/spec/genescript/02-vocabulary-and-keywords.md.
+//
+// Three sources, each owning what it is authoritative for:
+//   engine DICTIONARY        — identity: the mnemonic and the compilable gene token.
+//   bindings.generated.ts    — PRESENTATION: colour role and whether the verb takes
+//                              a label target. Generated from docs/bible/opcodes/*.md,
+//                              so a rebind is a docs edit + `npm run gen:bindings`.
+//   META below               — the two one-line tooltips (kid / machine truth), which
+//                              are shorter than, and distinct from, the Bible's prose.
 import { DICTIONARY } from '../../engine/src/isa.ts';
+import { OPCODE_BINDINGS } from './bindings.generated.ts';
 
 export type KeywordCategory = 'action' | 'register' | 'marker' | 'control' | 'value';
 
@@ -16,48 +24,52 @@ export interface VerbEntry {
   machine: string;      // one-line machine truth
 }
 
-// Per-mnemonic metadata (category / target / tooltip). Verb name + mnemonic come from DICTIONARY.
-const META: Record<string, { cat: KeywordCategory; target?: boolean; kid: string; machine: string }> = {
-  nop0: { cat: 'marker', kid: 'a landmark bit (0)', machine: 'nop; template bit 0' },
-  nop1: { cat: 'marker', kid: 'a landmark bit (1)', machine: 'nop; template bit 1' },
-  not0: { cat: 'action', kid: 'flip the lowest bit of C', machine: 'C := C XOR 1' },
-  shl: { cat: 'action', kid: 'double C', machine: 'C := C << 1' },
-  zero: { cat: 'action', kid: 'set C to zero', machine: 'C := 0' },
-  ifz: { cat: 'control', kid: 'do the next line only if C is zero', machine: 'skip next unless C==0' },
-  subCAB: { cat: 'register', kid: 'C becomes A minus B', machine: 'C := A - B' },
-  subAAC: { cat: 'register', kid: 'A becomes A minus C', machine: 'A := A - C' },
-  incA: { cat: 'register', kid: 'add one to A', machine: 'A := A + 1' },
-  incB: { cat: 'register', kid: 'add one to B', machine: 'B := B + 1' },
-  decC: { cat: 'register', kid: 'take one from C', machine: 'C := C - 1' },
-  incC: { cat: 'register', kid: 'add one to C', machine: 'C := C + 1' },
-  pushA: { cat: 'register', kid: 'tuck A away in the save-pile', machine: 'push(A)' },
-  pushB: { cat: 'register', kid: 'remember B', machine: 'push(B)' },
-  pushC: { cat: 'register', kid: 'remember C', machine: 'push(C)' },
-  pushD: { cat: 'register', kid: 'remember D', machine: 'push(D)' },
-  popA: { cat: 'register', kid: 'bring A back from the save-pile', machine: 'A := pop()' },
-  popB: { cat: 'register', kid: 'bring back B', machine: 'B := pop()' },
-  popC: { cat: 'register', kid: 'bring back C', machine: 'C := pop()' },
-  popD: { cat: 'register', kid: 'bring back D', machine: 'D := pop()' },
-  jmpo: { cat: 'control', target: true, kid: 'jump to a landmark', machine: 'IP := nearest complementary template' },
-  jmpb: { cat: 'control', target: true, kid: 'jump back to a landmark', machine: 'IP := backward template' },
-  call: { cat: 'control', target: true, kid: 'run a routine and come back', machine: 'push IP; IP := outward template' },
-  ret: { cat: 'control', kid: 'go back to where call came from', machine: 'IP := pop()' },
-  movDC: { cat: 'register', kid: 'copy C into D', machine: 'D := C' },
-  movBA: { cat: 'register', kid: 'copy A into B', machine: 'B := A' },
-  movii: { cat: 'action', kid: 'copy one byte of yourself', machine: 'soup[A] := soup[B]' },
-  adro: { cat: 'control', target: true, kid: 'find a landmark (either way)', machine: 'A := addr, C := size (outward)' },
-  adrb: { cat: 'control', target: true, kid: 'find a landmark behind you', machine: 'A := addr, C := size (backward)' },
-  adrf: { cat: 'control', target: true, kid: 'find a landmark ahead', machine: 'A := addr, C := size (forward)' },
-  mal: { cat: 'control', kid: 'ask for space for a baby', machine: 'allocate daughter of size C; A := start' },
-  divide: { cat: 'control', kid: 'split off your baby as a new creature', machine: 'release the filled daughter' },
+// Per-mnemonic tooltips. Category and target come from the Bible-derived bindings.
+const META: Record<string, { kid: string; machine: string }> = {
+  nop0: { kid: 'a landmark bit (0)', machine: 'nop; template bit 0' },
+  nop1: { kid: 'a landmark bit (1)', machine: 'nop; template bit 1' },
+  not0: { kid: 'flip the lowest bit of C', machine: 'C := C XOR 1' },
+  shl: { kid: 'double C', machine: 'C := C << 1' },
+  zero: { kid: 'set C to zero', machine: 'C := 0' },
+  ifz: { kid: 'do the next line only if C is zero', machine: 'skip next unless C==0' },
+  subCAB: { kid: 'C becomes A minus B', machine: 'C := A - B' },
+  subAAC: { kid: 'A becomes A minus C', machine: 'A := A - C' },
+  incA: { kid: 'add one to A', machine: 'A := A + 1' },
+  incB: { kid: 'add one to B', machine: 'B := B + 1' },
+  decC: { kid: 'take one from C', machine: 'C := C - 1' },
+  incC: { kid: 'add one to C', machine: 'C := C + 1' },
+  pushA: { kid: 'tuck A away in the save-pile', machine: 'push(A)' },
+  pushB: { kid: 'remember B', machine: 'push(B)' },
+  pushC: { kid: 'remember C', machine: 'push(C)' },
+  pushD: { kid: 'remember D', machine: 'push(D)' },
+  popA: { kid: 'bring A back from the save-pile', machine: 'A := pop()' },
+  popB: { kid: 'bring back B', machine: 'B := pop()' },
+  popC: { kid: 'bring back C', machine: 'C := pop()' },
+  popD: { kid: 'bring back D', machine: 'D := pop()' },
+  jmpo: { kid: 'jump to a landmark', machine: 'IP := nearest complementary template' },
+  jmpb: { kid: 'jump back to a landmark', machine: 'IP := backward template' },
+  call: { kid: 'run a routine and come back', machine: 'push IP; IP := outward template' },
+  ret: { kid: 'go back to where call came from', machine: 'IP := pop()' },
+  movDC: { kid: 'copy C into D', machine: 'D := C' },
+  movBA: { kid: 'copy A into B', machine: 'B := A' },
+  movii: { kid: 'copy one byte of yourself', machine: 'soup[A] := soup[B]' },
+  adro: { kid: 'find a landmark (either way)', machine: 'A := addr, C := size (outward)' },
+  adrb: { kid: 'find a landmark behind you', machine: 'A := addr, C := size (backward)' },
+  adrf: { kid: 'find a landmark ahead', machine: 'A := addr, C := size (forward)' },
+  mal: { kid: 'ask for space for a baby', machine: 'allocate daughter of size C; A := start' },
+  divide: { kid: 'split off your baby as a new creature', machine: 'release the filled daughter' },
 };
 
 export const VOCAB: VerbEntry[] = DICTIONARY.map((e) => {
   const m = META[e.mnemonic];
   if (!m) throw new Error(`vocab: no metadata for mnemonic ${e.mnemonic}`);
+  // The Bible is a bijection with the engine (asserted by gen-bindings and by
+  // the docs corpus test), so a missing binding means a stale generated file.
+  const b = OPCODE_BINDINGS[e.mnemonic];
+  if (!b) throw new Error(`vocab: no binding for mnemonic ${e.mnemonic} — run \`npm run gen:bindings\``);
   const suffix = /-([abcd])$/.exec(e.gene);
   const register = suffix ? (suffix[1]!.toUpperCase() as 'A' | 'B' | 'C' | 'D') : undefined;
-  return { verb: e.gene, mnemonic: e.mnemonic, category: m.cat, takesTarget: !!m.target, register, kid: m.kid, machine: m.machine };
+  return { verb: e.gene, mnemonic: e.mnemonic, category: b.category, takesTarget: b.takesTarget, register, kid: m.kid, machine: m.machine };
 });
 
 const byVerb = new Map(VOCAB.map((v) => [v.verb, v]));
