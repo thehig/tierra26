@@ -41,13 +41,13 @@ ready: true
   <Waypoint focus="registers">
   ## Four notebooks
 
-  A creature keeps numbers in *four notebooks* — <Chip register="A"/>, <Chip register="B"/>, <Chip register="C"/> and <Chip register="D"/>. Watch them change as it runs.
+  A creature keeps numbers in *four notebooks* — {register-a}, {register-b}, {register-c} and {register-d}. Watch them change as it runs.
   </Waypoint>
 
   <Waypoint focus="flags">
   ## Flags
 
-  {flags} are tiny *yes/no lights* it flips as it works. There are three: <Chip flag="E"/> when something went wrong, <Chip flag="S"/> and <Chip flag="Z"/>. They help it make decisions later on.
+  {flags} are tiny *yes/no lights* it flips as it works. There are three: {flag-e} when something went wrong, {flag-s} and {flag-z}. They help it make decisions later on.
   </Waypoint>
 
   <Waypoint focus="age">

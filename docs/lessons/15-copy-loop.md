@@ -19,7 +19,7 @@ soup: 256
   <Waypoint focus="genome">
   ## A real creature
 
-  This is a full creature — much bigger now. It finds itself, makes room, and runs a copy loop: <Chip opcode="movii"/>, move along, <Chip opcode="jmpb"/> until it’s done.
+  This is a full creature — much bigger now. It finds itself, makes room, and runs a copy loop: {movii}, move along, {jmpb} until it’s done.
   </Waypoint>
 
   <Waypoint focus="daughter">

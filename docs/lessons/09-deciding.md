@@ -23,12 +23,12 @@ requires: [loops]
   <Waypoint focus="genome">
   ## Only if zero
 
-  <Chip opcode="ifz"/> looks at notebook C. It lets the *next* block run only when C is zero — otherwise it skips it.
+  {ifz} looks at notebook {register-c}. It lets the *next* block run only when C is zero — otherwise it skips it.
   </Waypoint>
 
   <Waypoint focus="registers">
   ## The off-switch
 
-  Step through: C is 1 (not zero), so <Chip opcode="ifz"/> *skips* the <Chip opcode="zero"/>. This is how a copy loop knows when it’s finished.
+  Step through: C is 1 (not zero), so {ifz} *skips* the {zero}. This is how a copy loop knows when it’s finished.
   </Waypoint>
 </Scrolly>

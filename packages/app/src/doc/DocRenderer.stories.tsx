@@ -69,9 +69,9 @@ export const ProseAndChips: Story = {
       [
         '## Reading a sentence',
         '',
-        'The block <Chip opcode="incA"/> adds *one* to <Chip register="A"/>, and',
-        '<Chip opcode="jmpb">top</Chip> sends the reading head back to a landmark.',
-        'A failed write raises <Chip flag="E"/> inside the {soup}.',
+        'The block {incA} adds *one* to {register-a}, and',
+        '{jmpb top} sends the reading head back to a landmark.',
+        'A failed write raises {flag-e} inside the {soup}.',
         '',
         '- a bulleted point with `incB` written as a backtick token',
         '- and a [link to another page](../concepts/daughter.md)',
@@ -108,28 +108,32 @@ export const TheWholeVocabulary: Story = {
     source:
       FRONT +
       [
-        'Opcodes: <Chip opcode="incA"/> <Chip opcode="jmpb">top</Chip>',
+        'Opcodes: {incA} {jmpb top}',
         '',
-        'Registers: <Chip register="A"/> <Chip register="B"/> <Chip register="C"/> <Chip register="D"/>',
+        'Registers: {register-a} {register-b} {register-c} {register-d}',
         '',
-        'Flags: <Chip flag="E"/> <Chip flag="S"/> <Chip flag="Z"/>',
+        'Flags: {flag-e} {flag-s} {flag-z}',
         '',
-        'Concepts: <Chip concept="save-pile"/> <Chip concept="age"/> <Chip concept="reading-head"/>',
+        'Concepts: {save-pile} {age} {reading-head}',
         '',
-        'The same concepts written as keywords: {soup} {genome} {size} {reaper}',
+        'And the explicit tag form, for a chip that stands alone:',
+        '<Chip concept="soup" />',
       ].join(NL),
   },
   play: async ({ canvasElement }) => {
     await expect(canvasElement.querySelector('.doc-diag')).toBeNull();
+    // 2 opcodes + 4 registers + 3 flags + 3 concepts + 1 explicit <Chip> tag.
     const chips = [...canvasElement.querySelectorAll('.op-chip')];
-    await expect(chips.length).toBe(16);
+    await expect(chips.length).toBe(13);
     // Every one of them carries a glyph — that is the point of the unification.
     for (const c of chips) {
       await expect(c.querySelector('.op-chip-emoji')?.textContent?.length ?? 0).toBeGreaterThan(0);
     }
-    // {term} and <Chip concept> produce the same markup.
-    const asKeyword = chips.find((c) => c.textContent?.includes('soup'));
-    await expect(asKeyword?.className).toBe('op-chip');
+    // {token} and the <Chip> tag produce the same markup.
+    const asToken = chips.find((c) => c.textContent?.includes('save-pile'));
+    const asTag = chips.find((c) => c.textContent?.includes('soup'));
+    await expect(asToken?.className).toBe('op-chip');
+    await expect(asTag?.className).toBe('op-chip');
   },
 };
 
@@ -178,7 +182,7 @@ export const Scrolly: Story = {
         '',
         '  <Waypoint focus="ip">',
         '  ## The loop',
-        '  <Chip opcode="jmpb">top</Chip> sends the reading head back up.',
+        '  {jmpb top} sends the reading head back up.',
         '  </Waypoint>',
         '',
         '  <Waypoint focus="world" at="4">',
@@ -217,7 +221,7 @@ export const WaypointsDriveTheStage: Story = {
         '',
         '  <Waypoint focus="genome">',
         '  ## As authored',
-        '  Three <Chip opcode="incA"/> blocks, not yet run.',
+        '  Three {incA} blocks, not yet run.',
         '  </Waypoint>',
         '',
         '  <Waypoint focus="registers" at="3">',
@@ -261,7 +265,7 @@ export const Challenge: Story = {
       FRONT +
       [
         '<Challenge>',
-        'Make <Chip register="A"/> reach 3.',
+        'Make {register-a} reach 3.',
         '<Starter>',
         'incA',
         '</Starter>',

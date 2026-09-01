@@ -24,7 +24,7 @@ requires: [sums]
   <Waypoint focus="genome">
   ## Search by name
 
-  <Chip opcode="adrb"/> looks *backwards* through your own blocks for a signpost. This searches your *code*, not the world — it’s how a creature finds a spot inside itself. Like <Chip opcode="jmpb"/>, it’s a *two-cell block* — the search plus the signpost it hunts for. (<Chip opcode="adro"/> looks both ways; <Chip opcode="adrf"/> looks ahead.)
+  {adrb} looks *backwards* through your own blocks for a signpost. This searches your *code*, not the world — it’s how a creature finds a spot inside itself. Like {jmpb}, it’s a *two-cell block* — the search plus the signpost it hunts for. ({adro} looks both ways; {adrf} looks ahead.)
   </Waypoint>
 
   <Waypoint focus="registers">
@@ -35,7 +35,7 @@ requires: [sums]
 </Scrolly>
 
 <Challenge>
-Add a <Chip opcode="adrb">spot</Chip> line just above <Chip opcode="incB"/>, so the creature finds its own signpost — its length lands in C.
+Add a {adrb spot} line just above {incB}, so the creature finds its own signpost — its length lands in C.
 <Starter>
 spot:
 incA

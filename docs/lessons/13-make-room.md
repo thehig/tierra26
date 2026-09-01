@@ -25,7 +25,7 @@ requires: [measure]
   <Waypoint focus="world">
   ## A patch of world
 
-  <Chip opcode="mal"/> asks the world for a patch of *empty cells* — the free space you met earlier — and reserves it as the *daughter*. Notebook C says how many cells to grab.
+  {mal} asks the world for a patch of *empty cells* — the free space you met earlier — and reserves it as the *daughter*. Notebook C says how many cells to grab.
   </Waypoint>
 
   <Waypoint focus="daughter" run-until="daughter">
@@ -36,7 +36,7 @@ requires: [measure]
 </Scrolly>
 
 <Challenge>
-C is built up to 16. Add <Chip opcode="mal"/> to reserve room for a daughter.
+C is built up to 16. Add {mal} to reserve room for a daughter.
 <Starter>
 not0
 shl

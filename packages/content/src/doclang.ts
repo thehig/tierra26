@@ -73,7 +73,7 @@ import {
 export type InlineSegment =
   | { kind: 'text'; text: string }
   | { kind: 'code'; text: string }
-  | { kind: 'keyword'; term: string }
+  | { kind: 'token'; token: string; target?: string }
   | { kind: 'tag'; name: string; attrs: Readonly<Record<string, PValue>>; text?: string };
 
 /** True when the manifest marks `name` as an inline tag. */
@@ -82,6 +82,10 @@ export function isInlineTag(name: string): boolean {
 }
 
 const OPEN_TAG_RE = /^<([A-Za-z][A-Za-z0-9-]*)((?:\s[^>]*?)?)(\/?)>/;
+
+// {name} or {name target}. Anything else between braces is left as plain text,
+// so ordinary prose that happens to use a brace is not mangled.
+const TOKEN_RE = /^([A-Za-z][\w-]*)(?:\s+([A-Za-z0-9][\w-]*))?$/;
 
 /**
  * Split one run of prose into text / `code` / {term} / inline-tag segments.
@@ -110,10 +114,14 @@ export function splitInline(text: string): InlineSegment[] {
     } else if (c === '{') {
       const j = text.indexOf('}', i + 1);
       if (j > i) {
-        const term = text.slice(i + 1, j);
-        if (/^[A-Za-z][\w-]*$/.test(term)) {
+        const m = TOKEN_RE.exec(text.slice(i + 1, j));
+        if (m) {
           flush();
-          out.push({ kind: 'keyword', term });
+          out.push(
+            m[2] === undefined
+              ? { kind: 'token', token: m[1]! }
+              : { kind: 'token', token: m[1]!, target: m[2] },
+          );
           i = j + 1;
           continue;
         }
@@ -146,6 +154,40 @@ export function splitInline(text: string): InlineSegment[] {
   }
   flush();
   return out;
+}
+
+/**
+ * What an inline {token} names. Four namespaces, checked in a fixed order so the
+ * answer never depends on which happens to be asked first:
+ *
+ *   {register-a} {flag-e}   the engine's fixed registers and flags (explicit
+ *                           prefixes, so they can never be shadowed)
+ *   {soup} {save-pile}      a concept with a Bible page
+ *   {incA} {grow-a}         an instruction, by mnemonic or by display name
+ *
+ * Both the validator and the renderer call this, so a token cannot pass
+ * validation as one kind of thing and then paint as another.
+ */
+export type ResolvedToken =
+  | { kind: 'register'; id: string }
+  | { kind: 'flag'; id: string }
+  | { kind: 'concept'; slug: string }
+  | { kind: 'opcode'; name: string };
+
+const REGISTER_TOKEN = /^register-([A-Da-d])$/;
+const FLAG_TOKEN = /^flag-([ESZesz])$/;
+
+export function resolveToken(
+  token: string,
+  resolver: Pick<DocResolver, 'isOpcode' | 'hasConcept'>,
+): ResolvedToken | undefined {
+  const reg = REGISTER_TOKEN.exec(token);
+  if (reg) return { kind: 'register', id: reg[1]!.toUpperCase() };
+  const flag = FLAG_TOKEN.exec(token);
+  if (flag) return { kind: 'flag', id: flag[1]!.toUpperCase() };
+  if (resolver.hasConcept(token)) return { kind: 'concept', slug: token };
+  if (resolver.isOpcode(token)) return { kind: 'opcode', name: token };
+  return undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -469,11 +511,20 @@ function makeProse(slice: readonly string[], startLine: number): DocProseNode {
           ? seg.text.length
           : seg.kind === 'code'
             ? seg.text.length + 2
-            : seg.kind === 'keyword'
-              ? seg.term.length + 2
+            : seg.kind === 'token'
+              ? seg.token.length + (seg.target ? seg.target.length + 1 : 0) + 2
               : 0;
-      if (seg.kind === 'keyword') {
-        refs.push({ kind: 'keyword', term: seg.term, loc: loc(lineNo, col, col + width) });
+      if (seg.kind === 'token') {
+        refs.push(
+          seg.target === undefined
+            ? { kind: 'token', token: seg.token, loc: loc(lineNo, col, col + width) }
+            : {
+                kind: 'token',
+                token: seg.token,
+                target: seg.target,
+                loc: loc(lineNo, col, col + width),
+              },
+        );
       } else if (seg.kind === 'tag') {
         // exactOptionalPropertyTypes: only carry `text` when the tag had a label.
         refs.push(
@@ -565,12 +616,14 @@ function walk(
       for (const ref of node.refs) {
         if (ref.kind === 'tag') {
           checkTag(ref.name, ref.attrs, ref.loc, parent, out, resolver);
-        } else if (ref.kind === 'keyword' && !resolver.hasConcept(ref.term)) {
+        } else if (ref.kind === 'token' && !resolveToken(ref.token, resolver)) {
+          // An unresolvable token is an ERROR, not a warning: it would render as
+          // nothing recognisable, and the author almost certainly meant something.
           out.push(
             diag(
-              'unknown-keyword',
-              'warning',
-              `{${ref.term}} is not a concept we know — check the spelling, or add docs/bible/concepts/${ref.term}.md.`,
+              'unknown-token',
+              'error',
+              `{${ref.token}} does not name anything. A token is an instruction ({incA}, {grow-a}), a register ({register-a}), a flag ({flag-e}), or a concept with a Bible page ({soup}).`,
               ref.loc,
             ),
           );

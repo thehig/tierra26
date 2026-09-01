@@ -19,7 +19,7 @@ soup: 256
   <Waypoint focus="daughter">
   ## Split
 
-  Once the daughter is a full copy, <Chip opcode="divide"/> sets her free as a brand-new creature — her own body, her own reading head, her own life.
+  Once the daughter is a full copy, {divide} sets her free as a brand-new creature — her own body, her own reading head, her own life.
   </Waypoint>
 
   <Waypoint focus="world" run-until="birth">

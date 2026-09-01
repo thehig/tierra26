@@ -41,7 +41,7 @@ requires: [world]
 </Scrolly>
 
 <Challenge>
-Add blocks until your body fills exactly 6 cells. (Any `grow`/<Chip opcode="not0"/>/<Chip opcode="shl"/> block is one cell.)
+Add blocks until your body fills exactly 6 cells. (Any `grow`/{not0}/{shl} block is one cell.)
 <Starter>
 incA
 incB

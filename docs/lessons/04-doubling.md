@@ -22,7 +22,7 @@ requires: [zero-flip]
   <Waypoint focus="genome">
   ## Times two
 
-  <Chip opcode="shl"/> *doubles* notebook C. Start at 1, and 1 → 2 → 4 → 8 in just a few blocks.
+  {shl} *doubles* notebook {register-c}. Start at 1, and 1 → 2 → 4 → 8 in just a few blocks.
   </Waypoint>
 
   <Waypoint focus="registers">
@@ -33,7 +33,7 @@ requires: [zero-flip]
 </Scrolly>
 
 <Challenge>
-Make notebook C reach 4.
+Make notebook {register-c} reach 4.
 <Starter>
 not0
 shl

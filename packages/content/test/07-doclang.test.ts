@@ -15,6 +15,7 @@ import {
   parseDoc,
   readAttrs,
   childTag,
+  resolveToken,
   sectionOf,
   splitInline,
   validateDoc,
@@ -130,10 +131,10 @@ describe('DOCLANG · inline tags', () => {
     assert.equal(segs[1]?.kind === 'text' && segs[1].text, ' sends it back');
   });
 
-  it('still reads {term} and `code`, and leaves an unterminated one as text', () => {
+  it('still reads {token} and `code`, and leaves an unterminated one as text', () => {
     const segs = splitInline('the {soup} holds `incA` but not {broken');
     assert.deepEqual(
-      segs.filter((s) => s.kind === 'keyword').map((s) => (s as { term: string }).term),
+      segs.filter((s) => s.kind === 'token').map((s) => (s as { token: string }).token),
       ['soup'],
     );
     assert.deepEqual(
@@ -141,6 +142,33 @@ describe('DOCLANG · inline tags', () => {
       ['incA'],
     );
     assert.ok(segs.some((s) => s.kind === 'text' && s.text.includes('{broken')));
+  });
+
+  it('reads every namespace through one {token} syntax', () => {
+    const seg = (src: string) => splitInline(src).find((x) => x.kind === 'token');
+    assert.deepEqual(seg('{incA}'), { kind: 'token', token: 'incA' });
+    assert.deepEqual(seg('{jmpb top}'), { kind: 'token', token: 'jmpb', target: 'top' });
+    assert.deepEqual(seg('{register-a}'), { kind: 'token', token: 'register-a' });
+    assert.deepEqual(seg('{flag-e}'), { kind: 'token', token: 'flag-e' });
+    assert.deepEqual(seg('{save-pile}'), { kind: 'token', token: 'save-pile' });
+  });
+
+  it('resolves a token to exactly one namespace, in a fixed order', () => {
+    const r = { isOpcode: (t: string) => t === 'incA', hasConcept: (s: string) => s === 'soup' };
+    assert.deepEqual(resolveToken('register-a', r), { kind: 'register', id: 'A' });
+    assert.deepEqual(resolveToken('register-C', r), { kind: 'register', id: 'C' });
+    assert.deepEqual(resolveToken('flag-z', r), { kind: 'flag', id: 'Z' });
+    assert.deepEqual(resolveToken('soup', r), { kind: 'concept', slug: 'soup' });
+    assert.deepEqual(resolveToken('incA', r), { kind: 'opcode', name: 'incA' });
+    // `register` alone is the concept page, not a register: the prefix rule
+    // needs the dash and the letter.
+    assert.equal(resolveToken('register', r), undefined);
+    assert.equal(resolveToken('nope', r), undefined);
+  });
+
+  it('leaves ordinary braces in prose alone', () => {
+    assert.deepEqual(splitInline('a {} b'), [{ kind: 'text', text: 'a {} b' }]);
+    assert.deepEqual(splitInline('use {0, 1} bits'), [{ kind: 'text', text: 'use {0, 1} bits' }]);
   });
 
   it('indexes inline tags on the prose node so the validator can reach them', () => {
@@ -257,6 +285,13 @@ describe('DOCLANG · determinism (C-CON-DET)', () => {
 
 // ---------------------------------------------------------------------------
 describe('DOCLANG · validation', () => {
+  it('rejects a token that names nothing', () => {
+    const r = doc('Press {nope} now.');
+    const ds = errors(validateDoc(r.ast, makeResolver({ isOpcode: () => false, hasConcept: () => false })));
+    assert.equal(ds.length, 1);
+    assert.equal(ds[0]!.code, 'unknown-token');
+  });
+
   it('flags an opcode the engine does not have (C-CON-SOURCE)', () => {
     const r = doc('Press <Chip opcode="nope"/> now.');
     const ds = validateDoc(r.ast, makeResolver({ isOpcode: (s) => s === 'incA' }));

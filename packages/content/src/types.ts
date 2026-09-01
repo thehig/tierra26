@@ -422,6 +422,8 @@ export function hasErrors(ds: readonly { severity: Severity }[]): boolean {
 
 import type { PValue } from './parseval.ts';
 
+// CodeRef is shared with the [01] lesson format; a doc token is doclang's own.
+
 /** Frontmatter is per-kind (an opcode page and a lesson share no schema), so the
  *  parser records raw declarative values and the KIND's validator checks them. */
 export type DocFrontmatter = Readonly<Record<string, PValue>>;
@@ -438,7 +440,18 @@ export interface DocInlineTagRef {
   loc: Loc;
 }
 
-export type DocInlineRef = InlineRef | DocInlineTagRef;
+/** An inline {token}: the one way a document names a part of the machine.
+ *  `token` is unresolved on purpose — which of the four namespaces it lands in
+ *  is validate()'s job, through the caller's resolver (C-CON-SOURCE). */
+export interface DocTokenRef {
+  kind: 'token';
+  token: string;
+  /** The label a control instruction points at: `{jmpb top}`. */
+  target?: string;
+  loc: Loc;
+}
+
+export type DocInlineRef = DocTokenRef | CodeRef | DocInlineTagRef;
 
 /** A run of markdown prose. `markdown` is verbatim; `refs` indexes the inline
  *  {term} / `verb` / <Chip/> spans, as ProseNode does for the [01] format. */

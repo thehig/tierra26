@@ -51,6 +51,11 @@ export interface TagSpec {
   doc: string;
 }
 
+/** The engine's fixed registers and flags. A {register-a} / {flag-e} token
+ *  resolves against these, so the parser needs no registry to check them. */
+export const REGISTER_IDS = ['A', 'B', 'C', 'D'] as const;
+export const FLAG_IDS = ['E', 'S', 'Z'] as const;
+
 /** What a waypoint can tell the stage to run until (types.ts `StageCondition`). */
 export const STAGE_CONDITIONS = ['birth', 'daughter', 'halt', 'error'] as const;
 
@@ -98,7 +103,7 @@ export const MANIFEST: Readonly<Record<string, TagSpec>> = Object.freeze({
   // -- the God Design: one chip for every token the language can name ---------
   Chip: {
     name: 'Chip',
-    doc: 'The canonical token chip. Renders an opcode/register/flag/concept with its bound emoji, colour and name, in whichever language mode is active.',
+    doc: 'Explicit form of an inline {token}. Prefer the brace syntax in prose — {incA}, {jmpb top}, {register-a}, {flag-e}, {save-pile} — and reach for this tag only when a chip needs to stand alone as its own block.',
     attrs: {
       opcode: t('opcode', 'An engine mnemonic (incA) or its bound display name (grow-a).'),
       register: t('register', 'A, B, C or D.', { values: ['A', 'B', 'C', 'D'] }),

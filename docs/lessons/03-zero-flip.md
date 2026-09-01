@@ -22,7 +22,7 @@ requires: [count-down]
   <Waypoint focus="genome">
   ## Flip and clear
 
-  <Chip opcode="not0"/> flips the smallest bit of C (0 ↔ 1). <Chip opcode="zero"/> wipes C straight back to *zero*.
+  {not0} flips the smallest bit of C (0 ↔ 1). {zero} wipes C straight back to *zero*.
   </Waypoint>
 
   <Waypoint focus="registers">
@@ -33,7 +33,7 @@ requires: [count-down]
 </Scrolly>
 
 <Challenge>
-Turn notebook C into 1.
+Turn notebook {register-c} into 1.
 <Starter>
 zero
 </Starter>

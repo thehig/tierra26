@@ -22,18 +22,18 @@ requires: [meet]
   <Waypoint focus="genome">
   ## Adding one
 
-  The block <Chip opcode="incA"/> adds *one* to notebook A. There’s <Chip opcode="incB"/> and <Chip opcode="incC"/> too — one per notebook.
+  The block {incA} adds *one* to notebook {register-a}. There’s {incB} and {incC} too — one per notebook.
   </Waypoint>
 
   <Waypoint focus="registers">
   ## Watch A climb
 
-  Step through this creature. Each <Chip opcode="incA"/> bumps A up by one: 0 → 1 → 2 → 3.
+  Step through this creature. Each {incA} bumps A up by one: 0 → 1 → 2 → 3.
   </Waypoint>
 </Scrolly>
 
 <Challenge>
-Make notebook A reach 3.
+Make notebook {register-a} reach 3.
 <Starter>
 incA
 incA

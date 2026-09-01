@@ -24,18 +24,18 @@ requires: [deciding]
   <Waypoint focus="genome">
   ## Take away
 
-  <Chip opcode="subCAB"/> does a sum: it puts *A minus B* into notebook C.
+  {subCAB} does a sum: it puts *A minus B* into notebook {register-c}.
   </Waypoint>
 
   <Waypoint focus="registers">
   ## A − B → C
 
-  Here A is 3 and B is 1, so <Chip opcode="subCAB"/> makes C = 2. Step through and see.
+  Here A is 3 and B is 1, so {subCAB} makes C = 2. Step through and see.
   </Waypoint>
 </Scrolly>
 
 <Challenge>
-A is 3 and B is 1. Add <Chip opcode="subCAB"/> to put A − B into C (that’s 2).
+A is 3 and B is 1. Add {subCAB} to put A − B into C (that’s 2).
 <Starter>
 incA
 incA

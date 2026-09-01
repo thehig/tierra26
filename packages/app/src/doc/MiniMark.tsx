@@ -12,10 +12,19 @@
 // Block grammar: ATX headings, paragraphs, `-`/`*` and `1.` lists, fenced code,
 // `>` blockquotes, `---` rules. No tables — no Bible page uses one.
 import type { ReactNode } from 'react';
-import { splitInline } from '@tierra26/content/doclang.ts';
-import { entry, entryOfMnemonic } from '@tierra26/genescript/vocab.ts';
+import { resolveToken, splitInline } from '@tierra26/content/doclang.ts';
+import { entry, entryOfMnemonic, isVerb, mnemonicToVerb } from '@tierra26/genescript/vocab.ts';
+import { CONCEPT_BINDINGS } from '../design/bindings.ts';
 import { Chip } from './Chip.tsx';
 import { Link } from '../router/router.tsx';
+
+// The renderer resolves a {token} with the SAME function the validator used, so
+// what passed the build is what paints. Its two lookups are the app's own
+// registries: the engine vocabulary, and the concepts the Bible defines.
+const TOKENS = {
+  isOpcode: (t: string) => isVerb(t) || mnemonicToVerb(t) !== undefined,
+  hasConcept: (s: string) => s in CONCEPT_BINDINGS,
+};
 
 // ---------------------------------------------------------------------------
 // Inline
@@ -92,11 +101,21 @@ export function Inline({ text, keyPrefix = '' }: { text: string; keyPrefix?: str
               </code>
             );
           }
-          case 'keyword':
-            // {soup} and <Chip concept="soup"/> are the same thing written two
-            // ways, so they render identically. Validation already rejects a
-            // {term} with no concept page, so this always resolves in a document.
-            return <Chip key={k} concept={seg.term} />;
+          case 'token': {
+            // {incA} {jmpb top} {register-a} {flag-e} {save-pile} — one syntax
+            // for every named part of the machine. Validation rejects a token
+            // that resolves to nothing, so in a document this always lands.
+            const r = resolveToken(seg.token, TOKENS);
+            if (!r) return <code key={k} className="rt-code">{seg.token}</code>;
+            if (r.kind === 'register') return <Chip key={k} register={r.id} />;
+            if (r.kind === 'flag') return <Chip key={k} flag={r.id} />;
+            if (r.kind === 'concept') return <Chip key={k} concept={r.slug} />;
+            return (
+              <Chip key={k} opcode={r.name}>
+                {seg.target}
+              </Chip>
+            );
+          }
           case 'tag':
             return (
               <Chip
