@@ -8,6 +8,7 @@ import type { AnimationSpec } from '@tierra26/content/types.ts';
 import { opcodeEmoji } from './opcodeEmoji.ts';
 import { categoryVar, type KeywordCategory } from '../design/palette.ts';
 import { useLanguageMode } from '../design/languageMode.tsx';
+import { simpleName } from '../design/bindings.ts';
 import { Link } from '../router/router.tsx';
 
 type Target = AnimationSpec['targets'][number];
@@ -31,9 +32,9 @@ export function OpcodeTooltip({ gene, x, y, onEnter, onLeave }: { gene: string; 
   const advanced = useLanguageMode() === 'advanced';
   const v = entry(gene);
   if (!v) return null;
-  // advanced leads with the real mnemonic; simple leads with the friendly verb (the other sits small)
-  const name = advanced ? v.mnemonic : v.verb;
-  const sub = advanced ? v.verb : v.mnemonic;
+  // advanced leads with the real mnemonic; simple leads with the friendly (bindings) name
+  const name = advanced ? v.mnemonic : simpleName(v.verb);
+  const sub = advanced ? simpleName(v.verb) : v.mnemonic;
   const page = pageOf(gene);
   const targets = page?.animation.targets ?? [];
   const watch = page?.commonMistakes[0];

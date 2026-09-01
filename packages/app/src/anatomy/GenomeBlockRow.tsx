@@ -12,6 +12,7 @@ import type { MouseEvent, Ref } from 'react';
 import { verbToMnemonic } from '@tierra26/genescript/vocab.ts';
 import { categoryVar } from '../design/palette.ts';
 import { useLanguageMode } from '../design/languageMode.tsx';
+import { simpleName } from '../design/bindings.ts';
 import { CONCEPT_EMOJI } from './opcodeEmoji.ts';
 import type { GenomeBlock } from './useMicroEngine.ts';
 
@@ -38,10 +39,13 @@ export function GenomeBlockRow({
 }) {
   const { addr, text, emoji, category, isLabel, isRaw, isCont, isIp } = block;
   const kind = blockKind(block);
-  // advanced mode names an opcode by its real mnemonic (grow-a → incA); raw is already the mnemonic.
+  // advanced names an opcode by its real mnemonic (grow-a → incA); simple uses the bindings' friendly
+  // name (grow-a, or a rebind). Raw is already the mnemonic; labels & targets keep their names.
   const advanced = useLanguageMode() === 'advanced';
-  const displayText = advanced && block.gene && (kind === 'verb' || kind === 'raw')
-    ? (verbToMnemonic(block.gene) ?? text) : text;
+  const displayText =
+    advanced && block.gene && (kind === 'verb' || kind === 'raw') ? (verbToMnemonic(block.gene) ?? text)
+    : !advanced && block.gene && kind === 'verb' ? simpleName(block.gene)
+    : text;
   // only real instruction rows (verb / raw) have a definition to pop; labels and payloads don't.
   const tipGene = !plain && (kind === 'verb' || kind === 'raw') ? (block.gene ?? null) : null;
   const enter = (e: MouseEvent<HTMLDivElement>) => { onEnter?.(); onTip?.(tipGene, tipGene ? e.currentTarget.getBoundingClientRect() : null); };
