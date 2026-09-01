@@ -2,6 +2,7 @@
 import { CHAPTERS } from '../learn/chapters.ts';
 import { Link } from '../router/router.tsx';
 import { usePrefs } from '../store/prefs.tsx';
+import { WipMark } from '../learn/WipMark.tsx';
 
 export function Home() {
   const { isCompleted, completed } = usePrefs();
@@ -47,7 +48,7 @@ export function Home() {
                   {done && <span className="lc-check">✓</span>}
                   {!c.ready && !locked && <span className="lc-soon">soon</span>}
                 </span>
-                <span className="lc-title">{c.title}</span>
+                <span className="lc-title">{!c.ready && <WipMark />}{c.title}</span>
               </Link>
             );
           })}

@@ -9,6 +9,7 @@ import { MicroSandbox } from '../learn/MicroSandbox.tsx';
 import { chapterById, nextChapter, chapterSoup } from '../learn/chapters.ts';
 import { usePrefs } from '../store/prefs.tsx';
 import { Link } from '../router/router.tsx';
+import { WipMark } from '../learn/WipMark.tsx';
 
 // Inline rich text: `verb` → colored code, *word* → emphasis.
 function RichText({ text }: { text: string }) {
@@ -53,7 +54,7 @@ export function ChapterPage({ id }: { id: string }) {
     return (
       <div className="page chapter coming">
         <div className="eyebrow">Chapter {chapter.no}</div>
-        <h1>{chapter.title}</h1>
+        <h1><WipMark />{chapter.title}</h1>
         <p className="anatomy-lede">We’re building this chapter next — it’ll teach the next brick. Check back soon!</p>
         <Link className="btn" to="home">← Back to the map</Link>
       </div>

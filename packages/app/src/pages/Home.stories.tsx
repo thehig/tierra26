@@ -3,6 +3,8 @@ import { expect } from 'storybook/test';
 import { defaultAppState, reduce, persist } from '@tierra26/ui/shell.ts';
 import { PrefsProvider } from '../store/prefs.tsx';
 import { RouterProvider } from '../router/router.tsx';
+import { CHAPTERS } from '../learn/chapters.ts';
+import { withViewport, viewportArgType, viewportOptions, type ViewportArgs } from '../design/viewports.tsx';
 import { Home } from './Home.tsx';
 
 // Seed the learner-progress store (localStorage) BEFORE the providers mount, so we can render Home at
@@ -15,14 +17,20 @@ function seed(completed: string[]) {
 const card = (c: HTMLElement, title: string) =>
   [...c.querySelectorAll('.lesson-card')].find((el) => el.textContent?.includes(title)) as HTMLElement;
 
-const meta = {
+// The map is a plain flex list, but the hero and the cards reflow at the 640/420 breakpoints — the
+// shared `viewport` knob (design/viewports.tsx) resizes the canvas so those actually fire.
+type Args = ViewportArgs; // Home takes no props of its own — the knob is the whole arg surface
+
+const meta: Meta<Args> = {
   title: 'Pages/Home',
   component: Home,
-  parameters: { layout: 'fullscreen' },
-  decorators: [(S) => <PrefsProvider><RouterProvider><S /></RouterProvider></PrefsProvider>],
-} satisfies Meta<typeof Home>;
+  parameters: { layout: 'fullscreen', viewport: { options: viewportOptions } },
+  args: { viewport: 'fit' },
+  argTypes: { viewport: viewportArgType },
+  decorators: [withViewport, (S) => <PrefsProvider><RouterProvider><S /></RouterProvider></PrefsProvider>],
+};
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<Args>;
 
 // Fresh learner: only the first chapter is open; later chapters are locked.
 export const Fresh: Story = {
@@ -38,5 +46,19 @@ export const AfterFirstChapter: Story = {
   beforeEach: async () => { seed(['meet']); },
   play: async ({ canvasElement: c }) => {
     await expect(card(c, 'Count up').className).not.toMatch(/locked/);
+  },
+};
+
+// The map lists every chapter, built or not — the ones that aren't properly implemented yet carry a
+// warning triangle on their title, and only those.
+export const NotImplementedFlagged: Story = {
+  beforeEach: async () => { localStorage.removeItem('t26-state'); },
+  play: async ({ canvasElement: c }) => {
+    const cards = [...c.querySelectorAll('.lesson-card')];
+    await expect(cards.length).toBe(CHAPTERS.length);
+    for (const ch of CHAPTERS) {
+      const title = card(c, ch.title).querySelector('.lc-title')!;
+      await expect(!!title.querySelector('.wip-mark')).toBe(!ch.ready);
+    }
   },
 };

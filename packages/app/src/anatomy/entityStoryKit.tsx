@@ -8,6 +8,7 @@ import type { StoryObj } from '@storybook/react-vite';
 import { useMicroEngine } from './useMicroEngine.ts';
 import { EntityDiagram, type Focus } from './EntityDiagram.tsx';
 import { ANCESTOR_GS } from '@tierra26/genescript/ancestor.gs.ts';
+import { PANEL_WIDTHS } from '../design/viewports.tsx';
 
 // A live wrapper: drives the real micro-engine so stories are interactive (Step/Run work) and the
 // assertions run against the real component + engine — exactly what the app renders. The entity
@@ -51,10 +52,13 @@ export const spotlight = (focus: Focus, spotSelector: string): Story => ({
   },
 });
 
-// One responsive story per breakpoint tier: assert the layout reflowed to the expected column count
-// and that the panel never scrolls sideways at that width.
-export const responsive = (width: number, columns: number): Story => ({
-  args: { source: ANCESTOR_GS, soup: 256, width },
+// One responsive story per breakpoint tier. The widths come from the shared size table
+// (design/viewports.tsx → PANEL_WIDTHS) — CONTAINER widths, not viewport sizes, because this panel
+// reflows on its own width via @container; the page stories next door use the viewport half of that
+// module instead. Assert the layout reflowed to the expected column count and that the panel never
+// scrolls sideways at that width.
+export const responsive = (tier: keyof typeof PANEL_WIDTHS, columns: number): Story => ({
+  args: { source: ANCESTOR_GS, soup: 256, width: PANEL_WIDTHS[tier] },
   play: async ({ canvasElement: c }) => {
     await expect(columnCount(c)).toBe(columns);
     await expect(hOverflow(c)).toBeLessThanOrEqual(1);

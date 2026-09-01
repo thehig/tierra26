@@ -10,8 +10,8 @@ const meta = {
 } satisfies Meta<typeof LiveEntity>;
 export default meta;
 
-export const Mobile: Story = responsive(360, 1);       // phone portrait — single column
-export const Tablet: Story = responsive(480, 2);       // narrow column — world | side, genome below
-export const Laptop: Story = responsive(900, 3);       // full three-column layout
-export const Desktop: Story = responsive(1280, 3);     // roomier, same three columns
-export const HugeDesktop: Story = responsive(1680, 3); // very wide — the genome column stretches
+export const Mobile: Story = responsive('mobile', 1);    // 360 — single column
+export const Tablet: Story = responsive('tablet', 2);    // 480 — world | side, genome below
+export const Laptop: Story = responsive('laptop', 3);    // 900 — full three-column layout
+export const Desktop: Story = responsive('desktop', 3);  // 1280 — roomier, same three columns
+export const HugeDesktop: Story = responsive('huge', 3); // 1680 — the genome column stretches
