@@ -43,3 +43,19 @@ export function tooltipMarkdown(doc: LoadedDoc | undefined, advanced: boolean): 
   const first = above.find((n) => n.kind === 'prose');
   return first && first.kind === 'prose' ? first.markdown : undefined;
 }
+
+/** Markdown reduced to one plain sentence-stream, for a hover card.
+ *  Strips emphasis, inline code, {term} braces and inline <Chip/> tags, and
+ *  collapses the wrapping — a card wants a paragraph, not a document. */
+export function plainText(markdown: string): string {
+  return markdown
+    .replace(/<Chip[^>]*?\/>/g, '')
+    .replace(/<Chip[^>]*?>([^<]*)<\/Chip>/g, '$1')
+    .replace(/`([^`]*)`/g, '$1')
+    .replace(/\*\*([^*]*)\*\*/g, '$1')
+    .replace(/\*([^*]*)\*/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/\{([A-Za-z][\w-]*)\}/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
+}

@@ -51,6 +51,9 @@ export interface TagSpec {
   doc: string;
 }
 
+/** What a waypoint can tell the stage to run until (types.ts `StageCondition`). */
+export const STAGE_CONDITIONS = ['birth', 'daughter', 'halt', 'error'] as const;
+
 // The 9 spotlight targets EntityDiagram understands (its `Focus` union).
 export const FOCUS_VALUES = [
   'whole',
@@ -125,12 +128,17 @@ export const MANIFEST: Readonly<Record<string, TagSpec>> = Object.freeze({
   },
   Waypoint: {
     name: 'Waypoint',
-    doc: 'One scroll step. When it centres in the viewport its events drive the stage.',
+    doc: 'One scroll step. When it centres in the viewport it drives the stage: spotlight a part, advance the demo, or swap what the demo is.',
     attrs: {
       focus: t('enum', 'Which part of the stage to spotlight.', { values: FOCUS_VALUES }),
-      at: t('int', 'Step the stage demo to this tick when the waypoint centres.'),
+      at: t('int', 'Park the stage demo on this tick.'),
+      'run-until': t('enum', 'Run the demo until this happens, instead of counting ticks.', {
+        values: STAGE_CONDITIONS,
+      }),
     },
-    children: 'prose',
+    // A waypoint may carry its own <Genome> or <State>, which override the
+    // stage's for as long as it is the one being read.
+    children: ['Genome', 'State'],
     parents: ['Scrolly'],
   },
 
@@ -162,7 +170,7 @@ export const MANIFEST: Readonly<Record<string, TagSpec>> = Object.freeze({
     doc: 'The creature code, written in real mnemonics. Use `ref` for a named genome instead of inline text.',
     attrs: { ref: t('string', 'A named starter genome id (e.g. ancestor).') },
     children: 'raw',
-    parents: ['EntityDesigner'],
+    parents: ['EntityDesigner', 'Waypoint'],
   },
   State: {
     name: 'State',
@@ -177,7 +185,7 @@ export const MANIFEST: Readonly<Record<string, TagSpec>> = Object.freeze({
       ip: t('int', 'Reading-head offset from the creature start.'),
     },
     children: 'none',
-    parents: ['EntityDesigner'],
+    parents: ['EntityDesigner', 'Waypoint'],
   },
 
   // -- challenges -------------------------------------------------------------

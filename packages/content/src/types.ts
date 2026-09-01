@@ -487,5 +487,9 @@ export interface DocParseResult {
 // payload as a list (rather than a single `focus` field) means a new kind of
 // scroll event is a manifest row, not a refactor.
 export type StageEvent =
-  | { kind: 'focus'; part: string } // one of EntityDiagram's Focus values
-  | { kind: 'at'; step: number };   // step the demo to tick N when this waypoint centres
+  | { kind: 'focus'; part: string }   // one of EntityDiagram's Focus values
+  | { kind: 'at'; step: number }      // park the demo on tick N
+  | { kind: 'until'; condition: StageCondition }; // run until something happens
+
+/** Things a waypoint can wait for, rather than counting ticks by hand. */
+export type StageCondition = 'birth' | 'daughter' | 'halt' | 'error';

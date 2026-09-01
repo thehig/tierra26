@@ -2,6 +2,7 @@
 // daughter and babies) in a small magnified world, stepped one instruction at a time — or Run to
 // auto-step the bigger self-copiers. Reports live state + a per-cell world map so the world is seen.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { StageCondition } from '@tierra26/content/types.ts';
 import { Engine } from '@tierra26/engine';
 import { classic32, DICTIONARY } from '@tierra26/engine/isa.ts';
 import { compileProgram } from '@tierra26/genescript/comp.ts';
@@ -294,5 +295,42 @@ export function useMicroEngine(source: string, soupSize = 256, initial?: Initial
     setSteps(tick);
   }, [build, read, stopRun]);
 
-  return { state, step, reset, run, pause: stopRun, running, steps, stepTo };
+  // Run from the authored start until something interesting happens. A waypoint
+  // that wants to talk about the moment a baby is born should not have to know
+  // which tick that is — the tick changes the moment anyone edits the genome.
+  const runUntil = useCallback((condition: StageCondition, cap = 8000) => {
+    stopRun();
+    build();
+    const e = engineRef.current;
+    let t = 0;
+    if (e) {
+      const met = () => {
+        const c = e.world.creatures.get(idRef.current);
+        switch (condition) {
+          case 'birth': return e.world.creatures.size >= 2;
+          case 'daughter': return !!c && c.dauStart >= 0;
+          case 'error': return !!c && c.cpu.flagE;
+          case 'halt': {
+            if (!c) return true;
+            const rel = c.cpu.ip - c.start;
+            return rel < 0 || rel >= c.size;
+          }
+        }
+      };
+      while (t < cap && !met()) {
+        const c = e.world.creatures.get(idRef.current);
+        if (!c) break;
+        const rel = c.cpu.ip - c.start;
+        // A straight-line program parks at its end; stop there rather than
+        // wandering into empty soup (the same rule Step and Run follow).
+        if (condition !== 'halt' && (rel < 0 || rel >= c.size)) break;
+        e.step();
+        t++;
+      }
+    }
+    setState(read());
+    setSteps(t);
+  }, [build, read, stopRun]);
+
+  return { state, step, reset, run, pause: stopRun, running, steps, stepTo, runUntil };
 }

@@ -32,7 +32,7 @@ requires: [landmarks]
   Look at the world: <Chip opcode="jmpb"/> fills *two cells*. The first is the *jump* (⏪); the second is a *marker* (🔴) — a copy of the signpost it’s aiming at, exactly the markers you met last chapter. So a jump is a *two-part block*: the jump plus its target marker. Most blocks are one cell; only jumps and searches carry a target like this.
   </Waypoint>
 
-  <Waypoint focus="registers">
+  <Waypoint focus="registers" at="12">
   ## Watch A climb
 
   Press *Run* and watch A shoot up. A loop is how a creature does a lot with just a few blocks.

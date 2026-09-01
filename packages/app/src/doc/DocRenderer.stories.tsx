@@ -158,6 +158,65 @@ export const Scrolly: Story = {
   },
 };
 
+// --- a waypoint that DRIVES the stage, not just spotlights it ----------------
+// The scroll channel carries three things now: which part to ring, how far to
+// advance the demo, and — via a waypoint's own <Genome>/<State> — what the demo
+// even is. The last one lets one Scrolly walk through several creatures.
+export const WaypointsDriveTheStage: Story = {
+  args: {
+    source:
+      FRONT +
+      [
+        '<Scrolly>',
+        '  <Stage>',
+        '    <EntityDesigner soup="36">',
+        '      <Genome>',
+        '        incA',
+        '        incA',
+        '        incA',
+        '      </Genome>',
+        '    </EntityDesigner>',
+        '  </Stage>',
+        '',
+        '  <Waypoint focus="genome">',
+        '  ## As authored',
+        '  Three <Chip opcode="incA"/> blocks, not yet run.',
+        '  </Waypoint>',
+        '',
+        '  <Waypoint focus="registers" at="3">',
+        '  ## Advanced to tick 3',
+        '  The same creature, parked three ticks in.',
+        '  </Waypoint>',
+        '',
+        '  <Waypoint focus="registers">',
+        '  ## Starting somewhere else',
+        '  The same code, but A already holds 9.',
+        '  <State a="9" />',
+        '  </Waypoint>',
+        '',
+        '  <Waypoint focus="genome">',
+        '  ## A different creature entirely',
+        '  This waypoint swaps the genome while you read it.',
+        '  <Genome>',
+        '  zero',
+        '  not0',
+        '  shl',
+        '  </Genome>',
+        '  </Waypoint>',
+        '</Scrolly>',
+      ].join('\n'),
+  },
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelector('.doc-diag')).toBeNull();
+    await expect(canvasElement.querySelectorAll('.scrolly-step').length).toBe(4);
+    // <Genome>/<State> inside a waypoint are DATA for the stage, so they must not
+    // also print into the waypoint's text column.
+    const text = canvasElement.querySelector('.scrolly-steps')!.textContent ?? '';
+    await expect(text).not.toContain('zero');
+    await expect(text).not.toContain('a="9"');
+  },
+};
+
 // --- a challenge -------------------------------------------------------------
 export const Challenge: Story = {
   args: {

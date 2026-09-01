@@ -45,6 +45,7 @@ import type {
   DocErrorNode,
   Loc,
   Severity,
+  StageCondition,
   StageEvent,
 } from './types.ts';
 import {
@@ -755,13 +756,18 @@ function checkGoal(attrs: Readonly<Record<string, PValue>>, at: Loc, out: Diagno
 // written once rather than in every consumer.
 // ---------------------------------------------------------------------------
 
-/** The scroll events a <Waypoint> carries, in a fixed order. */
+/** The scroll events a <Waypoint> carries, in a fixed order.
+ *  Order is the application order: spotlight first, then advance. */
 export function waypointEvents(node: DocTagNode): StageEvent[] {
   const events: StageEvent[] = [];
   const focus = node.attrs['focus'];
   if (typeof focus === 'string') events.push({ kind: 'focus', part: focus });
   const at = node.attrs['at'];
   if (typeof at === 'number') events.push({ kind: 'at', step: at });
+  const until = node.attrs['run-until'];
+  if (typeof until === 'string') {
+    events.push({ kind: 'until', condition: until as StageCondition });
+  }
   return events;
 }
 

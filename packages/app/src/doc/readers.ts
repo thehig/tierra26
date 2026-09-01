@@ -116,10 +116,15 @@ export function genomeSourceOf(node: DocTagNode): string {
   return geneTextOf(childTag(node, 'Genome'));
 }
 
-/** The authored starting CPU state, or undefined when there is no <State/>. */
+/** The authored starting CPU state of a node's <State/> child, if it has one. */
 export function initialStateOf(node: DocTagNode): InitialState | undefined {
   const s = childTag(node, 'State');
-  if (!s) return undefined;
+  return s ? stateOf(s) : undefined;
+}
+
+/** Read a <State/> node itself. Separate from initialStateOf because a waypoint
+ *  hands its own <State/> straight to the stage as an override. */
+export function stateOf(s: DocTagNode): InitialState | undefined {
   const regs: NonNullable<InitialState['regs']> = {};
   for (const k of ['a', 'b', 'c', 'd'] as const) {
     const v = s.attrs[k];

@@ -14,6 +14,7 @@ import {
   foldAt,
   parseDoc,
   readAttrs,
+  childTag,
   sectionOf,
   splitInline,
   validateDoc,
@@ -36,6 +37,8 @@ function makeResolver(o: Partial<Record<keyof DocResolver, (s: string) => boolea
     hasLesson: o.hasLesson ?? yes,
   };
 }
+
+const NL = String.fromCharCode(10);
 
 const LESSON = { kind: 'lesson', slug: 'loops', file: 'docs/lessons/08-loops.md' } as const;
 
@@ -332,6 +335,46 @@ describe('DOCLANG · readers', () => {
       { kind: 'focus', part: 'world' },
       { kind: 'at', step: 6 },
     ]);
+  });
+
+  it('reads run-until as a stage event', () => {
+    const r = doc(
+      ['<Scrolly>', '<Waypoint focus="world" run-until="birth">', 'hi', '</Waypoint>', '</Scrolly>'].join(NL),
+    );
+    const wp = tags(tags(r.ast.body)[0]!.children)[0]!;
+    assert.deepEqual(waypointEvents(wp), [
+      { kind: 'focus', part: 'world' },
+      { kind: 'until', condition: 'birth' },
+    ]);
+    assert.equal(errors(validateDoc(r.ast, makeResolver())).length, 0);
+  });
+
+  it('rejects a run-until condition the stage cannot check', () => {
+    const r = doc(
+      ['<Scrolly>', '<Waypoint run-until="lunchtime">', 'hi', '</Waypoint>', '</Scrolly>'].join(NL),
+    );
+    assert.ok(errors(validateDoc(r.ast, makeResolver())).some((d) => d.code === 'bad-enum'));
+  });
+
+  it('lets a waypoint carry its own <Genome> and <State> to override the stage', () => {
+    const r = doc(
+      [
+        '<Scrolly>',
+        '<Waypoint focus="genome">',
+        'A different creature.',
+        '<Genome>',
+        'zero',
+        'not0',
+        '</Genome>',
+        '<State a="9" />',
+        '</Waypoint>',
+        '</Scrolly>',
+      ].join(NL),
+    );
+    assert.equal(errors(validateDoc(r.ast, makeResolver())).length, 0);
+    const wp = tags(tags(r.ast.body)[0]!.children)[0]!;
+    assert.equal(childTag(wp, 'Genome')?.text, 'zero' + NL + 'not0');
+    assert.equal(childTag(wp, 'State')?.attrs['a'], 9);
   });
 
   it('splits a body at an explicit <Fold/>', () => {

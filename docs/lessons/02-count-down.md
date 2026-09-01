@@ -11,25 +11,50 @@ requires: [count-up]
 <Scrolly>
   <Stage>
     <EntityDesigner>
-    <Genome>
-      incC
-      incC
-      incC
-      decC
-    </Genome>
+      <Genome>
+        incC
+        incC
+        incC
+        decC
+      </Genome>
     </EntityDesigner>
   </Stage>
 
-  <Waypoint focus="genome">
+  <Waypoint focus="genome" at="0">
   ## Taking one away
 
-  <Chip opcode="decC"/> takes *one* away from notebook C — the opposite of <Chip opcode="incC"/>.
+  <Chip opcode="decC"/> takes *one* away from notebook C — the opposite of
+  <Chip opcode="incC"/>. This creature has four blocks and hasn't run any of them
+  yet, so C is still *0*.
+
+  Keep scrolling. Each step below runs one more block.
   </Waypoint>
 
-  <Waypoint focus="registers">
-  ## Up, then down
+  <Waypoint focus="registers" at="1">
+  ## One
 
-  This creature counts C up to 3, then <Chip opcode="decC"/> brings it back to 2. Step through and watch.
+  The first <Chip opcode="incC"/> ran. C is now *1*.
+  </Waypoint>
+
+  <Waypoint focus="registers" at="2">
+  ## Two
+
+  The second one ran. C is *2* — climbing by one each time.
+  </Waypoint>
+
+  <Waypoint focus="registers" at="3">
+  ## Three
+
+  And the third. C reaches *3*, the highest this creature counts.
+  </Waypoint>
+
+  <Waypoint focus="registers" at="4">
+  ## And back down
+
+  Now the last block — <Chip opcode="decC"/> — takes one away again. C drops to
+  *2*. Up three, down one.
+
+  Scroll back up and watch it run in reverse.
   </Waypoint>
 </Scrolly>
 

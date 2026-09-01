@@ -17,12 +17,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { EntityDiagram, type Auto, type Focus } from '../../anatomy/EntityDiagram.tsx';
 import { useMicroEngine } from '../../anatomy/useMicroEngine.ts';
-import { attr, genomeSourceOf, goalOf, initialStateOf } from '../readers.ts';
+import { attr, geneTextOf, genomeSourceOf, goalOf, initialStateOf, stateOf } from '../readers.ts';
 import { GeneEditorLazy } from '../../editor/GeneEditorLazy.tsx';
 import { LanguageModeFixed } from '../../design/languageMode.tsx';
 import { checkMicroGoal } from '../../learn/chapters.ts';
 import type { DocComponentProps } from '../DocRenderer.tsx';
-import { useStageFocus, useStageTick } from './ScrollyTag.tsx';
+import { useStageAdvance, useStageFocus, useStageOverrides } from './ScrollyTag.tsx';
 import { GoalChip } from './ChallengeTag.tsx';
 
 export function EntityDesignerTag({ node, ctx }: DocComponentProps) {
@@ -32,9 +32,20 @@ export function EntityDesignerTag({ node, ctx }: DocComponentProps) {
   const loupe = attr.str(node, 'loupe', 'auto') as Auto;
   const mode = attr.str(node, 'mode', 'follow');
 
-  const authored = useMemo(() => genomeSourceOf(node), [node]);
-  const initial = useMemo(() => initialStateOf(node), [node]);
   const goal = useMemo(() => goalOf(node), [node]);
+
+  // A waypoint being read may replace what the stage shows — its own <Genome> or
+  // <State> wins for as long as it is centred, so one Scrolly can walk a learner
+  // through several creatures, or the same creature from several starting states.
+  const override = useStageOverrides();
+  const authored = useMemo(
+    () => (override.genome ? geneTextOf(override.genome) : genomeSourceOf(node)),
+    [node, override.genome],
+  );
+  const initial = useMemo(
+    () => (override.state ? stateOf(override.state) : initialStateOf(node)),
+    [node, override.state],
+  );
 
   // An editable designer owns its source; a read-only one mirrors the document,
   // so re-authoring the markdown updates the stage on hot reload.
@@ -43,14 +54,17 @@ export function EntityDesignerTag({ node, ctx }: DocComponentProps) {
 
   const micro = useMicroEngine(editable ? source : authored, soup, initial);
 
-  // Scroll waypoints drive the stage. `focus` rings one part; `at` parks the demo
-  // on an exact tick, so a waypoint can talk about a moment rather than just a part.
+  // Scroll waypoints drive the stage: `focus` rings one part, `at` parks the demo
+  // on an exact tick, and `run-until` advances it to the moment something happens
+  // — so a waypoint can talk about an event without the author counting ticks.
   const focus = useStageFocus() as Focus;
-  const tick = useStageTick();
-  const { stepTo } = micro;
+  const advance = useStageAdvance();
+  const { stepTo, runUntil } = micro;
   useEffect(() => {
-    if (tick !== null) stepTo(tick);
-  }, [tick, stepTo]);
+    if (!advance) return;
+    if (advance.until) runUntil(advance.until);
+    else if (advance.at !== undefined) stepTo(advance.at);
+  }, [advance?.at, advance?.until, stepTo, runUntil]);
 
   // Live goal checking, latched: once met it stays met, so a value the creature
   // merely passes through cannot un-solve itself on the next tick.

@@ -5,38 +5,62 @@
 // meant to grow: a new stage component reads the same context without Scrolly
 // knowing it exists.
 //
-// This is also the one place where the old hard limit is lifted. Previously a
-// waypoint could only push a `focus` string; now it publishes a LIST of
-// StageEvents, so `at="6"` (step the demo to tick 6) works alongside the
-// spotlight, and a future `run-until` is a manifest row rather than a refactor.
+// This is where the old hard limit is lifted. A waypoint used to be able to push
+// only a `focus` string at the stage. Now it can also ADVANCE the demo
+// (`at="6"`, or `run-until="birth"` when the interesting tick is not a number an
+// author should have to know) and MODIFY it — its own <Genome> or <State>
+// replaces the stage's for as long as that waypoint is the one being read.
 import { createContext, useContext } from 'react';
-import type { StageEvent } from '@tierra26/content/types.ts';
+import type { DocTagNode, StageCondition } from '@tierra26/content/types.ts';
 import { childTag, childTags, waypointEvents } from '@tierra26/content/doclang.ts';
 import { Scrolly, type ScrollyStep } from '../../anatomy/Scrolly.tsx';
 import { DocNodes, type DocComponentProps } from '../DocRenderer.tsx';
 
-/** The events of the waypoint currently centred in the viewport.
- *  `null` means nothing is being read — the stage shows everything, undimmed. */
-const StageEventsContext = createContext<readonly StageEvent[] | null>(null);
+/** The waypoint currently centred in the viewport, or null when nothing is being
+ *  read — in which case the stage shows everything, undimmed.
+ *
+ *  The whole NODE is published, not a pre-digested event list, so a new waypoint
+ *  capability is a new reader rather than a new case in a union that Scrolly
+ *  would also have to know about. `<Genome>` and `<State>` overrides ride along
+ *  for free that way.  */
+const ActiveWaypointContext = createContext<DocTagNode | null>(null);
 
-export function useStageEvents(): readonly StageEvent[] | null {
-  return useContext(StageEventsContext);
+export function useActiveWaypoint(): DocTagNode | null {
+  return useContext(ActiveWaypointContext);
 }
 
 /** The spotlight target a stage component should show right now. */
 export function useStageFocus(): string {
-  const events = useStageEvents();
-  if (events === null) return 'whole'; // nothing centred -> nothing dimmed
-  const f = events.find((e) => e.kind === 'focus');
+  const wp = useActiveWaypoint();
+  if (!wp) return 'whole'; // nothing centred -> nothing dimmed
+  const f = waypointEvents(wp).find((e) => e.kind === 'focus');
   return f && f.kind === 'focus' ? f.part : 'whole';
 }
 
-/** The tick a stage demo should be parked at, or null to leave it alone. */
-export function useStageTick(): number | null {
-  const events = useStageEvents();
-  if (events === null) return null;
-  const a = events.find((e) => e.kind === 'at');
-  return a && a.kind === 'at' ? a.step : null;
+/** How the centred waypoint wants the demo advanced, if at all. */
+export interface StageAdvance {
+  at?: number;
+  until?: StageCondition;
+}
+
+export function useStageAdvance(): StageAdvance | null {
+  const wp = useActiveWaypoint();
+  if (!wp) return null;
+  const out: StageAdvance = {};
+  for (const e of waypointEvents(wp)) {
+    if (e.kind === 'at') out.at = e.step;
+    if (e.kind === 'until') out.until = e.condition;
+  }
+  return out.at === undefined && out.until === undefined ? null : out;
+}
+
+/** A waypoint may replace what the stage is showing while it is being read. */
+export function useStageOverrides(): { genome?: DocTagNode; state?: DocTagNode } {
+  const wp = useActiveWaypoint();
+  if (!wp) return {};
+  const genome = childTag(wp, 'Genome');
+  const state = childTag(wp, 'State');
+  return { ...(genome ? { genome } : {}), ...(state ? { state } : {}) };
 }
 
 export function ScrollyTag({ node, ctx }: DocComponentProps) {
@@ -52,11 +76,9 @@ export function ScrollyTag({ node, ctx }: DocComponentProps) {
     <Scrolly
       steps={steps}
       stage={(active) => (
-        <StageEventsContext.Provider
-          value={active === null ? null : waypointEvents(waypoints[active]!)}
-        >
+        <ActiveWaypointContext.Provider value={active === null ? null : waypoints[active]!}>
           {stage ? <DocNodes nodes={stage.children} ctx={ctx} /> : null}
-        </StageEventsContext.Provider>
+        </ActiveWaypointContext.Provider>
       )}
     />
   );

@@ -28,7 +28,7 @@ requires: [measure]
   <Chip opcode="mal"/> asks the world for a patch of *empty cells* — the free space you met earlier — and reserves it as the *daughter*. Notebook C says how many cells to grab.
   </Waypoint>
 
-  <Waypoint focus="daughter">
+  <Waypoint focus="daughter" run-until="daughter">
   ## The daughter appears
 
   Watch those free cells light up as the daughter — empty and waiting. Only the mother may write there.

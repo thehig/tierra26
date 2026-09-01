@@ -22,7 +22,7 @@ soup: 256
   Once the daughter is a full copy, <Chip opcode="divide"/> sets her free as a brand-new creature — her own body, her own reading head, her own life.
   </Waypoint>
 
-  <Waypoint focus="world">
+  <Waypoint focus="world" run-until="birth">
   ## Two, then many
 
   Now there are two. Each will copy itself too. Press *Run* and watch your creature become a family.
