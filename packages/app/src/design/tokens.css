@@ -8,6 +8,8 @@
   --accent:#0B9B8A; --accent-ink:#06463F; --accent-tint:#E0F1EE;
   --kw-action:#D9532F; --kw-register:#2F6DE0; --kw-marker:#8A4FD6;
   --kw-control:#1E9A56; --kw-value:#BC841B; --kw-concept:#0B9B8A;
+  /* per-register colours (A/B/C/D) — one hue each, used wherever a register is named */
+  --reg-a:#3E74E3; --reg-b:#B85CD1; --reg-c:#C7761B; --reg-d:#2AA37E;
   --good:#1E9A56; --warn:#BC841B; --crit:#CF4029;
   --fd:'Bricolage Grotesque', system-ui, sans-serif;
   --fb:'IBM Plex Sans', system-ui, sans-serif;
@@ -21,6 +23,7 @@
     --accent:#37C9B6; --accent-ink:#BCEFE6; --accent-tint:#0E2A25;
     --kw-action:#FF7C55; --kw-register:#6396FF; --kw-marker:#B98BF1;
     --kw-control:#3BC57D; --kw-value:#E6B24D; --kw-concept:#37C9B6;
+    --reg-a:#6E9BFF; --reg-b:#D79BEE; --reg-c:#E6B24D; --reg-d:#4CCBA0;
     --good:#3BC57D; --warn:#E6B24D; --crit:#F26A50;
   }
 }

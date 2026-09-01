@@ -4,6 +4,7 @@ import { disassemble } from '@tierra26/genescript/disasm.ts';
 import { classic32 } from '@tierra26/engine/isa.ts';
 import type { InspectView } from '@tierra26/ui/protocol.ts';
 import { GenomeBlockRow } from '../anatomy/GenomeBlockRow.tsx';
+import { registerVar, type RegisterId } from '../design/datasheet.ts';
 
 const disasm = makeDisassembler(disassemble, classic32);
 
@@ -28,7 +29,7 @@ export function Inspector({
 
       <div className="chips">
         {p.registers.map((r) => (
-          <span className="chip reg" key={r.name}><b>{r.name}</b>{r.value}</span>
+          <span className="chip reg" key={r.name}><b style={{ color: registerVar(r.name as RegisterId) }}>{r.name}</b>{r.value}</span>
         ))}
         {p.flags.map((f) => (
           <span className={`chip flag ${f.on ? 'on' : ''}`} key={f.name}>{f.name}</span>

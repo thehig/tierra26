@@ -3,6 +3,7 @@
 // save-pile, daughter, and age. A `focus` (from scroll waypoints) spotlights one part at a time.
 import { useEffect, useRef, useState } from 'react';
 import { opcodeEmoji } from './opcodeEmoji.ts';
+import { registerVar } from '../design/datasheet.ts';
 import { GenomeBlockRow } from './GenomeBlockRow.tsx';
 import { OpcodeTooltip } from './OpcodeTooltip.tsx';
 import type { EntityState, GenomeBlock } from './useMicroEngine.ts';
@@ -121,7 +122,7 @@ export function EntityDiagram({
           <div className="reg-cards">
             {REG_KEYS.map((k) => (
               <div className={`reg-card ${changed[k] ? 'changed' : ''}`} key={k}>
-                <span className="reg-name">{k}</span><span className="reg-val">{state.regs[k]}</span>
+                <span className="reg-name" style={{ color: registerVar(k) }}>{k}</span><span className="reg-val">{state.regs[k]}</span>
               </div>
             ))}
           </div>
