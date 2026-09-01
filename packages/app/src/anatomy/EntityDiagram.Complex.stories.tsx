@@ -25,6 +25,12 @@ export const Ancestor: Story = {
     await expect(texts).toContain('nop1');
     await expect(texts.some((t) => /^label\d+:/.test(t))).toBe(false);
     await expect(texts.some((t) => /points at/.test(t))).toBe(false);
+    // …and those raw-authored bytes (`raw nop1`, `raw adrb`, …) render as explicit raw blocks — each
+    // tagged `raw` so it never reads as a friendly verb or a label; the first is `raw nop1`
+    const raws = [...c.querySelectorAll('.gblock.is-raw')];
+    await expect(raws.length).toBeGreaterThan(0);
+    await expect(raws.every((r) => r.querySelector('.gblock-raw')?.textContent === 'raw')).toBe(true);
+    await expect(raws[0]!.querySelector('.gblock-text')!.textContent).toBe('nop1');
     // the genome list is height-bounded and scrolls internally (not down the page)
     const g = c.querySelector('.genome-blocks') as HTMLElement;
     await expect(g.scrollHeight).toBeGreaterThan(g.clientHeight);

@@ -48,6 +48,8 @@ export const Loops: Story = {
     await expect(worldEmojis.filter((e) => e === '🔴').length).toBe(1); // the payload marker
     // genome shows the label by the name the source wrote (`top`), not a generic `label1`
     await expect(c.querySelector('.gblock.is-label .gblock-text')!.textContent).toBe('top:');
+    // a label's template bytes are label marks, NOT `raw` blocks — only source `raw <op>` is tagged raw
+    await expect(c.querySelector('.gblock.is-raw')).toBeNull();
     // genome: a jump-back row + a subordinate payload row naming its target by that same name
     await expect(c.querySelector('.gblock.is-payload')).toBeTruthy();
     await expect(c.querySelector('.gblock.is-payload .gpay-text')!.textContent).toBe('points at top');

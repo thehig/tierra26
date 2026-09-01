@@ -103,9 +103,11 @@ export function EntityDiagram({
             return (
               <div className="gline" key={b.addr} ref={b.isIp ? ipRef : undefined} onMouseEnter={setB} onMouseLeave={clearHover}>
                 <span className="gaddr" title="this cell’s position in the code">{b.addr >= 0 ? b.addr : ''}</span>
-                <div className={`gblock ${b.isLabel ? 'is-label' : ''} ${b.isIp ? 'is-ip' : ''} ${b.isCont ? 'is-payload' : ''} ${lit ? 'link' : ''}`} style={col}>
+                <div className={`gblock ${b.isLabel ? 'is-label' : ''} ${b.isIp ? 'is-ip' : ''} ${b.isCont ? 'is-payload' : ''} ${b.isRaw ? 'is-raw' : ''} ${lit ? 'link' : ''}`} style={col}>
                   <span className={`gblock-head ${b.isCont ? 'gpay-arrow' : ''} ${b.isIp && focus === 'ip' ? 'spot' : ''}`} aria-label={b.isIp ? 'reading head' : undefined}>{b.isIp ? '▶' : b.isCont ? '↳' : ''}</span>
                   <span className="gblock-emoji" aria-hidden="true">{b.emoji}</span>
+                  {/* a raw block is an exact opcode byte the source pinned — tag it so it never reads as a friendly verb or a label */}
+                  {b.isRaw && <span className="gblock-raw" title="an exact opcode byte, written `raw` in the source">raw</span>}
                   <span className={`gblock-text ${b.isCont ? 'gpay-text' : ''}`}>{b.text}</span>
                 </div>
               </div>

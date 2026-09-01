@@ -21,6 +21,7 @@ export interface GenomeBlock {
   emoji: string;
   category: KeywordCategory | 'value'; isLabel: boolean; isIp: boolean;
   isCont: boolean;       // a continuation byte (a label's extra marks, or a jump/find target) — a subordinate row
+  isRaw: boolean;        // authored as `raw <mnemonic>` — an exact opcode byte, not a friendly verb/label
   groupStart: number;    // first byte of this byte's instruction (for hover grouping)
   groupSpan: number;     // bytes in that instruction
 }
@@ -92,7 +93,7 @@ export function useMicroEngine(source: string, soupSize = 256) {
   // soup addr 0 → bytes line up 1:1), read the truth from the compiler's byte→statement source map:
   // the label name the kid actually wrote (`top:`), and raw nops shown as the `nop1`s they are — never
   // a label that isn't in the source. We fall back to the disassembler only with no source map.
-  type Group = { start: number; end: number; isLabel: boolean; headText: string; payloadText: string };
+  type Group = { start: number; end: number; isLabel: boolean; isRaw: boolean; headText: string; payloadText: string };
   const groups = useMemo((): Group[] => {
     const anns = disasm.annotations;
     const { sourceMap, program } = compiled;
@@ -100,11 +101,12 @@ export function useMicroEngine(source: string, soupSize = 256) {
       // Source-faithful: one group per source statement, tiling every byte (ranges are gap-free).
       return sourceMap.ranges.map((r): Group => {
         const st = program.statements[r.stmt];
-        if (st?.kind === 'label') return { start: r.start, end: r.end, isLabel: true, headText: `${st.name}:`, payloadText: '' };
-        if (st?.kind === 'control') return { start: r.start, end: r.end, isLabel: false, headText: st.verb, payloadText: st.target ? `points at ${st.target}` : '' };
-        if (st?.kind === 'verb') return { start: r.start, end: r.end, isLabel: false, headText: st.verb, payloadText: '' };
-        if (st?.kind === 'raw') return { start: r.start, end: r.end, isLabel: false, headText: st.mnemonic, payloadText: '' };
-        return { start: r.start, end: r.end, isLabel: false, headText: '', payloadText: '' };
+        if (st?.kind === 'label') return { start: r.start, end: r.end, isLabel: true, isRaw: false, headText: `${st.name}:`, payloadText: '' };
+        if (st?.kind === 'control') return { start: r.start, end: r.end, isLabel: false, isRaw: false, headText: st.verb, payloadText: st.target ? `points at ${st.target}` : '' };
+        if (st?.kind === 'verb') return { start: r.start, end: r.end, isLabel: false, isRaw: false, headText: st.verb, payloadText: '' };
+        // `raw <mnemonic>` — an exact opcode byte the source pinned; show the mnemonic, flagged raw.
+        if (st?.kind === 'raw') return { start: r.start, end: r.end, isLabel: false, isRaw: true, headText: st.mnemonic, payloadText: '' };
+        return { start: r.start, end: r.end, isLabel: false, isRaw: false, headText: '', payloadText: '' };
       });
     }
     // Fallback (no source map, e.g. a compile error, or a future non-source genome): the
@@ -115,8 +117,10 @@ export function useMicroEngine(source: string, soupSize = 256) {
       let j = i; while (j < anns.length && anns[j]!.lineIndex === anns[i]!.lineIndex) j++;
       const toks = ln.text.trim().split(/\s+/);
       const isLabel = ln.kind === 'label';
-      gs.push({ start: i, end: j, isLabel, headText: isLabel ? ln.text.trim() : toks[0]!,
-        payloadText: !isLabel && toks.length > 1 ? `points at ${toks.slice(1).join(' ')}` : '' });
+      const isRaw = !isLabel && toks[0] === 'raw';
+      gs.push({ start: i, end: j, isLabel, isRaw,
+        headText: isLabel ? ln.text.trim() : isRaw ? toks.slice(1).join(' ') : toks[0]!,
+        payloadText: !isLabel && !isRaw && toks.length > 1 ? `points at ${toks.slice(1).join(' ')}` : '' });
       i = j;
     }
     return gs;
@@ -168,7 +172,7 @@ export function useMicroEngine(source: string, soupSize = 256) {
         const text = isHead ? g.headText : (k === g.start + 1 ? g.payloadText : '');
         blocks.push({
           addr: a.byteIndex, text, emoji: opcodeEmoji(blockGene(a.verb ?? null, a.mnemonic ?? null)),
-          category, isLabel: g.isLabel, isCont, isIp: a.byteIndex === ipByte, groupStart: g.start, groupSpan: span,
+          category, isLabel: g.isLabel, isCont, isRaw: g.isRaw, isIp: a.byteIndex === ipByte, groupStart: g.start, groupSpan: span,
         });
       }
     }

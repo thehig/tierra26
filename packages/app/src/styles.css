@@ -454,6 +454,11 @@ svg.spark { display: block; width: 100%; height: 54px; }
 @keyframes rh-pulse { 0%,100% { opacity: .5; } 50% { opacity: 1; } }
 .gblock-emoji { flex: 0 0 1.3em; text-align: center; }
 .gblock-text { color: var(--ink); min-width: 0; word-break: break-word; }
+/* a `raw` block is an exact opcode byte the source pinned (not a friendly verb or a label): a small
+   uppercase tag before its mnemonic, and a faint fill so a run of them reads as one low-level band */
+.gblock.is-raw { background: color-mix(in srgb, currentColor 5%, var(--surface-2)); }
+.gblock-raw { flex: 0 0 auto; font-family: var(--fd); font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--faint); border: 1px solid var(--line-2); border-radius: 4px; padding: 0 4px; line-height: 1.5; }
 /* a block and its payload rows travel together; payload rows sit closer to their parent */
 .gblockgroup { display: flex; flex-direction: column; gap: 3px; }
 /* the payload row (a jump/find target) — subordinate: dashed, muted, a ↳ connector to its instruction */
@@ -508,6 +513,9 @@ svg.spark { display: block; width: 100%; height: 54px; }
 .op-chip-emoji { display: inline-flex; align-items: center; font-size: 1em; line-height: 1; }
 .op-chip-name { display: inline-flex; align-items: center; line-height: 1; color: var(--ink); }
 .chapter.coming { text-align: center; max-width: 620px; margin: 30px auto; }
+/* Warning triangle on the title/heading of any chapter that isn't properly implemented yet. */
+.wip-mark { margin-right: 6px; font-size: .9em; line-height: 1; }
+.chapter.coming h1 .wip-mark { margin-right: 10px; }
 .lc-soon { font-size: .62rem; text-transform: uppercase; letter-spacing: .06em; color: var(--accent-ink); background: var(--accent-tint); padding: 1px 6px; border-radius: 5px; margin-left: auto; }
 :root[data-theme="dark"] .lc-soon { color: var(--accent); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .lc-soon { color: var(--accent); } }
