@@ -1,13 +1,14 @@
 // Anatomy/Datasheet — the visual-language reference, rendered live from design/datasheet.ts. It shows
 // what every category COLOUR means, the per-register colours, the block-kind treatments, and the full
 // opcode roster (all 32, plus the label / raw / target kinds) exactly as the genome viewer draws them.
-import { useState, type CSSProperties } from 'react';
+import { useState, type CSSProperties, type MouseEvent } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, userEvent, within } from 'storybook/test';
 import { CATEGORIES, BLOCK_KINDS, REGISTERS, OPCODES, opcodesInCategory } from './datasheet.ts';
 import { categoryVar } from './palette.ts';
 import { useLanguageMode } from './languageMode.tsx';
 import { BINDINGS, CONCEPT_BINDINGS, simpleName, isValidName, type Binding } from './bindings.ts';
+import { OpcodeTooltip } from '../anatomy/OpcodeTooltip.tsx';
 
 // one opcode rendered exactly as the genome viewer draws it (the .gblock vocabulary)
 function Chip({ emoji, text, colorVar, raw = false, label = false, lead }: { emoji?: string; text: string; colorVar: string; raw?: boolean; label?: boolean; lead?: string }) {
@@ -103,11 +104,15 @@ export const All: Story = {
 const emojiInput: CSSProperties = { width: 42, fontSize: 20, textAlign: 'center', padding: '4px 2px', border: '1px solid var(--line-2)', borderRadius: 8, background: 'var(--surface)' };
 const nameInput: CSSProperties = { width: 120, fontFamily: 'var(--fm)', fontSize: '.82rem', padding: '5px 7px', border: '1px solid var(--line-2)', borderRadius: 8, background: 'var(--surface)', color: 'var(--ink)' };
 
-// one editable row, keyed by mnemonic (the fixed identity)
-function BindRow({ mn, name, emoji, color, onName, onEmoji }: { mn: string; name: string; emoji: string; color?: string; onName: (v: string) => void; onEmoji: (v: string) => void }) {
+// one editable row, keyed by mnemonic (the fixed identity). Hovering an opcode row (one with a gene)
+// pops its definition tooltip, so you can pick a better name/emoji from what it actually does.
+function BindRow({ mn, gene, name, emoji, color, onName, onEmoji, onHover }: { mn: string; gene?: string; name: string; emoji: string; color?: string; onName: (v: string) => void; onEmoji: (v: string) => void; onHover?: (gene: string | null, rect: DOMRect | null) => void }) {
   const bad = !isValidName(name);
+  const enter = gene && onHover ? (e: MouseEvent<HTMLDivElement>) => onHover(gene, e.currentTarget.getBoundingClientRect()) : undefined;
+  const leave = gene && onHover ? () => onHover(null, null) : undefined;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', border: '1px solid var(--line)', borderRadius: 10, background: 'var(--surface)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', border: '1px solid var(--line)', borderRadius: 10, background: 'var(--surface)' }}
+      onMouseEnter={enter} onMouseLeave={leave}>
       <input className="bind-emoji" data-mn={mn} aria-label={`${mn} emoji`} style={emojiInput} value={emoji} onChange={(e) => onEmoji(e.target.value)} />
       <input className={`bind-name ${bad ? 'invalid' : ''}`} data-mn={mn} aria-label={`${mn} name`} spellCheck={false}
         style={{ ...nameInput, borderColor: bad ? 'var(--crit)' : 'var(--line-2)' }} value={name} onChange={(e) => onName(e.target.value)} />
@@ -120,6 +125,8 @@ function BindingsEditor() {
   const [rows, setRows] = useState<Record<string, Binding>>(() => structuredClone(BINDINGS));
   const [concepts, setConcepts] = useState<Record<string, Binding>>(() => structuredClone(CONCEPT_BINDINGS));
   const [exported, setExported] = useState('');
+  const [tip, setTip] = useState<{ gene: string; x: number; y: number } | null>(null);
+  const onHover = (gene: string | null, rect: DOMRect | null) => setTip(gene && rect ? { gene, x: rect.right, y: rect.top } : null);
   const setName = (mn: string, v: string) => setRows((m) => ({ ...m, [mn]: { ...m[mn]!, name: v } }));
   const setEmoji = (mn: string, v: string) => setRows((m) => ({ ...m, [mn]: { ...m[mn]!, emoji: v } }));
   const invalid = [...Object.values(rows), ...Object.values(concepts)].filter((r) => !isValidName(r.name)).length;
@@ -149,7 +156,7 @@ function BindingsEditor() {
           <div style={{ ...sec, margin: '0 0 8px' }}><span style={{ color: cat.colorVar }}>{cat.label}</span></div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 8 }}>
             {opcodesInCategory(cat.key).map((o) => (
-              <BindRow key={o.mnemonic} mn={o.mnemonic} color={cat.colorVar}
+              <BindRow key={o.mnemonic} mn={o.mnemonic} gene={o.verb} color={cat.colorVar} onHover={onHover}
                 name={rows[o.mnemonic]?.name ?? ''} emoji={rows[o.mnemonic]?.emoji ?? ''}
                 onName={(v) => setName(o.mnemonic, v)} onEmoji={(v) => setEmoji(o.mnemonic, v)} />
             ))}
@@ -167,6 +174,7 @@ function BindingsEditor() {
           ))}
         </div>
       </section>
+      {tip && <OpcodeTooltip {...tip} />}
     </div>
   );
 }
@@ -179,6 +187,10 @@ export const Bindings: Story = {
     await expect(c.querySelectorAll('.bind-name').length).toBe(OPCODES.length + 1);
     const exportBtn = within(c).getByRole('button', { name: /Export to JSON/ });
     const name = c.querySelector('.bind-name[data-mn="incA"]') as HTMLInputElement; // grow-a's opcode
+
+    // hovering an opcode row pops its definition tooltip (to help pick a name/emoji from what it does)
+    await userEvent.hover(name.parentElement as HTMLElement);
+    await expect(c.querySelector('.op-tip')).toBeTruthy();
 
     // an invalid name (a symbol / space) blocks export and flags the field
     await userEvent.clear(name);
