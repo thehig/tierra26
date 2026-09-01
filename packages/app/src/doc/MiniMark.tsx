@@ -15,7 +15,6 @@ import type { ReactNode } from 'react';
 import { splitInline } from '@tierra26/content/doclang.ts';
 import { entry, entryOfMnemonic } from '@tierra26/genescript/vocab.ts';
 import { Chip } from './Chip.tsx';
-import { KeywordCard } from './KeywordCard.tsx';
 import { Link } from '../router/router.tsx';
 
 // ---------------------------------------------------------------------------
@@ -94,7 +93,10 @@ export function Inline({ text, keyPrefix = '' }: { text: string; keyPrefix?: str
             );
           }
           case 'keyword':
-            return <KeywordCard key={k} term={seg.term} />;
+            // {soup} and <Chip concept="soup"/> are the same thing written two
+            // ways, so they render identically. Validation already rejects a
+            // {term} with no concept page, so this always resolves in a document.
+            return <Chip key={k} concept={seg.term} />;
           case 'tag':
             return (
               <Chip

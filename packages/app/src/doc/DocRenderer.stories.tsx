@@ -57,6 +57,8 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+const NL = String.fromCharCode(10);
+
 const FRONT = ['---', 'id: fixture', 'title: A fixture lesson', '---', ''].join('\n');
 
 // --- prose + the polymorphic chip -------------------------------------------
@@ -93,6 +95,41 @@ export const AdvancedNames: Story = {
     const names = [...canvasElement.querySelectorAll('.op-chip-name')].map((n) => n.textContent);
     await expect(names.some((n) => n?.startsWith('incA'))).toBe(true);
     await expect(names.some((n) => n?.startsWith('grow-a'))).toBe(false);
+  },
+};
+
+// --- every named thing gets the same treatment -------------------------------
+// An opcode, a register, a flag and a concept are all the same kind of object to
+// a reader: a named part of the machine. They therefore all render as a chip
+// with a glyph, a colour role and a hover card, and {term} is just a shorter way
+// of writing <Chip concept="...">.
+export const TheWholeVocabulary: Story = {
+  args: {
+    source:
+      FRONT +
+      [
+        'Opcodes: <Chip opcode="incA"/> <Chip opcode="jmpb">top</Chip>',
+        '',
+        'Registers: <Chip register="A"/> <Chip register="B"/> <Chip register="C"/> <Chip register="D"/>',
+        '',
+        'Flags: <Chip flag="E"/> <Chip flag="S"/> <Chip flag="Z"/>',
+        '',
+        'Concepts: <Chip concept="save-pile"/> <Chip concept="age"/> <Chip concept="reading-head"/>',
+        '',
+        'The same concepts written as keywords: {soup} {genome} {size} {reaper}',
+      ].join(NL),
+  },
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelector('.doc-diag')).toBeNull();
+    const chips = [...canvasElement.querySelectorAll('.op-chip')];
+    await expect(chips.length).toBe(16);
+    // Every one of them carries a glyph — that is the point of the unification.
+    for (const c of chips) {
+      await expect(c.querySelector('.op-chip-emoji')?.textContent?.length ?? 0).toBeGreaterThan(0);
+    }
+    // {term} and <Chip concept> produce the same markup.
+    const asKeyword = chips.find((c) => c.textContent?.includes('soup'));
+    await expect(asKeyword?.className).toBe('op-chip');
   },
 };
 

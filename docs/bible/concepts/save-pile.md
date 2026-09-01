@@ -1,6 +1,8 @@
 ---
 slug: save-pile
 title: save-pile (the stack)
+emoji: 📚
+category: register
 ---
 
 # save-pile

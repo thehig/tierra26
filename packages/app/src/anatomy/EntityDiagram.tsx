@@ -3,9 +3,11 @@
 // save-pile, daughter, and age. A `focus` (from scroll waypoints) spotlights one part at a time.
 import { useEffect, useRef, useState } from 'react';
 import { opcodeEmoji } from './opcodeEmoji.ts';
+import { conceptEmoji } from '../design/bindings.ts';
 import { registerVar } from '../design/datasheet.ts';
 import { GenomeBlockRow } from './GenomeBlockRow.tsx';
 import { OpcodeTooltip } from './OpcodeTooltip.tsx';
+import { useHoverTip } from './useHoverTip.ts';
 import type { EntityState, GenomeBlock } from './useMicroEngine.ts';
 
 export type Focus = 'whole' | 'world' | 'genome' | 'registers' | 'ip' | 'flags' | 'age' | 'daughter' | 'run';
@@ -53,12 +55,12 @@ export function EntityDiagram({
   // the cursor are shown big, with each cell's opcode emoji inside its ownership-coloured border.
   const [loupe, setLoupe] = useState<{ cell: number; x: number; y: number } | null>(null);
   // Hovering a genome block pops its opcode-definition tooltip, anchored to the row (fixed position).
-  // Leaving the row hides it after a short beat, so the cursor can cross into the card to click through.
-  const [tip, setTip] = useState<{ gene: string; x: number; y: number } | null>(null);
-  const tipHideRef = useRef(0);
+  // Leaving the row hides it after a short beat, so the cursor can cross into the card to click through —
+  // shared with the prose chips via useHoverTip, so the two cannot drift apart.
+  const tip = useHoverTip<string>();
   const onTip = (gene: string | null, rect: DOMRect | null) => {
-    if (gene && rect) { clearTimeout(tipHideRef.current); setTip({ gene, x: rect.right, y: rect.top }); }
-    else tipHideRef.current = window.setTimeout(() => setTip(null), 120);
+    if (gene && rect) tip.show(rect, gene);
+    else tip.hide();
   };
 
   // The genome list has a bounded height and scrolls internally (a real genome is dozens of blocks),
@@ -87,13 +89,19 @@ export function EntityDiagram({
   // is what makes the diagram instancable rather than implicitly sized.
   const small = state.worldSize <= 49;
   const showEmoji = emoji === 'auto' ? small : emoji === 'on';
+  // Each panel wears the glyph its concept declares in the Bible, so the chip a
+  // lesson writes in a sentence and the panel it is talking about carry the same
+  // icon. One binding, both surfaces.
+  const g = (slug: string) => (
+    <span className="part-icon" aria-hidden="true">{conceptEmoji(slug)}</span>
+  );
   const showLoupe = loupeMode === 'auto' ? !small : loupeMode === 'on';
 
   return (
     <div className="entity-wrap">
     <div className={`entity focus-${focus}`}>
       <div className={`entity-world ${spot('world')}`} data-part="world">
-        <div className="part-label">{showLoupe ? 'world · hover to inspect 🔍' : 'world'}</div>
+        <div className="part-label">{g('soup')}{showLoupe ? 'world · hover to inspect 🔍' : 'world'}</div>
         <div className={`world-grid ${showEmoji ? 'emoji' : ''}`} style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
           onMouseLeave={() => { clearHover(); setLoupe(null); }}>
           {state.world.map((o, i) => (
@@ -107,16 +115,24 @@ export function EntityDiagram({
             follows the ▶ as you Step, showing the current instruction in context without hovering. */}
         {showLoupe && ipAddr >= 0 && (
           <div className="world-focus">
-            <div className="part-label">reading head ▶</div>
+            <div className="part-label">{g('reading-head')}reading head ▶</div>
             <div className="step-loupe"><LoupeView state={state} cols={cols} cell={ipAddr} rowR={1} /></div>
           </div>
         )}
       </div>
       {loupe && <WorldLoupe state={state} cols={cols} {...loupe} />}
-      {tip && <OpcodeTooltip {...tip} onEnter={() => clearTimeout(tipHideRef.current)} onLeave={() => setTip(null)} />}
+      {tip.anchor && (
+        <OpcodeTooltip
+          gene={tip.anchor.data}
+          x={tip.anchor.x}
+          y={tip.anchor.y}
+          onEnter={tip.keep}
+          onLeave={tip.hide}
+        />
+      )}
 
       <div className={`entity-genome ${spot('genome')}`} data-part="genome">
-        <div className="part-label">genome</div>
+        <div className="part-label">{g('genome')}genome</div>
         <div className="genome-blocks" ref={genomeRef}>
           {/* one row per byte == one world cell (1:1); GenomeBlockRow is the shared block definition */}
           {state.blocks.map((b) => (
@@ -130,7 +146,7 @@ export function EntityDiagram({
 
       <div className="entity-side">
         <div className={`entity-regs ${spot('registers')}`} data-part="registers">
-          <div className="part-label">registers</div>
+          <div className="part-label">{g('register')}registers</div>
           <div className="reg-cards">
             {REG_KEYS.map((k) => (
               <div className={`reg-card ${changed[k] ? 'changed' : ''}`} key={k}>
@@ -141,25 +157,28 @@ export function EntityDiagram({
         </div>
 
         <div className={`entity-flags ${spot('flags')}`} data-part="flags">
-          <div className="part-label">flags</div>
+          <div className="part-label">{g('flags')}flags</div>
           <div className="flag-chips">{FLAG_KEYS.map((f) => <span className={`flag-chip ${state.flags[f] ? 'on' : ''}`} key={f}>{f}</span>)}</div>
         </div>
 
         {(state.hasDaughter || state.population > 1) && (
           <div className={`entity-daughter ${spot('daughter')}`} data-part="daughter">
-            <div className="part-label">{state.population > 1 ? 'a baby was born! 🎉' : 'the daughter'}</div>
+            <div className="part-label">{g('daughter')}{state.population > 1 ? 'a baby was born! 🎉' : 'the daughter'}</div>
             <div className="dfill"><span style={{ width: `${state.daughterFillPct}%` }} /></div>
             <span className="dfill-pct">{state.daughterFillPct}% filled</span>
           </div>
         )}
 
         <div className="entity-pile" data-part="pile">
-          <div className="part-label">save-pile</div>
+          <div className="part-label">{g('save-pile')}save-pile</div>
           {state.stack.length === 0 ? <span className="pile-empty">empty</span>
             : <span className="pile-cells">{state.stack.map((v, i) => <span className="pile-cell" key={i}>{v}</span>)}</span>}
         </div>
 
         <div className={`entity-vitals ${spot('age')}`} data-part="age">
+          {/* No glyphs here: the vitals are a dense four-across strip, and the
+              icons pushed ALIVE onto a second row. The section HEADERS carry the
+              icons; a lesson naming age or size still gets the glyph on its chip. */}
           <span className="vital"><span className="vlabel">age</span><span className="vval">{state.age}</span></span>
           <span className="vital"><span className="vlabel">size</span><span className="vval">{state.size}</span></span>
           <span className="vital"><span className="vlabel">tick</span><span className="vval">{state.cycle}</span></span>

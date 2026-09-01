@@ -182,9 +182,13 @@ function BindingsEditor() {
 export const Bindings: Story = {
   render: () => <BindingsEditor />,
   play: async ({ canvasElement: c }) => {
-    // every opcode (32) + the label concept has an emoji picker AND a name field
-    await expect(c.querySelectorAll('.bind-emoji').length).toBe(OPCODES.length + 1);
-    await expect(c.querySelectorAll('.bind-name').length).toBe(OPCODES.length + 1);
+    // Every opcode AND every Bible concept is rebindable — derive the count
+    // rather than hardcoding it, so adding a concept page does not fail a test
+    // that was only ever asserting "all of them".
+    const rows = OPCODES.length + Object.keys(CONCEPT_BINDINGS).length;
+    await expect(c.querySelectorAll('.bind-emoji').length).toBe(rows);
+    await expect(c.querySelectorAll('.bind-name').length).toBe(rows);
+    await expect(Object.keys(CONCEPT_BINDINGS).length).toBeGreaterThanOrEqual(14);
     const exportBtn = within(c).getByRole('button', { name: /Export to JSON/ });
     const name = c.querySelector('.bind-name[data-mn="incA"]') as HTMLInputElement; // grow-a's opcode
 

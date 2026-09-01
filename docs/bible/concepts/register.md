@@ -1,6 +1,8 @@
 ---
 slug: register
 title: register (A / B / C / D)
+emoji: 📓
+category: register
 ---
 
 # register

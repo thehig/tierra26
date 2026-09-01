@@ -613,3 +613,7 @@ h3.mm-h { font-size: 1.05rem; color: var(--ink-2); }
   background: var(--faint); color: #fff; padding: 3px 8px; border-radius: 6px; }
 .doc-goal.solved .doc-goal-tag { background: var(--accent); }
 .doc-goal-label { color: var(--ink); }
+
+/* The glyph a panel shares with the chip that names it (bindings-driven). */
+.part-icon { margin-right: 5px; font-size: 1.05em; line-height: 1; }
+/* Deliberately none in .vlabel: the vitals strip is too tight for them. */

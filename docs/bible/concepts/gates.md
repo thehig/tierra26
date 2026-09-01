@@ -1,6 +1,8 @@
 ---
 slug: gates
 title: gates (size and write-threshold checks)
+emoji: 🚧
+category: concept
 ---
 
 # gates

@@ -13,6 +13,7 @@
 // This module stays as the app's lookup surface — same functions, same shapes,
 // now keyed off the generated data — so every call site is untouched.
 import { allVerbs, verbToMnemonic } from '@tierra26/genescript/vocab.ts';
+import type { KeywordCategory } from './palette.ts';
 import {
   CONCEPT_BINDINGS as GEN_CONCEPTS,
   OPCODE_BINDINGS,
@@ -21,6 +22,11 @@ import {
 
 export interface Binding { name: string; emoji: string; }
 
+/** A concept binding also carries its colour role, so a concept chip is coloured
+ *  by what it is ABOUT (a register concept reads register-blue) rather than all
+ *  concepts sharing one hue. */
+export interface ConceptBinding extends Binding { slug: string; category: KeywordCategory; }
+
 /** All 32 opcode bindings, keyed by mnemonic (the real, immutable identity). */
 export const BINDINGS: Readonly<Record<string, Binding>> = Object.freeze(
   Object.fromEntries(
@@ -28,13 +34,27 @@ export const BINDINGS: Readonly<Record<string, Binding>> = Object.freeze(
   ),
 );
 
-// Block-kind concepts. A label is the one glyph-bound kind; `raw` and `target` are
-// structural treatments (a hatched "byte" frame and a ↳ connector), not emoji.
-export const CONCEPT_BINDINGS: Readonly<Record<string, Binding>> = Object.freeze(
+// Every concept the Bible defines, with the glyph and colour role it declares —
+// the same treatment opcodes get, so `save-pile` in a sentence and the SAVE-PILE
+// panel in the diagram carry the same icon.
+export const CONCEPT_BINDINGS: Readonly<Record<string, ConceptBinding>> = Object.freeze(
   Object.fromEntries(
-    Object.values(GEN_CONCEPTS).map((c) => [c.slug, { name: c.name, emoji: c.emoji }]),
+    Object.values(GEN_CONCEPTS).map((c) => [
+      c.slug,
+      { slug: c.slug, name: c.name, emoji: c.emoji, category: c.category as KeywordCategory },
+    ]),
   ),
 );
+
+/** The binding for a concept slug, if the Bible defines one. */
+export function conceptBinding(slug: string): ConceptBinding | undefined {
+  return CONCEPT_BINDINGS[slug];
+}
+
+/** The glyph for a concept, or a neutral marker when it has no page yet. */
+export function conceptEmoji(slug: string): string {
+  return CONCEPT_BINDINGS[slug]?.emoji ?? '💠';
+}
 
 // ── derived lookups by gene/verb (the app keys emoji + names by gene; bindings key by mnemonic) ──
 const nameByVerb = new Map(allVerbs().map((v) => [v.verb, BINDINGS[v.mnemonic]?.name ?? v.verb]));

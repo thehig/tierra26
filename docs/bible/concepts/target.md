@@ -1,6 +1,8 @@
 ---
 slug: target
 title: target (how a control op addresses a place)
+emoji: 🎯
+category: marker
 ---
 
 # target

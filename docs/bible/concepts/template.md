@@ -1,6 +1,8 @@
 ---
 slug: template
 title: template (nop runs, complement, search)
+emoji: 🚏
+category: marker
 ---
 
 # template

@@ -1,6 +1,8 @@
 ---
 slug: mutation
 title: mutation (the flaw seams)
+emoji: 🎲
+category: concept
 ---
 
 # mutation

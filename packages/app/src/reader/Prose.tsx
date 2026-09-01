@@ -3,7 +3,8 @@
 import type { ProseSpan } from '@tierra26/ui/reader.ts';
 import type { KeywordCategory } from '../design/palette.ts';
 import { Link } from '../router/router.tsx';
-// One implementation, shared with the doc renderer (doc/KeywordCard.tsx).
+// The [01] lesson reader's keyword treatment. Documents render {term} as a
+// <Chip> instead (doc/MiniMark.tsx); this is the remaining System A path.
 import { KeywordCard, conceptSlug } from '../doc/KeywordCard.tsx';
 
 export function Prose({ spans }: { spans: ProseSpan[] }) {

@@ -2,6 +2,7 @@
 slug: label
 title: label (friendly names for landmarks)
 emoji: 🪧
+category: marker
 ---
 
 # label

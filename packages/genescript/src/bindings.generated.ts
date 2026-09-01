@@ -58,10 +58,27 @@ export interface ConceptBinding {
   readonly slug: string;
   readonly name: string;
   readonly emoji: string;
+  readonly category: BindingCategory | 'concept';
 }
 
 export const CONCEPT_BINDINGS: Readonly<Record<string, ConceptBinding>> = Object.freeze({
-  label: { slug: "label", name: "label", emoji: "🪧" },
+  "age": { slug: "age", name: "age", emoji: "⏳", category: "concept" },
+  "daughter": { slug: "daughter", name: "daughter", emoji: "🍼", category: "concept" },
+  "flags": { slug: "flags", name: "flags", emoji: "🚩", category: "value" },
+  "gates": { slug: "gates", name: "gates", emoji: "🚧", category: "concept" },
+  "genome": { slug: "genome", name: "genome", emoji: "🧬", category: "concept" },
+  "instruction-cycle": { slug: "instruction-cycle", name: "instruction-cycle", emoji: "⏱️", category: "concept" },
+  "label": { slug: "label", name: "label", emoji: "🪧", category: "marker" },
+  "mutation": { slug: "mutation", name: "mutation", emoji: "🎲", category: "concept" },
+  "raw": { slug: "raw", name: "raw", emoji: "🧱", category: "concept" },
+  "reading-head": { slug: "reading-head", name: "reading-head", emoji: "📖", category: "control" },
+  "reaper": { slug: "reaper", name: "reaper", emoji: "💀", category: "concept" },
+  "register": { slug: "register", name: "register", emoji: "📓", category: "register" },
+  "save-pile": { slug: "save-pile", name: "save-pile", emoji: "📚", category: "register" },
+  "size": { slug: "size", name: "size", emoji: "📏", category: "concept" },
+  "soup": { slug: "soup", name: "soup", emoji: "🌊", category: "concept" },
+  "target": { slug: "target", name: "target", emoji: "🎯", category: "marker" },
+  "template": { slug: "template", name: "template", emoji: "🚏", category: "marker" },
 });
 
 /** A friendly name is one word: letters, digits and hyphens only. */

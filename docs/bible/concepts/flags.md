@@ -1,6 +1,8 @@
 ---
 slug: flags
 title: flags (E / S / Z)
+emoji: 🚩
+category: value
 ---
 
 # flags

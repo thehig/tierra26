@@ -1,6 +1,8 @@
 ---
 slug: reaper
 title: reaper (how creatures die)
+emoji: 💀
+category: concept
 ---
 
 # reaper

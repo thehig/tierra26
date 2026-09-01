@@ -1,6 +1,8 @@
 ---
 slug: reading-head
 title: reading-head (the instruction pointer)
+emoji: 📖
+category: control
 ---
 
 # reading-head

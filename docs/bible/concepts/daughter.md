@@ -1,6 +1,8 @@
 ---
 slug: daughter
 title: daughter (making a baby)
+emoji: 🍼
+category: concept
 ---
 
 # daughter

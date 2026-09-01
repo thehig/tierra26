@@ -20,7 +20,7 @@ import { entry, entryOfMnemonic } from '@tierra26/genescript/vocab.ts';
 import { opcodeEmoji } from '../anatomy/opcodeEmoji.ts';
 import { OpcodeTooltip } from '../anatomy/OpcodeTooltip.tsx';
 import { useHoverTip } from '../anatomy/useHoverTip.ts';
-import { simpleName } from '../design/bindings.ts';
+import { conceptBinding, conceptEmoji, simpleName } from '../design/bindings.ts';
 import { REGISTERS, registerVar } from '../design/datasheet.ts';
 import { categoryVar } from '../design/palette.ts';
 import { useLanguageMode } from '../design/languageMode.tsx';
@@ -60,7 +60,7 @@ function Chipped({
   const ref = useRef<HTMLSpanElement | null>(null);
 
   const open = () => {
-    if (ref.current) show(ref.current.getBoundingClientRect());
+    if (ref.current) show(ref.current.getBoundingClientRect(), undefined as void);
   };
   const onKeyDown = (e: KeyboardEvent<HTMLSpanElement>) => {
     if (e.key === 'Escape') {
@@ -125,11 +125,15 @@ export function Chip({ opcode, register, flag, concept, children }: ChipProps) {
   }
 
   if (register) {
+    // Each register keeps its own hue (the four --reg-* tokens the diagram's
+    // notebook cards use) but shares the register glyph, so A in a sentence and
+    // the A card in the diagram are recognisably the same object.
     const id = register.toUpperCase() as 'A' | 'B' | 'C' | 'D';
     const role = REGISTERS.find((r) => r.id === id)?.role ?? '';
     return (
       <Chipped
         color={registerVar(id)}
+        emoji={conceptEmoji('register')}
         name={id}
         label={`register ${id} — ${role}`}
         card={(a, keep, release) => (
@@ -149,15 +153,17 @@ export function Chip({ opcode, register, flag, concept, children }: ChipProps) {
 
   if (flag) {
     const id = flag.toUpperCase();
+    const color = categoryVar(conceptBinding('flags')?.category ?? 'value');
     return (
       <Chipped
-        color={categoryVar('value')}
+        color={color}
+        emoji={conceptEmoji('flags')}
         name={id}
         label={`flag ${id}`}
         card={(a, keep, release) => (
           <TokenTooltip
             title={`flag ${id}`}
-            color={categoryVar('value')}
+            color={color}
             slug="flags"
             anchor={a}
             onEnter={keep}
@@ -169,17 +175,22 @@ export function Chip({ opcode, register, flag, concept, children }: ChipProps) {
   }
 
   if (concept) {
-    // Not a link: the card carries the "read the full page" link, matching how
-    // an opcode chip and a {term} keyword card already behave.
+    // Glyph and colour role come from the concept's own Bible frontmatter, so a
+    // concept reads in the colour of what it is ABOUT — the save-pile is
+    // register-coloured, flags are value-coloured — rather than every concept
+    // sharing one hue. Not a link: the card carries the link, matching opcodes.
+    const b = conceptBinding(concept);
+    const color = categoryVar(b?.category ?? 'concept');
     return (
       <Chipped
-        color={categoryVar('concept')}
-        name={target ?? concept}
-        label={`concept: ${concept}`}
+        color={color}
+        emoji={conceptEmoji(concept)}
+        name={target ?? b?.name ?? concept}
+        label={`${b?.name ?? concept} — concept`}
         card={(a, keep, release) => (
           <TokenTooltip
-            title={concept}
-            color={categoryVar('concept')}
+            title={b?.name ?? concept}
+            color={color}
             slug={concept}
             anchor={a}
             onEnter={keep}

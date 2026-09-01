@@ -1,6 +1,8 @@
 ---
 slug: raw
 title: raw (writing a bare opcode)
+emoji: 🧱
+category: concept
 ---
 
 # raw

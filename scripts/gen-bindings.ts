@@ -111,14 +111,27 @@ for (const r of rows) {
   if (!mnemonics.has(r.mnemonic)) fail(`docs/bible/opcodes/${r.mnemonic}.md has no matching engine mnemonic`);
 }
 
-// ---- concepts (emoji-bound block kinds only) -------------------------------
-const concepts = pagesIn(CONCEPTS_DIR, 'concept')
-  .filter((p) => 'emoji' in p.fm)
-  .map((p) => ({
+// ---- concepts --------------------------------------------------------------
+// Same contract as an opcode: the Bible owns how a concept PRESENTS, so every
+// concept page must declare its glyph and its colour role. A page without them
+// would render as an unlabelled chip, which is worse than a build error.
+const CONCEPT_ROLES = [...COLOUR_ROLES, 'concept'] as const;
+const concepts = pagesIn(CONCEPTS_DIR, 'concept').map((p) => {
+  const emoji = 'emoji' in p.fm ? String(p.fm['emoji']) : '';
+  const category = 'category' in p.fm ? String(p.fm['category']) : '';
+  if (!emoji) fail(`${p.rel}: missing "emoji" — every concept needs a glyph for its chip`);
+  if (!CONCEPT_ROLES.includes(category as (typeof CONCEPT_ROLES)[number])) {
+    fail(`${p.rel}: category "${category}" is not one of ${CONCEPT_ROLES.join(', ')}`);
+  }
+  return {
     slug: p.slug,
-    name: 'title' in p.fm ? String(p.fm['title']).split(' (')[0]! : p.slug,
-    emoji: String(p.fm['emoji']),
-  }));
+    // "save-pile (the stack)" -> "save-pile": the parenthetical is the page's
+    // subtitle, not part of the name a chip shows.
+    name: 'title' in p.fm ? String(p.fm['title']).split(' (')[0]!.trim() : p.slug,
+    emoji,
+    category,
+  };
+});
 
 // ---- emit ------------------------------------------------------------------
 if (problems.length) {
@@ -163,11 +176,15 @@ export interface ConceptBinding {
   readonly slug: string;
   readonly name: string;
   readonly emoji: string;
+  readonly category: BindingCategory | 'concept';
 }
 
 export const CONCEPT_BINDINGS: Readonly<Record<string, ConceptBinding>> = Object.freeze({
 ${concepts
-  .map((c) => `  ${c.slug}: { slug: ${q(c.slug)}, name: ${q(c.name)}, emoji: ${q(c.emoji)} },`)
+  .map(
+    (c) =>
+      `  ${JSON.stringify(c.slug)}: { slug: ${q(c.slug)}, name: ${q(c.name)}, emoji: ${q(c.emoji)}, category: ${q(c.category)} },`,
+  )
   .join('\n')}
 });
 

@@ -1,6 +1,8 @@
 ---
 slug: instruction-cycle
 title: instruction-cycle (fetch, decode, execute, advance)
+emoji: ⏱️
+category: concept
 ---
 
 # instruction-cycle

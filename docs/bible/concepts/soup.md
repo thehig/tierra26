@@ -1,6 +1,8 @@
 ---
 slug: soup
 title: soup (the shared memory)
+emoji: 🌊
+category: concept
 ---
 
 # soup
