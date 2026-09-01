@@ -36,6 +36,11 @@ export const Tutorial: Story = {
     // cell's own `box-shadow: none` used to out-specify it and hide the highlight entirely
     const linked = c.querySelector('.wcell.link') as HTMLElement;
     await expect(getComputedStyle(linked).boxShadow).not.toBe('none');
+    // hovering a genome block also pops its opcode-definition tooltip, with the authored "what changes"
+    // badges (grow-a → "grows A") that were previously rendered nowhere
+    await expect(c.querySelector('.op-tip')).toBeTruthy();
+    await expect(c.querySelector('.op-tip-name')!.textContent).toBe('grow-a');
+    await expect(c.querySelectorAll('.op-badge').length).toBeGreaterThan(0);
   },
 };
 

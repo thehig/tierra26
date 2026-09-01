@@ -22,6 +22,7 @@ export interface GenomeBlock {
   category: KeywordCategory | 'value'; isLabel: boolean; isIp: boolean;
   isCont: boolean;       // a continuation byte (a label's extra marks, or a jump/find target) — a subordinate row
   isRaw: boolean;        // authored as `raw <mnemonic>` — an exact opcode byte, not a friendly verb/label
+  gene: string | null;   // this byte's opcode gene (the key to its definition page/tooltip)
   groupStart: number;    // first byte of this byte's instruction (for hover grouping)
   groupSpan: number;     // bytes in that instruction
 }
@@ -172,7 +173,7 @@ export function useMicroEngine(source: string, soupSize = 256) {
         const text = isHead ? g.headText : (k === g.start + 1 ? g.payloadText : '');
         blocks.push({
           addr: a.byteIndex, text, emoji: opcodeEmoji(blockGene(a.verb ?? null, a.mnemonic ?? null)),
-          category, isLabel: g.isLabel, isCont, isRaw: g.isRaw, isIp: a.byteIndex === ipByte, groupStart: g.start, groupSpan: span,
+          category, isLabel: g.isLabel, isCont, isRaw: g.isRaw, gene: geneOf(a.opcode), isIp: a.byteIndex === ipByte, groupStart: g.start, groupSpan: span,
         });
       }
     }

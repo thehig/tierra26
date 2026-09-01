@@ -458,6 +458,28 @@ svg.spark { display: block; width: 100%; height: 54px; }
    plus a 🔩 lead, so a run of them reads as one low-level band, distinct from friendly verbs and labels */
 .gblock.is-raw { border-color: var(--line-2); color: var(--faint); background: color-mix(in srgb, var(--faint) 5%, var(--surface-2)); }
 .graw { filter: grayscale(.1); }
+
+/* the opcode-definition tooltip that pops from a hovered genome block (fixed; floats over the page) */
+.op-tip { position: fixed; z-index: 70; width: 300px; background: var(--surface); border: 1px solid var(--line);
+  border-radius: 14px; box-shadow: 0 18px 50px -18px rgba(10,40,35,.5); padding: 14px 16px; font-family: var(--fb); }
+.op-tip-head { display: flex; align-items: center; gap: 8px; }
+.op-tip-emoji { font-size: 20px; }
+.op-tip-name { font-family: var(--fm); font-weight: 600; font-size: 1rem; color: var(--ink); }
+.op-tip-chip { font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #fff; padding: 2px 6px; border-radius: 5px; }
+:root[data-theme="dark"] .op-tip-chip { color: #04211d; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .op-tip-chip { color: #04211d; } }
+.op-tip-mnem { margin-left: auto; font-family: var(--fm); font-size: .7rem; color: var(--faint); }
+.op-tip-kid { margin: 9px 0 7px; font-size: .9rem; color: var(--ink); }
+.op-tip-machine { display: inline-block; font-family: var(--fm); font-weight: 600; font-size: .8rem; color: var(--ink-2);
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; }
+.op-tip-sec { margin-top: 12px; font-size: .6rem; text-transform: uppercase; letter-spacing: .07em; color: var(--faint); font-weight: 700; }
+.op-tip-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.op-badge { font-family: var(--fm); font-size: .74rem; font-weight: 500; padding: 2px 8px; border-radius: 20px; border: 1.5px solid; }
+.op-tip-watch { margin-top: 12px; display: flex; gap: 7px; align-items: flex-start; font-size: .8rem; color: var(--ink-2);
+  background: color-mix(in srgb, var(--warn) 8%, var(--surface)); border: 1px solid color-mix(in srgb, var(--warn) 30%, var(--line)); border-radius: 9px; padding: 7px 9px; }
+.op-tip-watch b { color: var(--warn); }
+.op-tip-more { margin-top: 11px; font-size: .8rem; font-weight: 600; }
+.op-tip-more a { color: var(--accent); text-decoration: none; }
 /* a block and its payload rows travel together; payload rows sit closer to their parent */
 .gblockgroup { display: flex; flex-direction: column; gap: 3px; }
 /* the payload row (a jump/find target) — subordinate: dashed, muted, a ↳ connector to its instruction */

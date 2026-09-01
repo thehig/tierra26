@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { opcodeEmoji } from './opcodeEmoji.ts';
 import { GenomeBlockRow } from './GenomeBlockRow.tsx';
+import { OpcodeTooltip } from './OpcodeTooltip.tsx';
 import type { EntityState, GenomeBlock } from './useMicroEngine.ts';
 
 export type Focus = 'whole' | 'world' | 'genome' | 'registers' | 'ip' | 'flags' | 'age' | 'daughter' | 'run';
@@ -42,6 +43,14 @@ export function EntityDiagram({
   // Hovering the world raises a magnifier loupe: solid colours stay in the grid, but the cells under
   // the cursor are shown big, with each cell's opcode emoji inside its ownership-coloured border.
   const [loupe, setLoupe] = useState<{ cell: number; x: number; y: number } | null>(null);
+  // Hovering a genome block pops its opcode-definition tooltip, anchored to the row (fixed position).
+  // Leaving the row hides it after a short beat, so the cursor can cross into the card to click through.
+  const [tip, setTip] = useState<{ gene: string; x: number; y: number } | null>(null);
+  const tipHideRef = useRef(0);
+  const onTip = (gene: string | null, rect: DOMRect | null) => {
+    if (gene && rect) { clearTimeout(tipHideRef.current); setTip({ gene, x: rect.right, y: rect.top }); }
+    else tipHideRef.current = window.setTimeout(() => setTip(null), 120);
+  };
 
   // The genome list has a bounded height and scrolls internally (a real genome is dozens of blocks),
   // so keep the reading head in view — scrolling only the list, never the page.
@@ -91,6 +100,7 @@ export function EntityDiagram({
         )}
       </div>
       {loupe && <WorldLoupe state={state} cols={cols} {...loupe} />}
+      {tip && <OpcodeTooltip {...tip} onEnter={() => clearTimeout(tipHideRef.current)} onLeave={() => setTip(null)} />}
 
       <div className={`entity-genome ${spot('genome')}`} data-part="genome">
         <div className="part-label">genome</div>
@@ -98,7 +108,7 @@ export function EntityDiagram({
           {/* one row per byte == one world cell (1:1); GenomeBlockRow is the shared block definition */}
           {state.blocks.map((b) => (
             <GenomeBlockRow key={b.addr} block={b} lit={blockLit(b)} focusIp={focus === 'ip'}
-              rowRef={b.isIp ? ipRef : undefined}
+              rowRef={b.isIp ? ipRef : undefined} onTip={onTip}
               onEnter={() => setHovered({ start: b.groupStart, end: b.groupStart + b.groupSpan })}
               onLeave={clearHover} />
           ))}

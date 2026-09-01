@@ -6,7 +6,7 @@ import { GenomeBlockRow, type BlockDatum } from './GenomeBlockRow.tsx';
 
 // a block descriptor with sensible defaults, overridden per story
 const mk = (b: Partial<BlockDatum>): BlockDatum => ({
-  addr: 0, text: '', emoji: '', category: 'value', isLabel: false, isRaw: false, isCont: false, isIp: false, ...b,
+  addr: 0, text: '', emoji: '', category: 'value', isLabel: false, isRaw: false, isCont: false, isIp: false, gene: null, ...b,
 });
 
 const meta = {

@@ -61,7 +61,7 @@ export function Inspector({
         {p.disassembly.map((row) => (
           <GenomeBlockRow key={row.line} plain block={{
             addr: row.bytes[0], text: row.text, isIp: row.isIp,
-            emoji: '', category: 'value', isLabel: false, isRaw: false, isCont: false,
+            emoji: '', category: 'value', isLabel: false, isRaw: false, isCont: false, gene: null,
           }} />
         ))}
       </div>
