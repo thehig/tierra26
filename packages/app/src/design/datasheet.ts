@@ -22,10 +22,10 @@ export const CATEGORIES: readonly CategoryDef[] = [
 
 // Block KINDS are rendering treatments, not opcode categories: any opcode can appear raw; a run of
 // marker bits can be a named label; a control op's template is a payload.
-export interface BlockKindDef { key: 'label' | 'raw' | 'payload'; label: string; emoji: string; colorVar: string; meaning: string; }
+export interface BlockKindDef { key: 'label' | 'raw' | 'payload'; label: string; emoji?: string; colorVar: string; meaning: string; }
 export const BLOCK_KINDS: readonly BlockKindDef[] = [
   { key: 'label', label: 'label', emoji: CONCEPT_EMOJI.label, colorVar: categoryVar('marker'), meaning: 'A named landmark you jump to — built from marker bits.' },
-  { key: 'raw', label: 'raw', emoji: CONCEPT_EMOJI.raw, colorVar: 'var(--line-2)', meaning: 'An exact opcode byte the source pinned — any opcode can appear raw (grey frame).' },
+  { key: 'raw', label: 'raw', colorVar: 'var(--line-2)', meaning: 'An exact opcode byte the source pinned — a hatched grey frame + a "byte" tag; any opcode can appear raw.' },
   { key: 'payload', label: 'target', emoji: '↳', colorVar: 'var(--ink-2)', meaning: 'A jump/find target — the template bytes that follow a control op (takes its colour).' },
 ];
 

@@ -28,9 +28,8 @@ export function opcodeEmoji(gene: string | null): string {
   return gene ? (OPCODE_EMOJI[gene] ?? '⬛') : '';
 }
 
-// Top-level block CONCEPTS — not opcodes, but block KINDS the genome viewer marks distinctly. A label
-// is a signpost you jump to; a raw block is an exact opcode byte the source pinned (nuts-and-bolts).
+// Top-level block CONCEPT emoji — a label is a signpost you jump to. (Raw blocks are marked by a
+// hatched frame + a "byte" tag, not an emoji; a target by a ↳ connector.)
 export const CONCEPT_EMOJI = {
   label: '🪧',
-  raw: '🔩',
 } as const;

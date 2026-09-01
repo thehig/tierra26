@@ -454,10 +454,11 @@ svg.spark { display: block; width: 100%; height: 54px; }
 .gblock-emoji { flex: 0 0 1.3em; text-align: center; }
 .gblock-text { color: var(--ink); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .gline.plain .gblock-text { font-family: var(--fm); font-size: .82rem; }
-/* a raw block: an exact opcode byte the source pinned — a neutral GREY frame (not a category colour)
-   plus a 🔩 lead, so a run of them reads as one low-level band, distinct from friendly verbs and labels */
-.gblock.is-raw { border-color: var(--line-2); color: var(--faint); background: color-mix(in srgb, var(--faint) 5%, var(--surface-2)); }
-.graw { filter: grayscale(.1); }
+/* a raw block: an exact opcode byte the source pinned — a HATCHED (dashed) grey frame + a small "byte"
+   tag, no category colour, so a run of them reads as one low-level band, distinct from verbs & labels */
+.gblock.is-raw { border-style: dashed; border-color: var(--line-2); color: var(--faint); background: color-mix(in srgb, var(--faint) 6%, var(--surface-2)); }
+.gbyte { flex: 0 0 auto; font-family: var(--fd); font-size: .56rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--faint); border: 1px solid var(--line-2); border-radius: 4px; padding: 0 4px; line-height: 1.6; }
 
 /* the opcode-definition tooltip that pops from a hovered genome block (fixed; floats over the page) */
 .op-tip { position: fixed; z-index: 70; width: 300px; background: var(--surface); border: 1px solid var(--line);

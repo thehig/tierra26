@@ -6,14 +6,15 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, within } from 'storybook/test';
 import { CATEGORIES, BLOCK_KINDS, REGISTERS, OPCODES, opcodesInCategory } from './datasheet.ts';
 import { categoryVar } from './palette.ts';
+import { useLanguageMode } from './languageMode.tsx';
 
 // one opcode rendered exactly as the genome viewer draws it (the .gblock vocabulary)
-function Chip({ emoji, text, colorVar, raw = false, label = false, lead }: { emoji: string; text: string; colorVar: string; raw?: boolean; label?: boolean; lead?: string }) {
+function Chip({ emoji, text, colorVar, raw = false, label = false, lead }: { emoji?: string; text: string; colorVar: string; raw?: boolean; label?: boolean; lead?: string }) {
   const style = raw ? undefined : { borderColor: colorVar, color: colorVar };
   return (
     <div className={`gblock ${raw ? 'is-raw' : ''} ${label ? 'is-label' : ''}`} style={style}>
       {lead && <span className="gblock-lead gpay-arrow">{lead}</span>}
-      {raw && <span className="gblock-lead graw">🔩</span>}
+      {raw && <span className="gbyte">byte</span>}
       <span className="gblock-emoji">{emoji}</span>
       <span className="gblock-text">{text}</span>
     </div>
@@ -24,6 +25,7 @@ const sec: CSSProperties = { fontFamily: 'var(--fd)', fontSize: '.82rem', textTr
 const chips: CSSProperties = { display: 'flex', flexWrap: 'wrap', gap: 6 };
 
 function Datasheet() {
+  const advanced = useLanguageMode() === 'advanced';
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: 28, fontFamily: 'var(--fb)', color: 'var(--ink)' }}>
       <h1 style={{ fontFamily: 'var(--fd)', fontWeight: 800, margin: '0 0 4px' }}>Datasheet</h1>
@@ -39,7 +41,7 @@ function Datasheet() {
               <span style={{ fontSize: '.82rem', color: 'var(--faint)' }}>{cat.meaning}</span>
             </div>
             <div style={chips}>
-              {opcodesInCategory(cat.key).map((o) => <Chip key={o.verb} emoji={o.emoji} text={o.verb} colorVar={o.colorVar} />)}
+              {opcodesInCategory(cat.key).map((o) => <Chip key={o.verb} emoji={o.emoji} text={advanced ? o.mnemonic : o.verb} colorVar={o.colorVar} />)}
             </div>
           </div>
         ))}

@@ -5,9 +5,13 @@
 //   • label   — a signpost 🪧 landmark you jump to        (bold name)
 //   • verb    — a friendly op, its category colour + emoji
 //   • payload — a jump/find target, subordinate: ↳ + dashed, muted
-//   • raw     — an exact opcode byte the source pinned: grey frame + 🔩 marker + the opcode emoji
+//   • raw     — an exact opcode byte the source pinned: hatched grey frame + a "byte" tag
+// In `advanced` language mode a verb shows its real mnemonic (grow-a → incA); labels & targets keep
+// their names, raw is already the machine mnemonic.
 import type { MouseEvent, Ref } from 'react';
+import { verbToMnemonic } from '@tierra26/genescript/vocab.ts';
 import { categoryVar } from '../design/palette.ts';
+import { useLanguageMode } from '../design/languageMode.tsx';
 import { CONCEPT_EMOJI } from './opcodeEmoji.ts';
 import type { GenomeBlock } from './useMicroEngine.ts';
 
@@ -34,6 +38,10 @@ export function GenomeBlockRow({
 }) {
   const { addr, text, emoji, category, isLabel, isRaw, isCont, isIp } = block;
   const kind = blockKind(block);
+  // advanced mode names an opcode by its real mnemonic (grow-a → incA); raw is already the mnemonic.
+  const advanced = useLanguageMode() === 'advanced';
+  const displayText = advanced && block.gene && (kind === 'verb' || kind === 'raw')
+    ? (verbToMnemonic(block.gene) ?? text) : text;
   // only real instruction rows (verb / raw) have a definition to pop; labels and payloads don't.
   const tipGene = !plain && (kind === 'verb' || kind === 'raw') ? (block.gene ?? null) : null;
   const enter = (e: MouseEvent<HTMLDivElement>) => { onEnter?.(); onTip?.(tipGene, tipGene ? e.currentTarget.getBoundingClientRect() : null); };
@@ -45,12 +53,12 @@ export function GenomeBlockRow({
   if (plain) {
     return (
       <div className={`gline plain ${isIp ? 'is-ip' : ''}`} ref={rowRef} onMouseEnter={enter} onMouseLeave={leave}>
-        {num}<span className="gblock-text">{text}</span>
+        {num}<span className="gblock-text">{displayText}</span>
       </div>
     );
   }
 
-  // raw blocks wear a neutral grey frame (set in CSS); every other kind takes its category colour.
+  // raw blocks wear a hatched grey frame (set in CSS); every other kind takes its category colour.
   const col = isRaw ? undefined : { borderColor: categoryVar(category), color: categoryVar(category) };
   // a label is shown by its signpost, not the nop mark underneath it; other kinds keep the opcode emoji.
   const glyph = isLabel ? CONCEPT_EMOJI.label : emoji;
@@ -59,9 +67,9 @@ export function GenomeBlockRow({
       {num}
       <div className={`gblock is-${kind} ${lit ? 'link' : ''}`} style={col}>
         {isCont && <span className="gblock-lead gpay-arrow" aria-hidden="true">↳</span>}
-        {isRaw && <span className="gblock-lead graw" title="an exact opcode byte, written `raw` in the source" aria-label="raw">{CONCEPT_EMOJI.raw}</span>}
+        {isRaw && <span className="gbyte" title="an exact opcode byte, written `raw` in the source">byte</span>}
         <span className="gblock-emoji" aria-hidden="true">{glyph}</span>
-        <span className={`gblock-text ${isCont ? 'gpay-text' : ''}`}>{text}</span>
+        <span className={`gblock-text ${isCont ? 'gpay-text' : ''}`}>{displayText}</span>
       </div>
     </div>
   );

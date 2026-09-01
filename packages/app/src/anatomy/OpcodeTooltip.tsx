@@ -7,6 +7,7 @@ import { pageOf } from '@tierra26/content/instrpage.ts';
 import type { AnimationSpec } from '@tierra26/content/types.ts';
 import { opcodeEmoji } from './opcodeEmoji.ts';
 import { categoryVar, type KeywordCategory } from '../design/palette.ts';
+import { useLanguageMode } from '../design/languageMode.tsx';
 import { Link } from '../router/router.tsx';
 
 type Target = AnimationSpec['targets'][number];
@@ -27,8 +28,12 @@ function describeTarget(t: Target): { label: string; cat: KeywordCategory } {
 }
 
 export function OpcodeTooltip({ gene, x, y, onEnter, onLeave }: { gene: string; x: number; y: number; onEnter?: () => void; onLeave?: () => void }) {
+  const advanced = useLanguageMode() === 'advanced';
   const v = entry(gene);
   if (!v) return null;
+  // advanced leads with the real mnemonic; simple leads with the friendly verb (the other sits small)
+  const name = advanced ? v.mnemonic : v.verb;
+  const sub = advanced ? v.verb : v.mnemonic;
   const page = pageOf(gene);
   const targets = page?.animation.targets ?? [];
   const watch = page?.commonMistakes[0];
@@ -43,9 +48,9 @@ export function OpcodeTooltip({ gene, x, y, onEnter, onLeave }: { gene: string; 
     <div className="op-tip" style={{ left, top }} role="tooltip" onMouseEnter={onEnter} onMouseLeave={onLeave}>
       <div className="op-tip-head">
         <span className="op-tip-emoji" aria-hidden="true">{opcodeEmoji(gene)}</span>
-        <span className="op-tip-name">{v.verb}</span>
+        <span className="op-tip-name">{name}</span>
         <span className="op-tip-chip" style={{ background: categoryVar(v.category) }}>{v.category}</span>
-        <span className="op-tip-mnem">{v.mnemonic}</span>
+        <span className="op-tip-mnem">{sub}</span>
       </div>
       <div className="op-tip-kid">{v.kid}</div>
       <code className="op-tip-machine">{v.machine}</code>

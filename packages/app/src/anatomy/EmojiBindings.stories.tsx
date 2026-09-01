@@ -27,7 +27,6 @@ function Legend() {
       <h3 style={{ fontFamily: 'var(--fd)', fontSize: '.8rem', textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--faint)', margin: '0 0 8px' }}>Block concepts</h3>
       <div style={grid}>
         <Cell emoji={CONCEPT_EMOJI.label} name="label" note="a signpost you jump to" />
-        <Cell emoji={CONCEPT_EMOJI.raw} name="raw" note="an exact opcode byte" />
         <Cell emoji="↳" name="target" note="a jump/find payload" />
         <Cell emoji="①" name="reading head" note="highlighted block number" />
       </div>

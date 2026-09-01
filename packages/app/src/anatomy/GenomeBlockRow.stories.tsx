@@ -3,6 +3,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect } from 'storybook/test';
 import { GenomeBlockRow, type BlockDatum } from './GenomeBlockRow.tsx';
+import { LanguageModeFixed } from '../design/languageMode.tsx';
 
 // a block descriptor with sensible defaults, overridden per story
 const mk = (b: Partial<BlockDatum>): BlockDatum => ({
@@ -36,6 +37,15 @@ export const Verb: Story = {
   args: { block: mk({ addr: 1, text: 'grow-a', emoji: '🌱', category: 'action' }) },
 };
 
+// the same op in advanced language mode — its real mnemonic (grow-a → incA)
+export const VerbAdvanced: Story = {
+  args: { block: mk({ addr: 1, text: 'grow-a', emoji: '🌱', category: 'action', gene: 'grow-a' }) },
+  decorators: [(Story) => <LanguageModeFixed mode="advanced"><Story /></LanguageModeFixed>],
+  play: async ({ canvasElement: c }) => {
+    await expect(c.querySelector('.gblock-text')!.textContent).toBe('incA');
+  },
+};
+
 // the reading head is a highlight on the block NUMBER, never a mark inside the block
 export const ReadingHead: Story = {
   args: { block: mk({ addr: 7, text: 'copy-c-to-d', emoji: '🔃', category: 'action', isIp: true }) },
@@ -49,7 +59,7 @@ export const ReadingHead: Story = {
 export const Raw: Story = {
   args: { block: mk({ addr: 5, text: 'nop1', emoji: '🔴', category: 'marker', isRaw: true }) },
   play: async ({ canvasElement: c }) => {
-    await expect(c.querySelector('.gblock.is-raw .graw')!.textContent).toBe('🔩');
+    await expect(c.querySelector('.gblock.is-raw .gbyte')!.textContent).toBe('byte');
     await expect(c.querySelector('.gblock.is-raw .gblock-emoji')!.textContent).toBe('🔴');
   },
 };

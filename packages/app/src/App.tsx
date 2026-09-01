@@ -2,6 +2,7 @@
 // dispatches on the current surface.
 import { RouterProvider, useRouter, Link, type AppRoute } from './router/router.tsx';
 import { PrefsProvider, usePrefs } from './store/prefs.tsx';
+import { LanguageModeProvider, useLanguageMode, useLanguageToggle } from './design/languageMode.tsx';
 import { Home } from './pages/Home.tsx';
 import { LessonPage } from './pages/LessonPage.tsx';
 import { WikiIndex, WikiPage } from './pages/Wiki.tsx';
@@ -41,6 +42,8 @@ function Surface({ route, dark }: { route: AppRoute | null; dark: boolean }) {
 function Chrome() {
   const { route } = useRouter();
   const { theme, dark, setTheme, reducedMotion, setReducedMotion } = usePrefs();
+  const lang = useLanguageMode();
+  const toggleLang = useLanguageToggle();
   const order: ('system' | 'light' | 'dark')[] = ['system', 'light', 'dark'];
   const nextTheme = () => setTheme(order[(order.indexOf(theme) + 1) % order.length]!);
 
@@ -53,6 +56,9 @@ function Chrome() {
           <Link to={{ surface: 'wiki' }}>Instructions</Link>
           <Link to={{ surface: 'versus' }}>Versus</Link>
         </nav>
+        <button className="btn ghost" onClick={toggleLang} title="friendly names vs real instruction code">
+          {lang === 'simple' ? 'Aa simple' : '⌗ advanced'}
+        </button>
         <button className="btn ghost" onClick={() => setReducedMotion(!reducedMotion)} title="reduce motion">
           {reducedMotion ? '❄ still' : '≈ motion'}
         </button>
@@ -66,9 +72,11 @@ function Chrome() {
 export default function App() {
   return (
     <PrefsProvider>
-      <RouterProvider>
-        <Chrome />
-      </RouterProvider>
+      <LanguageModeProvider>
+        <RouterProvider>
+          <Chrome />
+        </RouterProvider>
+      </LanguageModeProvider>
     </PrefsProvider>
   );
 }
