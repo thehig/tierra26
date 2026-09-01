@@ -26,10 +26,10 @@ export const Ancestor: Story = {
     await expect(texts.some((t) => /^label\d+:/.test(t))).toBe(false);
     await expect(texts.some((t) => /points at/.test(t))).toBe(false);
     // …and those raw-authored bytes (`raw nop1`, `raw adrb`, …) render as explicit raw blocks — each
-    // tagged `raw` so it never reads as a friendly verb or a label; the first is `raw nop1`
+    // led by the 🔩 raw marker so it never reads as a friendly verb or a label; the first is `raw nop1`
     const raws = [...c.querySelectorAll('.gblock.is-raw')];
     await expect(raws.length).toBeGreaterThan(0);
-    await expect(raws.every((r) => r.querySelector('.gblock-raw')?.textContent === 'raw')).toBe(true);
+    await expect(raws.every((r) => r.querySelector('.graw')?.textContent === '🔩')).toBe(true);
     await expect(raws[0]!.querySelector('.gblock-text')!.textContent).toBe('nop1');
     // the genome list is height-bounded and scrolls internally (not down the page)
     const g = c.querySelector('.genome-blocks') as HTMLElement;
@@ -43,7 +43,7 @@ export const Ancestor: Story = {
     await expect(c.querySelector('.world-focus')).toBeTruthy();
     await expect(c.querySelectorAll('.step-loupe .wl-cell').length).toBe(15);
     await expect(c.querySelector('.step-loupe .wl-cell.center')!.textContent)
-      .toBe(c.querySelector('.gblock.is-ip .gblock-emoji')!.textContent);
+      .toBe(c.querySelector('.gline.is-ip .gblock-emoji')!.textContent);
     // and the reading head's own world tile is ringed so you can see where it is executing
     await expect(c.querySelectorAll('.wcell.ip').length).toBe(1);
     // hovering the world raises the magnifier loupe (naming the opcode under the cursor)
@@ -58,13 +58,13 @@ export const ReadingHeadFollows: Story = {
   args: { source: ANCESTOR_GS, soup: 256 },
   play: async ({ canvasElement: c }) => {
     await step(c, 30);
-    const ip = c.querySelector('.gblock.is-ip') as HTMLElement;
+    const ip = c.querySelector('.gline.is-ip') as HTMLElement;
     const g = c.querySelector('.genome-blocks') as HTMLElement;
     await expect(ip).toBeTruthy();
     const a = ip.getBoundingClientRect(), b = g.getBoundingClientRect();
     await expect(a.top >= b.top - 1 && a.bottom <= b.bottom + 1).toBe(true);
     // and the step inspector stays locked on the reading head as it advances
     await expect(c.querySelector('.step-loupe .wl-cell.center')!.textContent)
-      .toBe(c.querySelector('.gblock.is-ip .gblock-emoji')!.textContent);
+      .toBe(c.querySelector('.gline.is-ip .gblock-emoji')!.textContent);
   },
 };

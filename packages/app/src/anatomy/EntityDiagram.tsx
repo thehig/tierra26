@@ -2,8 +2,8 @@
 // daughter, its babies), the genome blocks (with the reading head), the four notebooks, flags,
 // save-pile, daughter, and age. A `focus` (from scroll waypoints) spotlights one part at a time.
 import { useEffect, useRef, useState } from 'react';
-import { categoryVar } from '../design/palette.ts';
 import { opcodeEmoji } from './opcodeEmoji.ts';
+import { GenomeBlockRow } from './GenomeBlockRow.tsx';
 import type { EntityState, GenomeBlock } from './useMicroEngine.ts';
 
 export type Focus = 'whole' | 'world' | 'genome' | 'registers' | 'ip' | 'flags' | 'age' | 'daughter' | 'run';
@@ -95,24 +95,13 @@ export function EntityDiagram({
       <div className={`entity-genome ${spot('genome')}`} data-part="genome">
         <div className="part-label">genome</div>
         <div className="genome-blocks" ref={genomeRef}>
-          {state.blocks.map((b) => {
-            const lit = blockLit(b);
-            const setB = () => setHovered({ start: b.groupStart, end: b.groupStart + b.groupSpan });
-            const col = { borderColor: categoryVar(b.category), color: categoryVar(b.category) };
-            // one row per byte == one world cell (1:1); continuation bytes are subordinate rows
-            return (
-              <div className="gline" key={b.addr} ref={b.isIp ? ipRef : undefined} onMouseEnter={setB} onMouseLeave={clearHover}>
-                <span className="gaddr" title="this cell’s position in the code">{b.addr >= 0 ? b.addr : ''}</span>
-                <div className={`gblock ${b.isLabel ? 'is-label' : ''} ${b.isIp ? 'is-ip' : ''} ${b.isCont ? 'is-payload' : ''} ${b.isRaw ? 'is-raw' : ''} ${lit ? 'link' : ''}`} style={col}>
-                  <span className={`gblock-head ${b.isCont ? 'gpay-arrow' : ''} ${b.isIp && focus === 'ip' ? 'spot' : ''}`} aria-label={b.isIp ? 'reading head' : undefined}>{b.isIp ? '▶' : b.isCont ? '↳' : ''}</span>
-                  <span className="gblock-emoji" aria-hidden="true">{b.emoji}</span>
-                  {/* a raw block is an exact opcode byte the source pinned — tag it so it never reads as a friendly verb or a label */}
-                  {b.isRaw && <span className="gblock-raw" title="an exact opcode byte, written `raw` in the source">raw</span>}
-                  <span className={`gblock-text ${b.isCont ? 'gpay-text' : ''}`}>{b.text}</span>
-                </div>
-              </div>
-            );
-          })}
+          {/* one row per byte == one world cell (1:1); GenomeBlockRow is the shared block definition */}
+          {state.blocks.map((b) => (
+            <GenomeBlockRow key={b.addr} block={b} lit={blockLit(b)} focusIp={focus === 'ip'}
+              rowRef={b.isIp ? ipRef : undefined}
+              onEnter={() => setHovered({ start: b.groupStart, end: b.groupStart + b.groupSpan })}
+              onLeave={clearHover} />
+          ))}
         </div>
       </div>
 

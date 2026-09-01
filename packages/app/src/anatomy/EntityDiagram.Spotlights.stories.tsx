@@ -11,7 +11,7 @@ const meta = {
 } satisfies Meta<typeof LiveEntity>;
 export default meta;
 
-// 'run' rings the controls bar; 'ip' narrows the ring to just the reading-head ▶ marker (below).
+// 'run' rings the controls bar; 'ip' narrows the ring to the reading head's block number (below).
 export const World: Story = spotlight('world', '.entity-world');
 export const Genome: Story = spotlight('genome', '.entity-genome');
 export const Registers: Story = spotlight('registers', '.entity-regs');
@@ -19,15 +19,15 @@ export const Flags: Story = spotlight('flags', '.entity-flags');
 export const Age: Story = spotlight('age', '.entity-vitals');
 export const Controls: Story = spotlight('run', '.entity-controls');
 
-// 'ip' rings ONLY the reading-head ▶ marker (a tight round halo), not the whole genome panel — so it
-// reads as distinct from the Genome spotlight above.
+// 'ip' rings ONLY the reading head's block number (the accent pill in the gutter), not the whole
+// genome panel — so it reads as distinct from the Genome spotlight above.
 export const ReadingHead: Story = {
   args: { source: SPOT_SRC, soup: 36, focus: 'ip' },
   play: async ({ canvasElement: c }) => {
     await expect(c.querySelector('.entity-genome')!.className).not.toMatch(/spot/);
-    const head = c.querySelector('.gblock.is-ip .gblock-head');
-    await expect(head).toBeTruthy();
-    await expect(head!.className).toMatch(/spot/);
+    const num = c.querySelector('.gaddr.is-ip');
+    await expect(num).toBeTruthy();
+    await expect(num!.className).toMatch(/spot/);
     await expect(c.querySelectorAll('.spot').length).toBe(1);
   },
 };

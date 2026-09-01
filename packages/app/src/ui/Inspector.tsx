@@ -3,6 +3,7 @@ import { toPanelModel, makeDisassembler } from '@tierra26/ui/inspector.ts';
 import { disassemble } from '@tierra26/genescript/disasm.ts';
 import { classic32 } from '@tierra26/engine/isa.ts';
 import type { InspectView } from '@tierra26/ui/protocol.ts';
+import { GenomeBlockRow } from '../anatomy/GenomeBlockRow.tsx';
 
 const disasm = makeDisassembler(disassemble, classic32);
 
@@ -56,11 +57,12 @@ export function Inspector({
       )}
 
       <div className="disasm">
+        {/* the same genome block definition as the anatomy viewer, in its plain-text variant */}
         {p.disassembly.map((row) => (
-          <div className={`drow ${row.isIp ? 'ip' : ''}`} key={row.line}>
-            <span className="dln">{row.line}</span>
-            <span className="dtx">{row.text}</span>
-          </div>
+          <GenomeBlockRow key={row.line} plain block={{
+            addr: row.bytes[0], text: row.text, isIp: row.isIp,
+            emoji: '', category: 'value', isLabel: false, isRaw: false, isCont: false,
+          }} />
         ))}
       </div>
 

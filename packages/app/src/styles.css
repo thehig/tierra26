@@ -114,11 +114,9 @@ svg.spark { display: block; width: 100%; height: 54px; }
 .daughter .dbar { flex: 1; height: 8px; border-radius: 5px; background: var(--surface-2); overflow: hidden; }
 .daughter .dbar span { display: block; height: 100%; background: var(--kw-control); }
 .daughter .dpct { font-family: var(--fm); font-variant-numeric: tabular-nums; }
-.disasm { font-family: var(--fm); font-size: .78rem; max-height: 190px; overflow: auto; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-2); }
-.drow { display: flex; gap: 10px; padding: 2px 10px; }
-.drow.ip { background: color-mix(in srgb, var(--accent) 16%, transparent); border-radius: 4px; }
-.drow .dln { color: var(--faint); width: 2ch; text-align: right; }
-.drow .dtx { color: var(--ink); }
+/* the plain-text genome list (Inspector) — GenomeBlockRow rows in their `plain` variant */
+.disasm { font-family: var(--fm); font-size: .78rem; max-height: 190px; overflow: auto; border: 1px solid var(--line); border-radius: 9px;
+  background: var(--surface-2); padding: 6px 8px; display: flex; flex-direction: column; gap: 2px; }
 
 /* nav */
 .brand { text-decoration: none; color: var(--ink); }
@@ -389,8 +387,6 @@ svg.spark { display: block; width: 100%; height: 54px; }
 
 /* a scroll waypoint HIGHLIGHTS one part with a ring — it never dims/greys the others */
 .spot { outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent); outline-offset: 6px; border-radius: 12px; transition: outline-color .3s ease; }
-/* the 'ip' focus narrows that ring right down to the reading-head ▶ marker — a tight round halo */
-.gblock-head.spot { outline-offset: 3px; border-radius: 50%; }
 
 /* the magnified world: one cell per soup byte, coloured by who owns it */
 .world-grid { display: grid; gap: 2px; width: 100%; max-width: 210px; margin: 0 auto; padding: 6px; border-radius: 12px;
@@ -441,24 +437,27 @@ svg.spark { display: block; width: 100%; height: 54px; }
   overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; }
 .genome-blocks::-webkit-scrollbar { width: 8px; }
 .genome-blocks::-webkit-scrollbar-thumb { background: var(--line); border-radius: 8px; }
-.gline { display: grid; grid-template-columns: 24px 1fr; align-items: center; gap: 8px; }
+.gline { display: grid; grid-template-columns: 30px 1fr; align-items: center; gap: 8px; }
+.gline.plain { gap: 8px; }
 .gaddr { font-family: var(--fm); font-size: .78rem; font-weight: 600; font-variant-numeric: tabular-nums;
   color: var(--faint); text-align: right; user-select: none; }
-/* a genome block is a flex row: reading-head slot · opcode emoji · name — so nothing overlaps */
+/* the reading head is a HIGHLIGHT ON THE BLOCK NUMBER (an accent pill), never a mark inside the block */
+.gaddr.is-ip { background: var(--accent); color: #fff; text-align: center; border-radius: 6px; font-weight: 700; }
+:root[data-theme="dark"] .gaddr.is-ip { color: #04211d; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .gaddr.is-ip { color: #04211d; } }
+.gaddr.spot { outline-offset: 3px; border-radius: 6px; }
+/* a genome block is a flex row: [lead ↳ / 🔩] · opcode emoji · name — so nothing overlaps */
 .gblock { display: flex; align-items: center; gap: 6px; font-family: var(--fm); font-size: .95rem; font-weight: 500; padding: 7px 12px;
-  border-radius: 9px; border: 2px solid; background: color-mix(in srgb, currentColor 8%, var(--surface)); transition: box-shadow .25s ease, transform .25s ease; }
+  border-radius: 9px; border: 2px solid; background: color-mix(in srgb, currentColor 8%, var(--surface)); transition: box-shadow .25s ease; }
 .gblock.is-label .gblock-text { font-weight: 700; }
-.gblock.is-ip { box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 30%, transparent); transform: translateX(3px); }
-.gblock-head { flex: 0 0 12px; text-align: center; font-size: .82rem; color: currentColor; }
-.gblock.is-ip .gblock-head { animation: rh-pulse 1.1s ease-in-out infinite; }
-@keyframes rh-pulse { 0%,100% { opacity: .5; } 50% { opacity: 1; } }
+.gblock-lead { flex: 0 0 auto; text-align: center; font-size: .82rem; }
 .gblock-emoji { flex: 0 0 1.3em; text-align: center; }
 .gblock-text { color: var(--ink); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* a `raw` block is an exact opcode byte the source pinned (not a friendly verb or a label): a small
-   uppercase tag before its mnemonic, and a faint fill so a run of them reads as one low-level band */
-.gblock.is-raw { background: color-mix(in srgb, currentColor 5%, var(--surface-2)); }
-.gblock-raw { flex: 0 0 auto; font-family: var(--fd); font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
-  color: var(--faint); border: 1px solid var(--line-2); border-radius: 4px; padding: 0 4px; line-height: 1.5; }
+.gline.plain .gblock-text { font-family: var(--fm); font-size: .82rem; }
+/* a raw block: an exact opcode byte the source pinned — a neutral GREY frame (not a category colour)
+   plus a 🔩 lead, so a run of them reads as one low-level band, distinct from friendly verbs and labels */
+.gblock.is-raw { border-color: var(--line-2); color: var(--faint); background: color-mix(in srgb, var(--faint) 5%, var(--surface-2)); }
+.graw { filter: grayscale(.1); }
 /* a block and its payload rows travel together; payload rows sit closer to their parent */
 .gblockgroup { display: flex; flex-direction: column; gap: 3px; }
 /* the payload row (a jump/find target) — subordinate: dashed, muted, a ↳ connector to its instruction */
