@@ -7,23 +7,35 @@ import { autocompletion, type CompletionSource } from '@codemirror/autocomplete'
 import { parse } from '@tierra26/genescript/gs.ts';
 import { classic32 } from '@tierra26/engine/isa.ts';
 import { viewModel, keywordTooltip, type EditorState as GeneState } from '@tierra26/ui/editor.ts';
-import { takesTarget } from '@tierra26/genescript/vocab.ts';
+import { entry, entryOfMnemonic, mnemonicToVerb, takesTarget } from '@tierra26/genescript/vocab.ts';
 
 // Build the view-model for a source string under the full classic-32 set.
 export function geneState(source: string): GeneState {
   return { mode: 'text', source, ast: parse(source), activeSet: classic32, sessionId: '' };
 }
 
-// --- keyword coloring: one Decoration.mark per resolved span, class = cm-kw-<category> ---
+// Resolve a token to its VOCAB entry whether it is written as a gene (grow-a) or a mnemonic (incA),
+// so coloring & hover work in BOTH language modes without knowing which mode the buffer is in.
+function resolveToken(tok: string) { return entry(tok) ?? entryOfMnemonic(tok); }
+
+// --- keyword coloring: colour each statement's verb by category, mode-agnostic (gene OR mnemonic) ---
+// Token-based rather than parse-based, so an advanced (mnemonic) buffer colours identically to a
+// friendly one. Labels (`top:`), `raw` lines, and control targets (a user's label) are left uncoloured.
 function buildDecorations(view: EditorView): DecorationSet {
-  const src = view.state.doc.toString();
-  const spans = viewModel(geneState(src)).keywordSpans;
   const b = new RangeSetBuilder<Decoration>();
-  const len = view.state.doc.length;
-  for (const s of spans) {
-    if (s.start >= 0 && s.end <= len && s.end > s.start) {
-      b.add(s.start, s.end, Decoration.mark({ class: `cm-kw-${s.category}` }));
-    }
+  const doc = view.state.doc;
+  for (let i = 1; i <= doc.lines; i++) {
+    const line = doc.line(i);
+    const hash = line.text.indexOf('#');
+    const code = hash >= 0 ? line.text.slice(0, hash) : line.text;
+    const m = /^(\s*)([A-Za-z0-9_-]+)(.*)$/.exec(code);
+    if (!m) continue;
+    const [, ws, tok, tail] = m;
+    if (tail!.startsWith(':') || tok!.toLowerCase() === 'raw') continue; // label def / raw byte
+    const v = resolveToken(tok!);
+    if (!v) continue;
+    const from = line.from + ws!.length;
+    b.add(from, from + tok!.length, Decoration.mark({ class: `cm-kw-${v.category}` }));
   }
   return b.finish();
 }
@@ -80,7 +92,8 @@ function wordAt(state: CMState, pos: number): { from: number; to: number; text: 
 export const keywordHover = hoverTooltip((view, pos) => {
   const { from, to, text } = wordAt(view.state, pos);
   if (from === to) return null;
-  const tip = keywordTooltip(text);
+  // resolve a mnemonic back to its verb so the advanced buffer hovers the same card as the friendly one
+  const tip = keywordTooltip(mnemonicToVerb(text) ?? text);
   if (!tip) return null;
   return {
     pos: from,

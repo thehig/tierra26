@@ -11,6 +11,8 @@ import { fromAst, type Block } from '@tierra26/genescript/block.ts';
 import { parse } from '@tierra26/genescript/gs.ts';
 import { keywordColoring, geneCompletions, geneState, keywordHover } from './cm.ts';
 import { buildPeekModel } from './peek.ts';
+import { useLanguageMode } from '../design/languageMode.tsx';
+import { toMnemonicSource, toGeneSource } from './langSwap.ts';
 
 export function GeneEditor({
   value, onChange, onInject, title = 'Gene editor',
@@ -27,11 +29,18 @@ export function GeneEditor({
   const [peek, setPeek] = useState(false);
   const [blocks, setBlocks] = useState(false);
 
+  // The app's `value` is always GENE form (it compiles). In advanced mode the editor DISPLAYS and edits
+  // the mnemonic form; we translate back to gene on the way out, so compile/peek/blocks are unchanged.
+  const advanced = useLanguageMode() === 'advanced';
+  const advancedRef = useRef(advanced);
+  advancedRef.current = advanced;
+  const toDisplay = (gene: string) => (advanced ? toMnemonicSource(gene) : gene);
+
   useEffect(() => {
     const view = new EditorView({
       parent: host.current!,
       state: EditorState.create({
-        doc: value,
+        doc: advancedRef.current ? toMnemonicSource(value) : value,
         extensions: [
           history(),
           keymap.of([...defaultKeymap, ...historyKeymap, ...completionKeymap]),
@@ -39,7 +48,11 @@ export function GeneEditor({
           keywordHover,
           geneCompletions,
           EditorView.lineWrapping,
-          EditorView.updateListener.of((u) => { if (u.docChanged) onChangeRef.current(u.state.doc.toString()); }),
+          EditorView.updateListener.of((u) => {
+            if (!u.docChanged) return;
+            const text = u.state.doc.toString();
+            onChangeRef.current(advancedRef.current ? toGeneSource(text) : text);
+          }),
         ],
       }),
     });
@@ -48,13 +61,17 @@ export function GeneEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Controlled: an external change (e.g. "open in editor") replaces the doc.
+  // Controlled: reflect an external source change (e.g. "open in editor") OR a language-mode flip by
+  // replacing the doc with the desired display form. Round-trips cleanly, so a local edit won't fight.
   useEffect(() => {
     const v = viewRef.current;
-    if (v && value !== v.state.doc.toString()) {
-      v.dispatch({ changes: { from: 0, to: v.state.doc.length, insert: value } });
+    if (!v) return;
+    const desired = toDisplay(value);
+    if (desired !== v.state.doc.toString()) {
+      v.dispatch({ changes: { from: 0, to: v.state.doc.length, insert: desired } });
     }
-  }, [value]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value, advanced]);
 
   const vm = useMemo(() => viewModel(geneState(value)), [value]);
   const errors = vm.diagnostics.filter((d) => d.severity === 'error');
