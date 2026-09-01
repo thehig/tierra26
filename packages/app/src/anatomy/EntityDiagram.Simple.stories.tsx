@@ -67,7 +67,11 @@ export const Loops: Story = {
 export const StepsToFinish: Story = {
   args: { source: 'grow-a\ngrow-a\ngrow-a', soup: 36 },
   play: async ({ canvasElement: c }) => {
-    await step(c, 3);
+    // the reading head's world tile is ringed from the start and follows it as it runs
+    await expect(c.querySelectorAll('.wcell.ip').length).toBe(1);
+    await step(c, 1);
+    await expect(c.querySelectorAll('.wcell.ip').length).toBe(1);
+    await step(c, 2);
     await expect(stepBtn(c)).toBeDisabled();
     await expect(c.querySelector('.entity-steps')!.textContent).toMatch(/finished/);
     await expect(within(c).queryAllByRole('button', { name: /Run/ }).length).toBe(0);

@@ -75,7 +75,7 @@ export function EntityDiagram({
         <div className={`world-grid ${small ? 'emoji' : ''}`} style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
           onMouseLeave={() => { clearHover(); setLoupe(null); }}>
           {state.world.map((o, i) => (
-            <span key={i} className={`wcell ${OWNER_CLASS[o]} ${cellLit(i) ? 'link' : ''}`}
+            <span key={i} className={`wcell ${OWNER_CLASS[o]} ${cellLit(i) ? 'link' : ''} ${i === ipAddr ? 'ip' : ''}`}
               onMouseMove={(e) => { setHovered(rangeOfCell(i)); if (!small) setLoupe({ cell: i, x: e.clientX, y: e.clientY }); }}>
               {small ? opcodeEmoji(state.worldGene[i]) : null}
             </span>
@@ -86,7 +86,7 @@ export function EntityDiagram({
         {!small && ipAddr >= 0 && (
           <div className="world-focus">
             <div className="part-label">reading head ▶</div>
-            <div className="step-loupe"><LoupeView state={state} cols={cols} cell={ipAddr} /></div>
+            <div className="step-loupe"><LoupeView state={state} cols={cols} cell={ipAddr} rowR={1} /></div>
           </div>
         )}
       </div>
@@ -170,15 +170,16 @@ export function EntityDiagram({
   );
 }
 
-// The magnifier body: the 5×5 neighbourhood around a cell, each cell's opcode as an emoji inside its
-// ownership-coloured border, with the centre cell's gene named below. Shared by the floating hover
-// loupe and the inline reading-head inspector.
-function LoupeView({ state, cols, cell }: { state: EntityState; cols: number; cell: number }) {
-  const R = 2, N = 2 * R + 1;
+// The magnifier body: the neighbourhood around a cell (rowR rows / colR cols each side of centre —
+// 5×5 by default), each cell's opcode as an emoji inside its ownership-coloured border, with the
+// centre cell's gene named below. Shared by the floating hover loupe and the inline reading-head
+// inspector (which pins rowR=1 for a compact 3-row band).
+function LoupeView({ state, cols, cell, rowR = 2, colR = 2 }: { state: EntityState; cols: number; cell: number; rowR?: number; colR?: number }) {
+  const N = 2 * colR + 1;
   const rows = Math.ceil(state.worldSize / cols);
   const cr = Math.floor(cell / cols), cc = cell % cols;
   const cells: { idx: number; center: boolean }[] = [];
-  for (let dr = -R; dr <= R; dr++) for (let dc = -R; dc <= R; dc++) {
+  for (let dr = -rowR; dr <= rowR; dr++) for (let dc = -colR; dc <= colR; dc++) {
     const rr = cr + dr, ccc = cc + dc;
     const inside = rr >= 0 && rr < rows && ccc >= 0 && ccc < cols;
     cells.push({ idx: inside ? rr * cols + ccc : -1, center: dr === 0 && dc === 0 });

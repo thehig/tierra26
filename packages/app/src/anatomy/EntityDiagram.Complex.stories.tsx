@@ -31,12 +31,15 @@ export const Ancestor: Story = {
     await expect(g.clientHeight).toBeLessThanOrEqual(420);
     // the whole entity fits comfortably in the viewport height (controls never pushed off-screen)
     await expect((c.querySelector('.entity') as HTMLElement).getBoundingClientRect().height).toBeLessThan(760);
-    // a reading-head inspector rides under the world, centred on the current step (the ▶ cell): its
-    // centre shows the very opcode the reading head sits on in the genome — no hover needed
+    // a reading-head inspector rides under the world, centred on the current step (the ▶ cell): a
+    // compact 3-row × 5-col band whose centre shows the very opcode the reading head sits on in the
+    // genome — no hover needed
     await expect(c.querySelector('.world-focus')).toBeTruthy();
-    await expect(c.querySelectorAll('.step-loupe .wl-cell').length).toBe(25);
+    await expect(c.querySelectorAll('.step-loupe .wl-cell').length).toBe(15);
     await expect(c.querySelector('.step-loupe .wl-cell.center')!.textContent)
       .toBe(c.querySelector('.gblock.is-ip .gblock-emoji')!.textContent);
+    // and the reading head's own world tile is ringed so you can see where it is executing
+    await expect(c.querySelectorAll('.wcell.ip').length).toBe(1);
     // hovering the world raises the magnifier loupe (naming the opcode under the cursor)
     await userEvent.hover(c.querySelector('.wcell.mother') as HTMLElement);
     await expect(document.querySelector('.wloupe')).toBeTruthy();

@@ -425,6 +425,10 @@ svg.spark { display: block; width: 100%; height: 54px; }
 .wcell.link { box-shadow: 0 0 0 2px var(--ink), 0 0 0 4px color-mix(in srgb, var(--accent) 60%, transparent); z-index: 1; }
 .gblock.link { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 55%, transparent); }
 .gline { cursor: default; }
+/* the reading head's own world tile — ringed so you can see WHERE in the world it is executing as it
+   Steps/Runs. The compound selector out-specifies the emoji world's `box-shadow: none`, so it shows
+   in both the solid big world and the small emoji world. */
+.wcell.ip, .world-grid.emoji .wcell.ip { position: relative; z-index: 2; box-shadow: 0 0 0 2px var(--ink); }
 
 /* the daughter (a reserved patch of world filling up into a copy) */
 .entity-daughter .dfill { height: 14px; border-radius: 8px; overflow: hidden; background: var(--surface); border: 1px solid var(--line); }
