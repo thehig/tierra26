@@ -453,7 +453,7 @@ svg.spark { display: block; width: 100%; height: 54px; }
 .gblock.is-ip .gblock-head { animation: rh-pulse 1.1s ease-in-out infinite; }
 @keyframes rh-pulse { 0%,100% { opacity: .5; } 50% { opacity: 1; } }
 .gblock-emoji { flex: 0 0 1.3em; text-align: center; }
-.gblock-text { color: var(--ink); min-width: 0; word-break: break-word; }
+.gblock-text { color: var(--ink); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* a `raw` block is an exact opcode byte the source pinned (not a friendly verb or a label): a small
    uppercase tag before its mnemonic, and a faint fill so a run of them reads as one low-level band */
 .gblock.is-raw { background: color-mix(in srgb, currentColor 5%, var(--surface-2)); }
