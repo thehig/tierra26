@@ -73,18 +73,6 @@ describe('Content cross-layer invariants (CONTINV)', () => {
       assert.doesNotThrow(() => e.inject(r.bytes, { founderId: 1 }), `starter ${id} loads`);
       seen.push(id);
     }
-    // 2) every editable-scenario starter across all 32 instruction pages
-    for (const page of INSTRUCTION_PAGES) {
-      for (const sc of page.scenarios) {
-        const starter = sc.config.starter;
-        if (starter.kind !== 'genescript') continue; // ref starters resolve via STARTERS above
-        const set = toSet(sc.config.subset);
-        const r = compile(starter.source, set);
-        assert.equal(hasErrors(r.diagnostics), false, `page ${page.verb}/${sc.id} compiles`);
-        const e = new Engine({ seed: 1, mutation: { flaw: 0, copy: 0, cosmic: 0 } });
-        assert.doesNotThrow(() => e.inject(r.bytes, { founderId: 1 }), `page ${page.verb}/${sc.id} loads`);
-      }
-    }
     assert.ok(seen.length > 0, 'at least one shipped starter');
   });
 

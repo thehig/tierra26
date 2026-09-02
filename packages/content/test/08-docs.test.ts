@@ -11,6 +11,11 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadDocs, formatFailures } from '../src/docload.ts';
+import { compile } from '../../genescript/src/comp.ts';
+import { toGeneSource } from '../../genescript/src/langswap.ts';
+import { hasErrors } from '../../genescript/src/types.ts';
+import { classic32, Engine } from '../../engine/src/index.ts';
+import type { DocNode } from '../src/types.ts';
 import { DICTIONARY } from '../../engine/src/isa.ts';
 import { OPCODE_BINDINGS } from '../../genescript/src/bindings.generated.ts';
 
@@ -40,6 +45,46 @@ describe('docs corpus', () => {
       warnings.map((w) => `${w.rel}:${w.loc.line} ${w.code} ${w.message}`),
       [],
     );
+  });
+});
+
+/** Every inline <Genome> in a document, with the tag path that holds it. */
+function genomesIn(nodes: readonly DocNode[], path: string[] = []): { where: string; source: string }[] {
+  const out: { where: string; source: string }[] = [];
+  for (const n of nodes) {
+    if (n.kind !== 'tag') continue;
+    if (n.name === 'Genome' && n.text && !('ref' in n.attrs)) {
+      out.push({ where: [...path, 'Genome'].join(' > '), source: n.text });
+    }
+    out.push(...genomesIn(n.children, [...path, n.name]));
+  }
+  return out;
+}
+
+describe('a Bible page that shows a creature', () => {
+  // The `## Try it` stage is authored in the document now. The invariant that
+  // used to cover INSTRPAGE's scenarios has to live where the genomes do, or a
+  // mistyped mnemonic in a reference page renders a broken creature instead of
+  // failing the build. (Lesson genomes are covered by app/test/chapters.test.ts,
+  // which also runs each challenge's solution to its goal.)
+  it('every inline <Genome> compiles under classic-32 and loads in the engine', () => {
+    let seen = 0;
+    for (const d of [...opcodes, ...concepts]) {
+      for (const g of genomesIn(d.ast.body)) {
+        const r = compile(toGeneSource(g.source), classic32);
+        assert.equal(hasErrors(r.diagnostics), false,
+          `${d.file} ${g.where} does not compile: ${r.diagnostics.map((x) => x.message).join('; ')}`);
+        for (const b of r.bytes) {
+          assert.ok(b >= 0 && b < classic32.n, `${d.file} ${g.where} emitted an illegal opcode`);
+        }
+        const e = new Engine({ seed: 1, mutation: { flaw: 0, copy: 0, cosmic: 0 } });
+        assert.doesNotThrow(() => e.inject(r.bytes, { founderId: 1 }), `${d.file} ${g.where} does not load`);
+        seen++;
+      }
+    }
+    // Not asserted to be non-zero: a Bible page is not required to show a
+    // creature. This guards the ones that do.
+    assert.ok(seen >= 0);
   });
 });
 

@@ -222,7 +222,6 @@ export interface KeywordSpan { start: number; end: number; term: string; categor
 // ============================================================================
 
 export interface AnimationSpec {
-  summary: string; // one plain line (C-CON-KID)
   targets: readonly (
     | { kind: 'register'; reg: 'A' | 'B' | 'C' | 'D'; change: 'increase' | 'decrease' | 'set' | 'read' }
     | { kind: 'flag'; flag: 'E' | 'S' | 'Z'; change: 'set' | 'clear' }
@@ -233,24 +232,17 @@ export interface AnimationSpec {
   )[];
 }
 
-export interface EditableScenario {
-  id: string;              // unique within the page
-  prompt: string;          // "try: change X" — one plain instruction (C-CON-KID)
-  config: PlaygroundConfig; // the reproducible engine recipe [02]
-  spotlight: string;       // which verb this scenario highlights (== the page verb)
-}
-
 export interface InstructionPage {
   verb: string;            // the GeneScript verb — join key to VOCAB (unique)
   // identity: DERIVED from VOCAB, not redefined (C-CON-SOURCE)
   mnemonic: string;        // === vocab(verb).mnemonic (via engine ISA, not hard-coded)
   kid: string;             // === vocab(verb).kid
   machine: string;         // === vocab(verb).machine
-  // depth: OWNED here
+  // depth: OWNED here. Prose depth — the summary, the pitfalls, the related
+  // verbs and the runnable scenario — lives in docs/bible/opcodes/<mnemonic>.md,
+  // which is the single authored source for it. What stays here is what a
+  // document cannot express.
   animation: AnimationSpec;
-  scenarios: readonly EditableScenario[]; // >= 1
-  seeAlso: readonly string[];             // related verbs — each a real verb in this table
-  commonMistakes: readonly string[];      // plain-language pitfalls (C-CON-KID)
   introLesson: string;                    // lesson id that introduces this verb — resolves in [05]
 }
 

@@ -91,31 +91,15 @@ export interface CompletionEvent {
 
 // ---- per-instruction wiki page model (§2 `toInstructionPageModel`) ----------
 
-// An editable "try this" scenario, mounted as a mini-playground via the SAME lazy path.
-export interface InstrScenarioModel {
-  id: string;
-  prompt: string;
-  spotlight: string;
-  config: PlaygroundConfig;
-  mount: 'lazy';
-}
-
-export interface SeeAlsoLink {
-  verb: string;
-  pageId: string;
-}
-
 export interface InstrPageModel {
   // identity — projected from the page (which projects VOCAB); never redefined here.
   verb: string;
   mnemonic: string;
   kid: string;
   machine: string;
-  // depth.
-  animation: { summary: string; targets: AnimationSpec['targets'] };
-  scenarios: InstrScenarioModel[];
-  seeAlso: SeeAlsoLink[];
-  commonMistakes: string[];
+  // depth. Prose depth (summary, pitfalls, related verbs, the runnable scenario)
+  // is authored in the Bible page, not projected through here.
+  animation: { targets: AnimationSpec['targets'] };
   introLesson: string;
 }
 
@@ -326,16 +310,7 @@ export function toInstructionPageModel(p: InstructionPage): InstrPageModel {
     mnemonic: p.mnemonic,
     kid: p.kid,
     machine: p.machine,
-    animation: { summary: p.animation.summary, targets: p.animation.targets },
-    scenarios: p.scenarios.map((s) => ({
-      id: s.id,
-      prompt: s.prompt,
-      spotlight: s.spotlight,
-      config: s.config,
-      mount: 'lazy', // same lazy mounting path as a lesson playground (READER-008)
-    })),
-    seeAlso: p.seeAlso.map((verb) => ({ verb, pageId: instrPageId(verb) })),
-    commonMistakes: [...p.commonMistakes],
+    animation: { targets: p.animation.targets },
     introLesson: p.introLesson,
   };
 }

@@ -126,28 +126,13 @@ describe('Lesson Reader & Pages (READER)', () => {
     assert.equal(model.mnemonic, page.mnemonic);
     assert.equal(model.kid, page.kid);
     assert.equal(model.machine, page.machine);
-    // depth — animation, scenarios, see-also, mistakes, intro lesson all present.
-    assert.equal(model.animation.summary, page.animation.summary);
+    // depth — what the record still owns. The prose depth (summary, see-also,
+    // pitfalls) and the runnable scenario are authored in the Bible page now, so
+    // they are not projected through here and are covered by the docs corpus tests.
     assert.deepEqual(model.animation.targets, page.animation.targets);
-    assert.equal(model.scenarios.length, page.scenarios.length);
-    assert.ok(model.scenarios.length >= 1);
-    assert.equal(model.seeAlso.length, page.seeAlso.length);
-    assert.deepEqual(model.commonMistakes, [...page.commonMistakes]);
     assert.equal(model.introLesson, page.introLesson);
     // every page in the shipped table projects without throwing (pure over the whole corpus).
     for (const p of INSTRUCTION_PAGES) assert.ok(toInstructionPageModel(p).verb === p.verb);
-  });
-
-  it("[READER-008] a per-instruction page's editable scenarios mount as playgrounds via the same path", () => {
-    const model = toInstructionPageModel(pageOf('divide')!);
-    for (const s of model.scenarios) {
-      assert.equal(s.mount, 'lazy'); // same lazy-mount flag a lesson playground carries
-      // a scenario is a reproducible worker-session recipe, resolved via the SAME toSessionConfig path.
-      const session = toSessionConfig(s.config);
-      assert.equal(session.seed, s.config.seed);
-      assert.deepEqual(session.starter, s.config.starter);
-      assert.equal(s.spotlight, 'divide');
-    }
   });
 
   it('[READER-009] instruction-link spans resolve to the correct per-instruction page id', () => {

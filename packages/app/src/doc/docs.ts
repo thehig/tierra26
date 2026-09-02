@@ -52,6 +52,21 @@ export function tooltipMarkdown(doc: LoadedDoc | undefined, advanced: boolean): 
   return first && first.kind === 'prose' ? first.markdown : undefined;
 }
 
+/** The first `## Edge Cases` bullet of a page — the one pitfall the genome
+ *  viewer's tooltip surfaces as its "watch out" line.
+ *
+ *  This used to come from INSTRPAGE's `commonMistakes`, a second hand-authored
+ *  copy of the same bullets that had already drifted from the Bible's on all 32
+ *  pages. Reading the document instead means the tooltip and the page can never
+ *  disagree again. `Gotchas` is the section's name on pages written before the
+ *  rename; both are read while the corpus migrates. */
+export function firstEdgeCase(doc: LoadedDoc | undefined): string | undefined {
+  const section = sectionOf(doc?.ast.body ?? [], 'Edge Cases') ?? sectionOf(doc?.ast.body ?? [], 'Gotchas');
+  const bullet = /^\s*[-*]\s+(.*)$/m.exec(section ?? '')?.[1];
+  const text = plainText(bullet ?? '');
+  return text || undefined;
+}
+
 /** A one-line gloss for an index entry, taken from the document ITSELF so the
  *  Bible index never carries a second copy of a description that can drift:
  *  the parenthetical in the page's `title` when it has one (concept pages read

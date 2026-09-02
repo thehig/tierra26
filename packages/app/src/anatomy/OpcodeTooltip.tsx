@@ -1,7 +1,7 @@
 // The opcode-definition tooltip that pops from a hovered genome block. Compact and reuse-first: it
 // resolves the block's gene to the existing per-opcode content — VOCAB (kid line, machine truth,
-// category, mnemonic) and INSTRPAGE (the `targets` list of what changes, and the first pitfall) — and
-// surfaces the `targets` data, which is authored everywhere but rendered nowhere else.
+// category, mnemonic), the Bible page (the first `## Edge Cases` bullet, as the "watch out" line)
+// and INSTRPAGE (the `targets` list of what changes, which a document cannot express).
 import { entry } from '@tierra26/genescript/vocab.ts';
 import { pageOf } from '@tierra26/content/instrpage.ts';
 import type { AnimationSpec } from '@tierra26/content/types.ts';
@@ -9,6 +9,7 @@ import { opcodeEmoji } from './opcodeEmoji.ts';
 import { categoryVar, type KeywordCategory } from '../design/palette.ts';
 import { useLanguageMode } from '../design/languageMode.tsx';
 import { simpleName } from '../design/bindings.ts';
+import { opcodeDoc, firstEdgeCase } from '../doc/docs.ts';
 import { Link } from '../router/router.tsx';
 
 type Target = AnimationSpec['targets'][number];
@@ -37,7 +38,9 @@ export function OpcodeTooltip({ gene, x, y, onEnter, onLeave }: { gene: string; 
   const sub = advanced ? simpleName(v.verb) : v.mnemonic;
   const page = pageOf(gene);
   const targets = page?.animation.targets ?? [];
-  const watch = page?.commonMistakes[0];
+  // The pitfall comes from the page's own Edge Cases, so the tooltip cannot
+  // drift from the document the way a second authored copy did.
+  const watch = firstEdgeCase(opcodeDoc(v.mnemonic));
 
   // fixed to the viewport, anchored to the row's right edge, clamped so it never runs off-screen
   const vw = typeof window !== 'undefined' ? window.innerWidth : 1200;

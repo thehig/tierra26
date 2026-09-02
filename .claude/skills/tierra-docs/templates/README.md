@@ -94,22 +94,30 @@ The consequence to know while regenerating: **until a page authors a `## Try it`
 no playground at all.** Write one. Aim it at whatever `## Edge Cases` calls surprising —
 a preset `<State>` one step from a boundary is the whole point.
 
-## `INSTRPAGE` is still a second copy of three things
+## `INSTRPAGE` holds one thing now
 
-`packages/content/src/instrpage.ts` holds an `AUTHORED` table for all 32 verbs:
+`packages/content/src/instrpage.ts` used to carry `summary`, `mistakes`, `seeAlso`,
+`prompt` and `scenarios` for all 32 verbs, alongside the Bible's own copies of the first
+three. They had drifted — the pitfall bullets disagreed with the Bible's on all 32
+pages — so they are gone. The Bible is the single authored source:
 
-| INSTRPAGE | Bible | State |
-|---|---|---|
-| `summary` | first sentence of `## Simple` | duplicated |
-| `mistakes` | `## Edge Cases` | **duplicated and already drifted — the bullet counts differ on all 32 pages** |
-| `seeAlso` | `## See also` | duplicated |
-| `prompt` + `scenarios` | `## Try it` | **no longer rendered anywhere** — dead since the playground moved into the document |
-| `targets` | — | still live: the tooltip animation data, which a document cannot express |
+| was in INSTRPAGE | now, and only |
+|---|---|
+| `summary` | the first sentence of `## Simple` |
+| `mistakes` | `## Edge Cases` — the genome tooltip reads the first bullet straight from the page |
+| `seeAlso` | `## See also` |
+| `prompt` + `scenarios` | `## Try it`, an `<EntityDesigner>` the author aims at the point |
+| `targets` | **stays in INSTRPAGE** — the structured "what changes" badge list, which no prose section can carry |
 
-`OpcodeTooltip` and the reader's keyword linking still call `pageOf`, so the module stays;
-what is finished is the *opcode page's* dependency on it. Retiring `summary`, `mistakes`,
-`seeAlso` and the now-dead `scenarios` is the next consolidation — it touches
-`03-instrpage.test.ts` and `_invariants.test.ts`, which is why it is a separate job.
+The invariants moved with the data rather than being dropped: `08-docs.test.ts` now
+compiles and loads **every inline `<Genome>` in a Bible page**, so a mistyped mnemonic in
+a `## Try it` stage fails the build exactly as a broken scenario genome used to. (Lesson
+genomes were already covered by `app/test/chapters.test.ts`, which also runs each
+challenge's solution to its goal.)
 
-Do **not** write a regenerated page from the INSTRPAGE copy. Where the two disagree
-today, neither has been checked against the engine.
+One consequence while regenerating: an opcode page with no `## Try it` has no playground,
+and the tooltip's "watch out" line is the first bullet of that page's `## Edge Cases` —
+write one, or the tooltip has nothing to show.
+
+Do **not** reach for a retired copy when writing a page. Where the two disagreed, neither
+had been checked against the engine.
