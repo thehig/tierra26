@@ -1,8 +1,12 @@
-// [06] READER — lesson reader + per-instruction page RENDER MODELS.
+// [06] READER — lesson reader RENDER MODELS.
 // Ref: docs/spec/ui/06-lesson-reader-and-pages.md (§2 interfaces, §4 rules, §8 READER-001..013).
 //
-// This module turns the CONTENT layer (Lesson AST, keyword registry, per-instruction pages)
-// into PURE, ordered render models the design pass paints. It contains NO DOM, no window/document,
+// This module turns the CONTENT layer (Lesson AST, keyword registry) into PURE, ordered
+// render models the design pass paints.
+//
+// It no longer models the per-instruction page. That page is a Bible document rendered
+// by the doc pipeline, so a projection here would have been a second shape for the same
+// thing — which is exactly what INSTRPAGE's retired prose fields turned out to be. It contains NO DOM, no window/document,
 // no clock, no RNG (C-UI-DET). It RENDERS content facts, it never redefines them (C-UI-SOURCE):
 //   - keyword color/tooltip/instr-link come from the content registries (KEYWORDS / pageOf),
 //     never a UI-local map;
@@ -20,8 +24,6 @@ import type {
   Goal,
   GenomeSource,
   ActiveSubset,
-  InstructionPage,
-  AnimationSpec,
   KeywordCategory,
 } from '../../content/src/types.ts';
 import type { HostCommand, SessionId } from './protocol.ts';
@@ -87,20 +89,6 @@ export interface CompletionEvent {
   lessonId: string;
   goalId: string;
   kind: string;
-}
-
-// ---- per-instruction wiki page model (§2 `toInstructionPageModel`) ----------
-
-export interface InstrPageModel {
-  // identity — projected from the page (which projects VOCAB); never redefined here.
-  verb: string;
-  mnemonic: string;
-  kid: string;
-  machine: string;
-  // depth. Prose depth (summary, pitfalls, related verbs, the runnable scenario)
-  // is authored in the Bible page, not projected through here.
-  animation: { targets: AnimationSpec['targets'] };
-  introLesson: string;
 }
 
 // ============================================================================
@@ -297,22 +285,6 @@ export function goalCompletionEvent(
 ): CompletionEvent | null {
   if (!passed) return null;
   return { type: 'goal-complete', lessonId, goalId: goal.goalId, kind: goal.kind };
-}
-
-// ============================================================================
-// §2 toInstructionPageModel — the per-instruction wiki page (READER-007/008/009).
-// A pure projection: identity + depth are already single-sourced in the content page.
-// ============================================================================
-
-export function toInstructionPageModel(p: InstructionPage): InstrPageModel {
-  return {
-    verb: p.verb,
-    mnemonic: p.mnemonic,
-    kid: p.kid,
-    machine: p.machine,
-    animation: { targets: p.animation.targets },
-    introLesson: p.introLesson,
-  };
 }
 
 /** The per-instruction page id for a verb (READER-009). The page id IS the page's unique verb key. */

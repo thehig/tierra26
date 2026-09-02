@@ -1,13 +1,13 @@
 // Lesson Reader & Pages (READER) — acceptance criteria as executable tests.
 // Ref: docs/spec/ui/06-lesson-reader-and-pages.md §8. Keep 1:1 with the doc.
-// Parses the REAL shipped lesson corpus (content LESSONS via content parse) and the REAL
-// per-instruction pages (content INSTRUCTION_PAGES) — no fixtures, no UI-local registries.
+// Parses the REAL shipped lesson corpus (content LESSONS via content parse) — no fixtures,
+// no UI-local registries. The per-instruction PAGE is not modelled here any more: it is a
+// Bible document, rendered by the doc pipeline and covered by the docs corpus tests.
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
   toRenderModel,
-  toInstructionPageModel,
   resolveProseSpans,
   toSessionConfig,
   shouldMount,
@@ -19,7 +19,7 @@ import {
 import type { ProseSpan, RenderBlock } from '../src/reader.ts';
 import { parse } from '../../content/src/content.ts';
 import { LESSONS } from '../../content/src/lessons.ts';
-import { INSTRUCTION_PAGES, pageOf } from '../../content/src/instrpage.ts';
+import { pageOf } from '../../content/src/instrpage.ts';
 import { KEYWORDS } from '../../content/src/keyword.ts';
 import type { ProseNode, PlaygroundNode, GoalNode } from '../../content/src/types.ts';
 
@@ -116,23 +116,6 @@ describe('Lesson Reader & Pages (READER)', () => {
     const ev = goalCompletionEvent('ch01-landmarks', ref, true);
     assert.deepEqual(ev, { type: 'goal-complete', lessonId: 'ch01-landmarks', goalId: ref.goalId, kind: ref.kind });
     assert.equal(goalCompletionEvent('ch01-landmarks', ref, false), null);
-  });
-
-  it('[READER-007] toInstructionPageModel renders every InstructionPage field', () => {
-    const page = pageOf('divide')!;
-    const model = toInstructionPageModel(page);
-    // identity — projected from the page (which projects VOCAB).
-    assert.equal(model.verb, page.verb);
-    assert.equal(model.mnemonic, page.mnemonic);
-    assert.equal(model.kid, page.kid);
-    assert.equal(model.machine, page.machine);
-    // depth — what the record still owns. The prose depth (summary, see-also,
-    // pitfalls) and the runnable scenario are authored in the Bible page now, so
-    // they are not projected through here and are covered by the docs corpus tests.
-    assert.deepEqual(model.animation.targets, page.animation.targets);
-    assert.equal(model.introLesson, page.introLesson);
-    // every page in the shipped table projects without throwing (pure over the whole corpus).
-    for (const p of INSTRUCTION_PAGES) assert.ok(toInstructionPageModel(p).verb === p.verb);
   });
 
   it('[READER-009] instruction-link spans resolve to the correct per-instruction page id', () => {

@@ -37,8 +37,6 @@ type ProseSpan =
   | { kind: 'text'; text: string }
   | { kind: 'keyword'; term: string; entryId: string; color: string; tooltip: TooltipModel }
   | { kind: 'instr-link'; verb: string; pageId: string };
-
-function toInstructionPageModel(p: InstructionPage): InstrPageModel;  // wiki page render model
 ```
 
 ## 3. Data structures
@@ -48,8 +46,10 @@ function toInstructionPageModel(p: InstructionPage): InstrPageModel;  // wiki pa
   resolution delegated to content [04], not re-implemented).
 - **Embedded playground block** — carries the `PlaygroundConfig` [content 02]; mounts **lazily**
   (a page may hold many).
-- **`InstrPageModel`** — a per-instruction wiki page from the `InstructionPage` record (kid def,
-  machine truth, animation spec, editable scenarios as mini-playgrounds, see-also).
+- ~~**`InstrPageModel`**~~ — **RETIRED.** The per-instruction page is a Bible document
+  (`docs/bible/opcodes/<mnemonic>.md`) rendered by the doc pipeline, so a render model here was a
+  second shape for the same thing. Its prose fields (summary, see-also, pitfalls) and its
+  runnable scenario were authored twice and had drifted; they now live only in the document.
 
 ## 4. Behavior / algorithms
 - **Render mapping (pure)** — `toRenderModel(ast)` walks the Lesson AST into ordered
@@ -64,8 +64,9 @@ function toInstructionPageModel(p: InstructionPage): InstrPageModel;  // wiki pa
   scroll-into-view for performance; unmount tears down the session (WORKER `disposeSession`).
 - **Goals** — an embedded goal's checker [content 06] runs against the playground's session;
   on pass, the Reader emits a completion event to the Shell [07] (drives progression unlock).
-- **Per-instruction pages** — `toInstructionPageModel` renders every `InstructionPage` field;
-  its editable scenarios are mini-playgrounds reusing the same mounting path.
+- **Per-instruction pages** — not this module's job. The page renders its Bible document; its
+  `## Try it` stage is an `<EntityDesigner>` in that document, and every inline `<Genome>` in the
+  Bible is compiled and loaded by the docs corpus test.
 - **A11y** — reduced-motion disables scroll/playground animations; keyboard nav walks blocks and
   playground controls; tooltips are keyboard-focusable (C-UI-A11Y).
 
@@ -77,7 +78,7 @@ function toInstructionPageModel(p: InstructionPage): InstrPageModel;  // wiki pa
 - **design pass** — realizes scroll layout, typography, the Nintendo-bright keyword styling.
 
 ## 6. Determinism & edge cases
-- `toRenderModel` / `toInstructionPageModel` are pure (same AST → same model).
+- `toRenderModel` is pure (same AST → same model).
 - Unknown keyword term → plain text span (graceful, no crash).
 - A playground whose starter fails to compile → the block renders an authoring error (content
   validation should have caught it; the Reader still degrades gracefully).
@@ -103,10 +104,9 @@ function toInstructionPageModel(p: InstructionPage): InstrPageModel;  // wiki pa
 - **READER-005** Embedded playgrounds mount **lazily** on scroll-into-view and dispose their
   worker session on unmount (WORKER `disposeSession`).
 - **READER-006** An embedded goal's pass emits a completion event to the Shell [07].
-- **READER-007** `toInstructionPageModel` renders every `InstructionPage` field (kid def,
-  machine truth, animation, editable scenarios, see-also).
-- **READER-008** A per-instruction page's editable scenarios mount as playgrounds via the same
-  path.
+- ~~**READER-007**~~ / ~~**READER-008**~~ — **RETIRED** with `toInstructionPageModel`. What they
+  guarded moved to the documents: the Bible is a bijection with the engine's dictionary, and every
+  inline `<Genome>` in a Bible page compiles and loads (`content/test/08-docs.test.ts`).
 - **READER-009** Instruction-link spans (`` `verb` ``) resolve to the correct per-instruction
   page id.
 - **READER-010** Reduced-motion disables playground/scroll animation; keyword tooltips are
