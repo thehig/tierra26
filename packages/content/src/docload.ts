@@ -27,6 +27,11 @@ export interface LoadedDoc {
   slug: string;
   file: string; // repo-relative, forward slashes
   ast: DocAst;
+  /** The markdown exactly as it is on disk. Kept because an authoring surface
+   *  needs the SOURCE, not the parse of it — the AST is lossy and there is no
+   *  serializer back. The app's main content module strips this; only the
+   *  editor's own lazily-imported module carries it. */
+  source: string;
 }
 
 export interface DocFailure {
@@ -157,7 +162,7 @@ export function loadDocs(docsDir: string, opts: LoadOptions = {}): LoadResult {
       const file = rel(abs);
       const r = parseDoc(source, { kind: g.kind, slug, file });
       parsed.push({
-        doc: { kind: g.kind, slug, file, ast: r.ast },
+        doc: { kind: g.kind, slug, file, ast: r.ast, source },
         abs,
         source,
         diagnostics: r.diagnostics,

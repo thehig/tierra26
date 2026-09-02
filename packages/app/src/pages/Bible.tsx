@@ -15,12 +15,13 @@
 // language-mode-aware title and the intro-lesson link. EVERYTHING a reader
 // reads — including the runnable `## Try it` stage — comes from the document,
 // so there is one place to author an instruction and one place to fix it.
-import type { LoadedDoc } from '@tierra26/content/docload.ts';
+
 import { entry, entryOfMnemonic } from '@tierra26/genescript/vocab.ts';
 import { chapterById, introChapterOf } from '../learn/lessons.ts';
 import { DocRenderer } from '../doc/DocRenderer.tsx';
-import { conceptDocs, opcodeDocs, opcodeDoc, fm, glossOf } from '../doc/docs.ts';
+import { conceptDocs, opcodeDocs, opcodeDoc, fm, glossOf, type CorpusDoc } from '../doc/docs.ts';
 import { Chip } from '../doc/Chip.tsx';
+import { EditPageButton } from '../doc/EditPageButton.tsx';
 import { useLanguageMode } from '../design/languageMode.tsx';
 import { simpleName } from '../design/bindings.ts';
 import { Link } from '../router/router.tsx';
@@ -56,7 +57,7 @@ function byCategory(entries: readonly Entry[]): [string, Entry[]][] {
 }
 
 function opcodeEntries(advanced: boolean): Entry[] {
-  return opcodeDocs.map((d: LoadedDoc): Entry => {
+  return opcodeDocs.map((d: CorpusDoc): Entry => {
     // The mnemonic is the engine's immutable identity; `name` is only what a
     // learner reads, so the language toggle chooses between them.
     const mnemonic = fm(d, 'mnemonic') ?? d.slug;
@@ -75,7 +76,7 @@ function opcodeEntries(advanced: boolean): Entry[] {
 
 function conceptEntries(): Entry[] {
   return conceptDocs.map(
-    (d: LoadedDoc): Entry => ({
+    (d: CorpusDoc): Entry => ({
       key: d.slug,
       label: d.slug,
       emoji: fm(d, 'emoji') ?? '💠',
@@ -173,6 +174,7 @@ export function OpcodePage({ verb, dark }: { verb: string; dark: boolean }) {
     <div className="page wiki-page">
       <div className="crumb">
         <Link to={{ surface: 'bible' }}>The Bible</Link> <span>/</span> {display}
+        <EditPageButton doc={doc} dark={dark} />
       </div>
 
       <h1 className="verb-title">

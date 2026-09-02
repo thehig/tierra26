@@ -6,6 +6,11 @@
 // is only the lookup surface every page shares.
 import { CONCEPT_DOCS, LESSON_DOCS, OPCODE_DOCS } from 'virtual:tierra-content';
 import type { LoadedDoc } from '@tierra26/content/docload.ts';
+
+/** A document as the PAGES see it: everything the parser produced, minus the raw
+ *  markdown. Only the editor imports the sources, from their own module, so the
+ *  main chunk never carries them. */
+export type CorpusDoc = Omit<LoadedDoc, 'source'>;
 import { foldAt, resolveToken, sectionOf, splitInline } from '@tierra26/content/doclang.ts';
 import { isVerb, mnemonicToVerb, verbToMnemonic } from '@tierra26/genescript/vocab.ts';
 import { CONCEPT_BINDINGS, conceptBinding } from '../design/bindings.ts';
@@ -21,20 +26,20 @@ const byMnemonic = new Map(OPCODE_DOCS.map((d) => [d.slug, d]));
 const byConcept = new Map(CONCEPT_DOCS.map((d) => [d.slug, d]));
 
 /** The Bible page for an instruction, named either by mnemonic or by gene. */
-export function opcodeDoc(nameOrMnemonic: string): LoadedDoc | undefined {
+export function opcodeDoc(nameOrMnemonic: string): CorpusDoc | undefined {
   return byMnemonic.get(nameOrMnemonic) ?? byMnemonic.get(verbToMnemonic(nameOrMnemonic) ?? '');
 }
 
-export function conceptDoc(slug: string): LoadedDoc | undefined {
+export function conceptDoc(slug: string): CorpusDoc | undefined {
   return byConcept.get(slug);
 }
 
-export const lessonDocs: readonly LoadedDoc[] = LESSON_DOCS;
-export const opcodeDocs: readonly LoadedDoc[] = OPCODE_DOCS;
-export const conceptDocs: readonly LoadedDoc[] = CONCEPT_DOCS;
+export const lessonDocs: readonly CorpusDoc[] = LESSON_DOCS;
+export const opcodeDocs: readonly CorpusDoc[] = OPCODE_DOCS;
+export const conceptDocs: readonly CorpusDoc[] = CONCEPT_DOCS;
 
 /** A frontmatter value as a string, or undefined. */
-export function fm(doc: LoadedDoc | undefined, key: string): string | undefined {
+export function fm(doc: CorpusDoc | undefined, key: string): string | undefined {
   const v = doc?.ast.frontmatter?.[key];
   return v === undefined ? undefined : String(v);
 }
@@ -42,7 +47,7 @@ export function fm(doc: LoadedDoc | undefined, key: string): string | undefined 
 /** The slice of a definition a hover tooltip should show.
  *  Prefers the Simple/Advanced section for the reader's language mode, and falls
  *  back to whatever sits above the fold. */
-export function tooltipMarkdown(doc: LoadedDoc | undefined, advanced: boolean): string | undefined {
+export function tooltipMarkdown(doc: CorpusDoc | undefined, advanced: boolean): string | undefined {
   if (!doc) return undefined;
   const body = doc.ast.body;
   const wanted = sectionOf(body, advanced ? 'Advanced' : 'Simple');
@@ -60,7 +65,7 @@ export function tooltipMarkdown(doc: LoadedDoc | undefined, advanced: boolean): 
  *  pages. Reading the document instead means the tooltip and the page can never
  *  disagree again. `Gotchas` is the section's name on pages written before the
  *  rename; both are read while the corpus migrates. */
-export function firstEdgeCase(doc: LoadedDoc | undefined): string | undefined {
+export function firstEdgeCase(doc: CorpusDoc | undefined): string | undefined {
   const section = sectionOf(doc?.ast.body ?? [], 'Edge Cases') ?? sectionOf(doc?.ast.body ?? [], 'Gotchas');
   const bullet = /^\s*[-*]\s+(.*)$/m.exec(section ?? '')?.[1];
   const text = plainText(bullet ?? '');
@@ -71,7 +76,7 @@ export function firstEdgeCase(doc: LoadedDoc | undefined): string | undefined {
  *  Bible index never carries a second copy of a description that can drift:
  *  the parenthetical in the page's `title` when it has one (concept pages read
  *  `soup (the shared memory)`), else the first sentence of its Simple section. */
-export function glossOf(doc: LoadedDoc | undefined): string {
+export function glossOf(doc: CorpusDoc | undefined): string {
   const paren = /\(([^)]+)\)\s*$/.exec(fm(doc, 'title') ?? '');
   if (paren) return paren[1]!;
   const simple = plainText(tooltipMarkdown(doc, false) ?? '');

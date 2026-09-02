@@ -35,7 +35,7 @@
 // ============================================================================
 
 import path from 'node:path';
-import { existsSync } from 'node:fs';
+import { existsSync, writeFileSync, readFileSync } from 'node:fs';
 import type { Plugin } from 'vite';
 
 import { loadDocs, formatFailures, type LoadedDoc } from '../../content/src/docload.ts';
@@ -44,6 +44,26 @@ const VIRTUAL_ID = 'virtual:tierra-content';
 // The \0 prefix is Rollup's "this id is private" convention: no other plugin
 // will try to resolve or transform it, and Vite URL-encodes it as __x00__ in dev.
 const RESOLVED_ID = '\0' + VIRTUAL_ID;
+
+// The raw markdown, in its OWN module so it is only pulled in by whatever
+// imports it — the editor, lazily. Keeping it out of `virtual:tierra-content`
+// is what stops ~24 KB of source text landing in the main chunk of a build that
+// will never edit anything.
+const SOURCES_ID = 'virtual:tierra-content/sources';
+const RESOLVED_SOURCES_ID = '\0' + SOURCES_ID;
+
+/** Where a save is allowed to land: inside docsDir, a .md file, no traversal. */
+function safeDocPath(docsDir: string, repoRel: string): string | null {
+  if (typeof repoRel !== 'string' || !repoRel.endsWith('.md')) return null;
+  // `LoadedDoc.file` is repo-relative ('docs/bible/opcodes/mal.md') and docsDir is
+  // the absolute 'docs', so resolve from docsDir's PARENT and then require the
+  // result to still be inside docsDir. That rejects '..' traversal and absolute
+  // paths without having to pattern-match them.
+  const abs = path.resolve(path.dirname(docsDir), repoRel);
+  const inside = path.relative(docsDir, abs);
+  if (inside === '' || inside.startsWith('..') || path.isAbsolute(inside)) return null;
+  return abs;
+}
 
 export interface TierraContentOptions {
   /** Absolute path to the repo's docs/ directory (outside the Vite root). */
@@ -125,10 +145,24 @@ export function tierraContent(opts: TierraContentOptions): Plugin {
     enforce: 'pre',
 
     resolveId(id) {
-      return id === VIRTUAL_ID ? RESOLVED_ID : null;
+      if (id === VIRTUAL_ID) return RESOLVED_ID;
+      if (id === SOURCES_ID) return RESOLVED_SOURCES_ID;
+      return null;
     },
 
     load(id) {
+      if (id === RESOLVED_SOURCES_ID) {
+        // Deliberately NOT strict: the editor must be able to open a document
+        // that currently fails validation, which is the whole point of having it.
+        const { docs, files } = loadDocs(docsDir, { strict: false });
+        for (const f of files) this.addWatchFile(f);
+        const sources = Object.fromEntries(docs.map((d) => [d.file, d.source]));
+        return {
+          code: `export const DOC_SOURCES = ${literal(sources)};`,
+          map: null,
+          moduleSideEffects: false,
+        };
+      }
       if (id !== RESOLVED_ID) return null;
 
       const { docs, files, failures } = loadDocs(docsDir, { strict });
@@ -149,10 +183,16 @@ export function tierraContent(opts: TierraContentOptions): Plugin {
         );
       }
 
-      const buckets: Record<string, LoadedDoc[]> = {
-        LESSON_DOCS: docs.filter((d) => d.kind === 'lesson'),
-        OPCODE_DOCS: docs.filter((d) => d.kind === 'opcode'),
-        CONCEPT_DOCS: docs.filter((d) => d.kind === 'concept'),
+      // The raw markdown is served by `virtual:tierra-content/sources` instead,
+      // so the corpus every page imports stays exactly as small as it was.
+      const lean = (d: LoadedDoc): Omit<LoadedDoc, 'source'> => {
+        const { source: _source, ...rest } = d;
+        return rest;
+      };
+      const buckets: Record<string, Omit<LoadedDoc, 'source'>[]> = {
+        LESSON_DOCS: docs.filter((d) => d.kind === 'lesson').map(lean),
+        OPCODE_DOCS: docs.filter((d) => d.kind === 'opcode').map(lean),
+        CONCEPT_DOCS: docs.filter((d) => d.kind === 'concept').map(lean),
       };
 
       const bad: string[] = [];
@@ -179,6 +219,59 @@ export function tierraContent(opts: TierraContentOptions): Plugin {
       // '**/*.md' pattern here would be a literal path that matches nothing —
       // directories only.
       for (const d of watchDirs) if (existsSync(d)) server.watcher.add(d);
+
+      // POST /__docs/save  {file, source} -> writes the real markdown.
+      //
+      // Dev only, by construction: this hook does not run in `vite build`, so the
+      // static bundle nginx serves has no such route. The write lands in docs/,
+      // which is why an edit survives a server restart — the file IS the store.
+      //
+      // It refuses a save that would break the corpus, and it does so by loading
+      // the WHOLE corpus after writing rather than validating the one document:
+      // renaming a concept slug turns {that-token} into an unknown token in every
+      // other page, and only a corpus-wide load can see that. On failure the
+      // previous bytes go back, so a rejected save cannot leave docs/ broken.
+      server.middlewares.use('/__docs/save', (req, res) => {
+        const send = (code: number, body: unknown) => {
+          res.statusCode = code;
+          res.setHeader('content-type', 'application/json');
+          res.end(JSON.stringify(body));
+        };
+        if (req.method !== 'POST') return send(405, { ok: false, error: 'POST only' });
+
+        let raw = '';
+        req.on('data', (c) => { raw += c; });
+        req.on('end', () => {
+          let file: unknown;
+          let source: unknown;
+          try {
+            ({ file, source } = JSON.parse(raw) as { file: unknown; source: unknown });
+          } catch {
+            return send(400, { ok: false, error: 'body must be JSON' });
+          }
+          if (typeof source !== 'string') return send(400, { ok: false, error: 'source must be a string' });
+
+          const abs = typeof file === 'string' ? safeDocPath(docsDir, file) : null;
+          if (!abs) return send(400, { ok: false, error: `refusing to write outside docs/: ${String(file)}` });
+          if (!existsSync(abs)) return send(404, { ok: false, error: `no such document: ${String(file)}` });
+
+          const before = readFileSync(abs, 'utf8');
+          try {
+            writeFileSync(abs, source, 'utf8');
+            const { failures } = loadDocs(docsDir, { strict });
+            if (failures.length) {
+              writeFileSync(abs, before, 'utf8');
+              return send(422, { ok: false, error: formatFailures(failures) });
+            }
+          } catch (e) {
+            try { writeFileSync(abs, before, 'utf8'); } catch { /* best effort */ }
+            return send(500, { ok: false, error: e instanceof Error ? e.message : String(e) });
+          }
+          // The watcher registered above sees the write, hotUpdate invalidates both
+          // virtual modules, and the open page re-renders itself. Nothing to push.
+          send(200, { ok: true, file });
+        });
+      });
     },
 
     // Vite 6's per-environment hook. Unlike the older handleHotUpdate it also
@@ -187,10 +280,12 @@ export function tierraContent(opts: TierraContentOptions): Plugin {
     // page hot-updates through react-refresh instead of doing a full reload.
     hotUpdate({ file }) {
       if (!isDocsFile(file)) return;
-      const mod = this.environment.moduleGraph.getModuleById(RESOLVED_ID);
-      if (!mod) return; // nothing has imported it in this environment yet
-      this.environment.moduleGraph.invalidateModule(mod);
-      return [mod];
+      const mods = [RESOLVED_ID, RESOLVED_SOURCES_ID]
+        .map((mid) => this.environment.moduleGraph.getModuleById(mid))
+        .filter((m) => m !== undefined);
+      if (!mods.length) return; // nothing has imported either in this environment yet
+      for (const m of mods) this.environment.moduleGraph.invalidateModule(m);
+      return mods;
     },
   };
 }

@@ -5,6 +5,7 @@
 // of `docs/lessons/<n>-<id>.md` through the doc renderer, so changing a lesson is
 // editing markdown rather than editing this app.
 import { DocRenderer } from '../doc/DocRenderer.tsx';
+import { EditPageButton } from '../doc/EditPageButton.tsx';
 import { chapterById, nextChapter } from '../learn/lessons.ts';
 import { usePrefs } from '../store/prefs.tsx';
 import { Link } from '../router/router.tsx';
@@ -39,7 +40,10 @@ export function ChapterPage({ id, dark }: { id: string; dark: boolean }) {
   return (
     <div className={`page anatomy chapter${wide ? ' wide' : ''}`}>
       <header className="anatomy-hero">
-        <div className="eyebrow">Chapter {chapter.no} · {chapter.phase}</div>
+        <div className="eyebrow">
+          Chapter {chapter.no} · {chapter.phase}
+          <EditPageButton doc={chapter.doc} dark={dark} />
+        </div>
         <h1>{chapter.title}</h1>
         <p className="anatomy-lede">{chapter.lede}</p>
       </header>

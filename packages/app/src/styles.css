@@ -640,3 +640,25 @@ h3.mm-h { font-size: 1.05rem; color: var(--ink-2); }
 /* The glyph a panel shares with the chip that names it (bindings-driven). */
 .part-icon { margin-right: 5px; font-size: 1.05em; line-height: 1; }
 /* Deliberately none in .vlabel: the vitals strip is too tight for them. */
+
+/* --- the wiki editor (dev only) ------------------------------------------- */
+.edit-page { margin-left: 10px; font-size: .78rem; padding: 3px 9px; vertical-align: middle; }
+.de-backdrop { position: fixed; inset: 0; z-index: 60; background: color-mix(in srgb, #000 55%, transparent);
+  display: flex; padding: 24px; }
+.de { flex: 1; display: flex; flex-direction: column; min-width: 0; border-radius: 14px; overflow: hidden;
+  background: var(--surface); border: 1px solid var(--line-2); box-shadow: 0 24px 70px rgba(0,0,0,.35); }
+.de-bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.de-file { font-family: var(--fm); font-size: .82rem; color: var(--ink-2); }
+.de-spacer { flex: 1; }
+.de-dirty { font-size: .72rem; color: var(--kw-action); border: 1px solid currentColor; border-radius: 999px; padding: 1px 8px; }
+.de-body { flex: 1; display: grid; grid-template-columns: 1fr 1fr; min-height: 0; }
+@media (max-width: 900px) { .de-body { grid-template-columns: 1fr; } }
+.de-src { border: 0; border-right: 1px solid var(--line); resize: none; padding: 16px; min-height: 0;
+  font-family: var(--fm); font-size: .84rem; line-height: 1.6; tab-size: 2;
+  background: var(--surface-2); color: var(--ink); outline: none; }
+.de-preview { overflow: auto; padding: 16px 20px; min-height: 0; }
+.de-diags { max-height: 26vh; overflow: auto; border-top: 1px solid var(--line); background: var(--surface-2); padding: 8px 14px; }
+.de-diag { font-family: var(--fm); font-size: .76rem; padding: 3px 0; }
+.de-diag b { display: inline-block; min-width: 2.4em; color: var(--faint); }
+.de-err { color: var(--crit); white-space: pre-wrap; }
+.de-warn { color: var(--kw-action); }

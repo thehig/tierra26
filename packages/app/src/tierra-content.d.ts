@@ -11,10 +11,20 @@
 declare module 'virtual:tierra-content' {
   import type { LoadedDoc } from '@tierra26/content/docload.ts';
 
+  /** A document as every page reads it. `source` is stripped here — the raw
+   *  markdown is its own module so it never lands in the main chunk. */
+  type CorpusDoc = Omit<LoadedDoc, 'source'>;
+
   /** Waypoint-guided lesson documents, in curriculum (filename) order. */
-  export const LESSON_DOCS: readonly LoadedDoc[];
+  export const LESSON_DOCS: readonly CorpusDoc[];
   /** One Bible page per engine mnemonic. */
-  export const OPCODE_DOCS: readonly LoadedDoc[];
+  export const OPCODE_DOCS: readonly CorpusDoc[];
   /** Bible concept pages (soup, daughter, flags, ...). */
-  export const CONCEPT_DOCS: readonly LoadedDoc[];
+  export const CONCEPT_DOCS: readonly CorpusDoc[];
+}
+
+declare module 'virtual:tierra-content/sources' {
+  /** The markdown exactly as it is on disk, keyed by repo-relative path
+   *  (`LoadedDoc.file`). Its own module so only the editor pays for it. */
+  export const DOC_SOURCES: Readonly<Record<string, string>>;
 }

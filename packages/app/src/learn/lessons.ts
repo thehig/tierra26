@@ -9,7 +9,7 @@
 // so the curriculum reads in order on disk as well as in the app.
 import { LESSON_DOCS } from 'virtual:tierra-content';
 import { splitInline } from '@tierra26/content/doclang.ts';
-import type { LoadedDoc } from '@tierra26/content/docload.ts';
+import type { CorpusDoc } from '../doc/docs.ts';
 import type { DocNode } from '@tierra26/content/types.ts';
 import { entry, entryOfMnemonic } from '@tierra26/genescript/vocab.ts';
 import type { Chapter, ChapterPhase } from './chapters.ts';
@@ -17,12 +17,12 @@ import { attr, childTag, childTags, findTag, geneTextOf, goalOf, promptTextOf } 
 
 export interface LessonChapter extends Chapter {
   /** The parsed document this chapter is; what ChapterPage renders. */
-  doc: LoadedDoc;
+  doc: CorpusDoc;
   /** How many scroll waypoints the explainer has (0 for a stub chapter). */
   waypoints: number;
 }
 
-function toChapter(doc: LoadedDoc): LessonChapter {
+function toChapter(doc: CorpusDoc): LessonChapter {
   const fm = doc.ast.frontmatter ?? {};
   const str = (k: string, dflt = ''): string => (k in fm ? String(fm[k]) : dflt);
 

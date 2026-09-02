@@ -7,6 +7,7 @@
 import { KEYWORDS, lookupKeyword } from '@tierra26/content/keyword.ts';
 import { conceptDoc, fm } from '../doc/docs.ts';
 import { DocRenderer } from '../doc/DocRenderer.tsx';
+import { EditPageButton } from '../doc/EditPageButton.tsx';
 import { categoryVar } from '../design/palette.ts';
 import { Link } from '../router/router.tsx';
 
@@ -33,6 +34,7 @@ export function ConceptPage({ slug, dark }: { slug: string; dark: boolean }) {
     <div className="page concept-page">
       <div className="crumb">
         <Link to={{ surface: 'bible' }}>The Bible</Link> <span>/</span> concept
+        <EditPageButton doc={doc} dark={dark} />
       </div>
       <h1 className="concept-title" style={{ color: categoryVar('concept') }}>{title}</h1>
 
