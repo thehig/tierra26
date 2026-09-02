@@ -23,19 +23,19 @@ requires: [landmarks]
   <Waypoint focus="ip">
   ## The loop
 
-  {jmpb top} sends the reading head back up to the `top:` landmark. So {incA} runs again and again — a *loop*. (The {zero} at the bottom is a *wall* — it marks where the loop ends. A loop must always have a wall after it.)
+  {jmpb top} sends the {reading-head} back up to the `top:` {label landmark}. So {incA} runs again and again — a *loop*. (The {zero} at the bottom is a *wall* — it marks where the loop ends. A loop must always have a wall after it.)
   </Waypoint>
 
   <Waypoint focus="world">
   ## One block, two cells
 
-  Look at the world: {jmpb} fills *two cells*. The first is the *jump* (⏪); the second is a *marker* (🔴) — a copy of the signpost it’s aiming at, exactly the markers you met last chapter. So a jump is a *two-part block*: the jump plus its target marker. Most blocks are one cell; only jumps and searches carry a target like this.
+  Look at the {soup world}: {jmpb} fills *two cells*. The first is the *jump* (⏪); the second is a *marker* (🔴) — a copy of the {template signpost} it’s aiming at, exactly the markers you met last chapter. So a jump is a *two-part block*: the jump plus its {target}. Most blocks are one cell; only jumps and searches carry a target like this.
   </Waypoint>
 
   <Waypoint focus="registers" at="12">
-  ## Watch A climb
+  ## Watch {register-a} climb
 
-  Press *Run* and watch A shoot up. A loop is how a creature does a lot with just a few blocks.
+  Press *Run* and watch {register-a} shoot up. A loop is how a creature does a lot with just a few blocks.
   </Waypoint>
 </Scrolly>
 

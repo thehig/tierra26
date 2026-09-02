@@ -25,18 +25,18 @@ requires: [measure]
   <Waypoint focus="world">
   ## A patch of world
 
-  {mal} asks the world for a patch of *empty cells* — the free space you met earlier — and reserves it as the *daughter*. Notebook C says how many cells to grab.
+  {mal} asks the {soup world} for a patch of *empty cells* — the free space you met earlier — and reserves it as the {daughter}. Notebook {register-c} says how many cells to grab.
   </Waypoint>
 
   <Waypoint focus="daughter" run-until="daughter">
   ## The daughter appears
 
-  Watch those free cells light up as the daughter — empty and waiting. Only the mother may write there.
+  Watch those free cells light up as the {daughter} — empty and waiting. Only the mother may write there.
   </Waypoint>
 </Scrolly>
 
 <Challenge>
-C is built up to 16. Add {mal} to reserve room for a daughter.
+{register-c} is built up to 16. Add {mal} to reserve room for a {daughter}.
 <Starter>
 not0
 shl

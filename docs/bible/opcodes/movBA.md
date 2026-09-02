@@ -14,20 +14,20 @@ can_error: false
 # copy-a-to-b · `movBA`
 
 ## Simple
-Copies box A into box B so both start with the same number. Handy at the start of a copy loop:
+Copies box {register-a} into box {register-b} so both start with the same number. Handy at the start of a copy loop:
 put the start address in A, copy it to B, then walk one pointer while the other stays.
 
 ## Advanced
-`B := A` (`reg[B] = reg[A] | 0`). Reads A, writes the value into B (coerced to 32-bit signed),
-and sets S/Z from the value written.
+`B := A` (`reg[B] = reg[A] | 0`). Reads {register-a}, writes the value into {register-b} (coerced to 32-bit signed),
+and sets {flag-s}/{flag-z} from the value written.
 
 ## Reads / Writes / Flags
-- Reads: **A**.
-- Writes: **B**.
-- Flags: **S** and **Z** from the copied value. Does not touch E.
+- Reads: {register-a}.
+- Writes: {register-b}.
+- Flags: {flag-s} and {flag-z} from the copied value. Does not touch {flag-e}.
 
 ## Gotchas
-- B is overwritten — protect its old value first if you still need it.
+- {register-b} is overwritten — protect its old value first if you still need it.
 - The two boxes are independent after the copy.
 
 ## See also

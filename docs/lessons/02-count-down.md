@@ -25,7 +25,7 @@ requires: [count-up]
 
   {decC} takes *one* away from notebook {register-c} — the opposite of
   {incC}. This creature has four blocks and hasn't run any of them
-  yet, so C is still *0*.
+  yet, so {register-c} is still *0*.
 
   Keep scrolling. Each step below runs one more block.
   </Waypoint>
@@ -33,25 +33,25 @@ requires: [count-up]
   <Waypoint focus="registers" at="1">
   ## One
 
-  The first {incC} ran. C is now *1*.
+  The first {incC} ran. {register-c} is now *1*.
   </Waypoint>
 
   <Waypoint focus="registers" at="2">
   ## Two
 
-  The second one ran. C is *2* — climbing by one each time.
+  The second one ran. {register-c} is *2* — climbing by one each time.
   </Waypoint>
 
   <Waypoint focus="registers" at="3">
   ## Three
 
-  And the third. C reaches *3*, the highest this creature counts.
+  And the third. {register-c} reaches *3*, the highest this creature counts.
   </Waypoint>
 
   <Waypoint focus="registers" at="4">
   ## And back down
 
-  Now the last block — {decC} — takes one away again. C drops to
+  Now the last block — {decC} — takes one away again. {register-c} drops to
   *2*. Up three, down one.
 
   Scroll back up and watch it run in reverse.
@@ -59,7 +59,7 @@ requires: [count-up]
 </Scrolly>
 
 <Challenge>
-Count C up, then bring it back down to exactly 1.
+Count {register-c} up, then bring it back down to exactly 1.
 <Starter>
 incC
 incC

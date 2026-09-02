@@ -14,16 +14,16 @@ can_error: false
 # grow-c · `incC`
 
 ## Simple
-Adds one to the counting box (C) — the counter that loops and sizes lean on the most.
+Adds one to the counting box ({register-c}) — the counter that loops and sizes lean on the most.
 
 ## Advanced
-`C := C + 1` (`reg[C] = (reg[C] + 1) | 0`). Reads C, adds one, coerces to 32-bit signed, stores
-back into C. S/Z are set from the new value.
+`C := C + 1` (`reg[C] = (reg[C] + 1) | 0`). Reads {register-c}, adds one, coerces to 32-bit signed, stores
+back into C. {flag-s}/{flag-z} are set from the new value.
 
 ## Reads / Writes / Flags
-- Reads: **C**.
-- Writes: **C**.
-- Flags: **S** and **Z** from the new value of C. Does not touch E.
+- Reads: {register-c}.
+- Writes: {register-c}.
+- Flags: {flag-s} and {flag-z} from the new value of {register-c}. Does not touch {flag-e}.
 
 ## Gotchas
 - Growing the counter when you meant to shrink it sends a loop the wrong way.

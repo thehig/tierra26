@@ -24,19 +24,19 @@ requires: [world]
   <Waypoint focus="genome">
   ## Code lives in the world
 
-  Your genome isn’t kept somewhere separate — every *block* of it sits in one *cell* of the world. Your code and your body are the *same thing*.
+  Your {genome} isn’t kept somewhere separate — every *block* of it sits in one *cell* of the {soup world}. Your code and your body are the *same thing*.
   </Waypoint>
 
   <Waypoint focus="whole">
   ## Block 0 is cell 0
 
-  The numbers beside your blocks are their spots in the world. *Block 0* is the first bright cell, *block 1* the next, and so on. Hover a block to light up its cell — count the bright cells, then count your blocks. Same number.
+  The numbers beside your blocks are their spots in the {soup world}. *Block 0* is the first bright cell, *block 1* the next, and so on. Hover a block to light up its cell — count the bright cells, then count your blocks. Same number.
   </Waypoint>
 
   <Waypoint focus="genome">
   ## That’s your size
 
-  How many cells your body fills is your *size*. More blocks means a bigger body that takes up more of the world.
+  How many cells your body fills is your {size}. More blocks means a bigger body that takes up more of the {soup world}.
   </Waypoint>
 </Scrolly>
 

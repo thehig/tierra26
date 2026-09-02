@@ -35,11 +35,11 @@ ready: true
   <Waypoint focus="ip">
   ## The reading head
 
-  The little {reading-head} shows which block it’s about to run. Every tick it does that one block, then slides to the next.
+  The little {reading-head} shows which block it’s about to run. Every {instruction-cycle tick} it does that one block, then slides to the next.
   </Waypoint>
 
   <Waypoint focus="registers">
-  ## Four notebooks
+  ## Four {register notebooks}
 
   A creature keeps numbers in *four notebooks* — {register-a}, {register-b}, {register-c} and {register-d}. Watch them change as it runs.
   </Waypoint>
@@ -59,6 +59,6 @@ ready: true
   <Waypoint focus="run">
   ## Watch it run
 
-  Press *Step one tick* over and over. The reading head moves, a notebook changes. That’s a creature *thinking*.
+  Press *Step one tick* over and over. The {reading-head} moves, a {register notebook} changes. That’s a creature *thinking*.
   </Waypoint>
 </Scrolly>

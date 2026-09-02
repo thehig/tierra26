@@ -14,29 +14,29 @@ can_error: true
 # jump · `jmpo`
 
 ## Simple
-Sends the reader to the nearest matching signpost, in either direction. Use it to skip ahead or
+Sends the {reading-head reader} to the nearest matching {template signpost}, in either direction. Use it to skip ahead or
 to loop. It hunts for the mirror-image of the pattern you write right after it.
 
 ## Advanced
-`IP := <nearest complementary template, outward>`. After the opcode, the reading head measures its
-own template (the run of `nop0`/`nop1` bytes that follows, up to 10). It then searches **outward**
+`IP := <nearest complementary template, outward>`. After the opcode, the {reading-head} measures its
+own {template} (the run of `nop0`/`nop1` bytes that follows, up to 10). It then searches **outward**
 (direction 0: nearest of forward/backward, forward winning ties) for a spot whose bytes are the
 bitwise complement of that template. On a hit, `IP` is set to the address **just past** the matched
 target template and the normal advance is suppressed. On a miss within the search limit, it
-**raises the E flag** instead and the reading head falls through to the next byte.
+**raises** the {flag-e} flag instead and the reading head falls through to the next byte.
 
 ## Reads / Writes / Flags
-- Reads: the soup (its own template plus the bytes it scans).
-- Writes: the **reading head** (IP) on a hit.
-- Flags: **E** on a miss (no matching complement found within the search limit). Sets no S/Z.
+- Reads: the {soup} (its own {template} plus the bytes it scans).
+- Writes: the {reading-head} (IP) on a hit.
+- Flags: {flag-e} on a miss (no matching complement found within the search limit). Sets no {flag-s}/{flag-z}.
 
 ## Gotchas
-- The target is the **complement** of your template — flip a bit and the jump lands elsewhere or
+- The target is the **complement** of your {template} — flip a bit and the jump lands elsewhere or
   misses.
-- A jump with an empty template (no nops after it) always misses and raises E.
+- A jump with an empty {template} (no nops after it) always misses and raises {flag-e}.
 - The search only reaches `searchLimit` cells away (proportional to the average creature size); a
-  faraway landmark is not found.
-- Raising E moves the creature up the reaper's queue (closer to death).
+  faraway {label landmark} is not found.
+- Raising {flag-e} moves the creature up the {reaper}'s queue (closer to death).
 
 ## See also
 - [jmpb](jmpb.md), [call](call.md), [adro](adro.md)

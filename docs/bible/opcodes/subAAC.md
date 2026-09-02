@@ -14,22 +14,22 @@ can_error: false
 # subtract-into-a · `subAAC`
 
 ## Simple
-Takes the counting box (C) away from box A and keeps the answer in A. Handy for stepping an
+Takes the counting box ({register-c}) away from box {register-a} and keeps the answer in A. Handy for stepping an
 address backwards by an amount.
 
 ## Advanced
-`A := A - C` (`reg[A] = (reg[A] - reg[C]) | 0`). Reads A and C, subtracts, coerces to 32-bit
-signed, stores back into A. S/Z are set from the result. (Operands pass through the flaw seam,
-an identity in breed-true mode.)
+`A := A - C` (`reg[A] = (reg[A] - reg[C]) | 0`). Reads {register-a} and {register-c}, subtracts, coerces to 32-bit
+signed, stores back into A. {flag-s}/{flag-z} are set from the result. (Operands pass through the {mutation} seam,
+an identity in {mutation breed-true} mode.)
 
 ## Reads / Writes / Flags
-- Reads: **A** and **C**.
-- Writes: **A**.
-- Flags: **S** and **Z** from the result. Does not touch E.
+- Reads: {register-a} and {register-c}.
+- Writes: {register-a}.
+- Flags: {flag-s} and {flag-z} from the result. Does not touch {flag-e}.
 
 ## Gotchas
-- A is overwritten — its old value is gone.
-- Subtracting more than A holds yields a negative signed value.
+- {register-a} is overwritten — its old value is gone.
+- Subtracting more than {register-a} holds yields a negative signed value.
 
 ## See also
 - [subCAB](subCAB.md), [incA](incA.md)

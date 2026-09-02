@@ -24,12 +24,12 @@ requires: [find]
   <Waypoint focus="genome">
   ## How big is a piece of me?
 
-  Put a signpost at the *start* of a stretch and one at the *end* (see them at positions 0 and 5). {adro} each to get its position, then {subCAB} the two. The answer is the *size* of everything in between — the number of blocks in that piece of your body.
+  Put a {template signpost} at the *start* of a stretch and one at the *end* (see them at positions 0 and 5). {adro} each to get its position, then {subCAB} the two. The answer is the {size} of everything in between — the number of blocks in that piece of your body.
   </Waypoint>
 
   <Waypoint focus="age">
   ## Ready to copy
 
-  Measuring itself from start to end is the last thing a creature needs before it can copy *itself*. Next: making room for a baby.
+  Measuring itself from start to end is the last thing a creature needs before it can copy *itself*. Next: making room for a {daughter baby}.
   </Waypoint>
 </Scrolly>

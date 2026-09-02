@@ -14,19 +14,19 @@ can_error: false
 # save-d · `pushD`
 
 ## Simple
-Puts a copy of the spare box (D) onto the save-pile for safe keeping.
+Puts a copy of the spare box ({register-d}) onto the {save-pile} for safe keeping.
 
 ## Advanced
-`push(D)`: writes D into the ring stack at `sp`, then `sp = (sp + 1) mod 10`. D is read only. No
+`push(D)`: writes {register-d} into the ring {save-pile stack} at `sp`, then `sp = (sp + 1) mod 10`. D is read only. No
 flags are set.
 
 ## Reads / Writes / Flags
-- Reads: **D**.
-- Writes: the **save-pile**. No register is written.
+- Reads: {register-d}.
+- Writes: the {save-pile}. No {register} is written.
 - Flags: none.
 
 ## Gotchas
-- Every value you put on the pile has to come back off, in the opposite order.
+- Every value you put on the {save-pile pile} has to come back off, in the opposite order.
 - 10-slot ring, no overflow fault.
 
 ## See also

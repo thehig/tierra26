@@ -24,18 +24,18 @@ requires: [deciding]
   <Waypoint focus="genome">
   ## Take away
 
-  {subCAB} does a sum: it puts *A minus B* into notebook {register-c}.
+  {subCAB} does a sum: it puts {register-a} minus {register-b} into notebook {register-c}.
   </Waypoint>
 
   <Waypoint focus="registers">
-  ## A − B → C
+  ## {register-a} − {register-b} → {register-c}
 
-  Here A is 3 and B is 1, so {subCAB} makes C = 2. Step through and see.
+  Here {register-a} is 3 and {register-b} is 1, so {subCAB} makes {register-c} = 2. Step through and see.
   </Waypoint>
 </Scrolly>
 
 <Challenge>
-A is 3 and B is 1. Add {subCAB} to put A − B into C (that’s 2).
+{register-a} is 3 and {register-b} is 1. Add {subCAB} to put {register-a} − {register-b} into {register-c} (that’s 2).
 <Starter>
 incA
 incA

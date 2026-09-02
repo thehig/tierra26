@@ -19,7 +19,7 @@ soup: 256
   <Waypoint focus="daughter">
   ## Split
 
-  Once the daughter is a full copy, {divide} sets her free as a brand-new creature — her own body, her own reading head, her own life.
+  Once the {daughter} is a full copy, {divide} sets her free as a brand-new creature — her own body, her own {reading-head}, her own life.
   </Waypoint>
 
   <Waypoint focus="world" run-until="birth">
@@ -30,7 +30,7 @@ soup: 256
 </Scrolly>
 
 <Challenge>
-Press ▶ Run until a baby is born (the world shows 2 creatures).
+Press ▶ Run until a {daughter baby} is born (the {soup world} shows 2 creatures).
 <Starter ref="ancestor" />
 <Goal kind="born" label="your first baby is born! 🎉" />
 <Solution budget="8000" ref="ancestor" />

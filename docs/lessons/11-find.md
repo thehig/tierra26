@@ -24,18 +24,18 @@ requires: [sums]
   <Waypoint focus="genome">
   ## Search by name
 
-  {adrb} looks *backwards* through your own blocks for a signpost. This searches your *code*, not the world — it’s how a creature finds a spot inside itself. Like {jmpb}, it’s a *two-cell block* — the search plus the signpost it hunts for. ({adro} looks both ways; {adrf} looks ahead.)
+  {adrb} looks *backwards* through your own blocks for a {template signpost}. This searches your *code*, not the {soup world} — it’s how a creature finds a spot inside itself. Like {jmpb}, it’s a *two-cell block* — the search plus the signpost it hunts for. ({adro} looks both ways; {adrf} looks ahead.)
   </Waypoint>
 
   <Waypoint focus="registers">
   ## Where, and how long
 
-  When it finds the `spot` signpost it fills two notebooks: *A* = the position right after it (here that’s *1* — check the numbers on the blocks), and *C* = how many blocks long the signpost itself is (here, *1*).
+  When it finds the `spot` {template signpost} it fills two notebooks: {register-a} = the position right after it (here that’s *1* — check the numbers on the blocks), and {register-c} = how many blocks long the signpost itself is (here, *1*).
   </Waypoint>
 </Scrolly>
 
 <Challenge>
-Add a {adrb spot} line just above {incB}, so the creature finds its own signpost — its length lands in C.
+Add a {adrb spot} line just above {incB}, so the creature finds its own {template signpost} — its length lands in {register-c}.
 <Starter>
 spot:
 incA

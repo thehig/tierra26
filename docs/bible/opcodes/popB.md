@@ -14,19 +14,19 @@ can_error: false
 # load-b · `popB`
 
 ## Simple
-Takes the top thing off the save-pile and drops it into box B.
+Takes the top thing off the {save-pile} and drops it into box {register-b}.
 
 ## Advanced
-`B := pop()`: `sp = (sp + 9) mod 10`, read that slot, store into B (coerced to 32-bit). No flags
+`B := pop()`: `sp = (sp + 9) mod 10`, read that slot, store into {register-b} (coerced to 32-bit). No flags
 are set.
 
 ## Reads / Writes / Flags
-- Reads: the **save-pile**.
-- Writes: **B**.
+- Reads: the {save-pile}.
+- Writes: {register-b}.
 - Flags: none.
 
 ## Gotchas
-- The pile gives back the last thing saved first — order matters.
+- The {save-pile pile} gives back the last thing saved first — order matters.
 - No empty check: an over-deep pop returns a stale value, not an error.
 
 ## See also

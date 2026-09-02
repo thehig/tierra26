@@ -25,12 +25,12 @@ soup: 256
   <Waypoint focus="daughter">
   ## Watch it fill
 
-  Press *Run*. The reading head races round the loop and the daughter fills up, byte by byte, into a complete copy.
+  Press *Run*. The {reading-head} races round the loop and the {daughter} fills up, byte by byte, into a complete copy.
   </Waypoint>
 </Scrolly>
 
 <Challenge>
-Press ▶ Run and watch the daughter fill up.
+Press ▶ Run and watch the {daughter} fill up.
 <Starter ref="ancestor" />
 <Goal kind="daughterFill" pct="60" label="the daughter is copied" />
 <Solution budget="8000" ref="ancestor" />

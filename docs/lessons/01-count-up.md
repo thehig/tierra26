@@ -26,9 +26,9 @@ requires: [meet]
   </Waypoint>
 
   <Waypoint focus="registers">
-  ## Watch A climb
+  ## Watch {register-a} climb
 
-  Step through this creature. Each {incA} bumps A up by one: 0 → 1 → 2 → 3.
+  Step through this creature. Each {incA} bumps {register-a} up by one: 0 → 1 → 2 → 3.
   </Waypoint>
 </Scrolly>
 

@@ -26,12 +26,12 @@ requires: [make-room]
   <Waypoint focus="genome">
   ## One byte
 
-  {movii} copies a single byte from the mother into the daughter. Just one.
+  {movii} copies a single byte from the mother into the {daughter}. Just one.
   </Waypoint>
 
   <Waypoint focus="daughter">
   ## Not enough
 
-  One byte barely fills the daughter. A whole body is dozens of bytes — so you {movii} over and over. That’s a job for a loop.
+  One byte barely fills the {daughter}. A whole body is dozens of bytes — so you {movii} over and over. That’s a job for a loop.
   </Waypoint>
 </Scrolly>

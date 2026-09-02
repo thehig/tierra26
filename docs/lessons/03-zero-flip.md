@@ -22,13 +22,13 @@ requires: [count-down]
   <Waypoint focus="genome">
   ## Flip and clear
 
-  {not0} flips the smallest bit of C (0 ↔ 1). {zero} wipes C straight back to *zero*.
+  {not0} flips the smallest bit of {register-c} (0 ↔ 1). {zero} wipes {register-c} straight back to *zero*.
   </Waypoint>
 
   <Waypoint focus="registers">
   ## Try it
 
-  Step through: flip makes C 1, flip again makes it 0, clear keeps it 0.
+  Step through: flip makes {register-c} 1, flip again makes it 0, clear keeps it 0.
   </Waypoint>
 </Scrolly>
 

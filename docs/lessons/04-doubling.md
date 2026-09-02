@@ -28,7 +28,7 @@ requires: [zero-flip]
   <Waypoint focus="registers">
   ## Powers of two
 
-  Doubling is how a creature makes big numbers (like its own size) without a hundred `grow` blocks.
+  Doubling is how a creature makes big numbers (like its own {size}) without a hundred `grow` blocks.
   </Waypoint>
 </Scrolly>
 
