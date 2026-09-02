@@ -65,13 +65,15 @@ disk and in the repo browser.
 **All five `##` sections are required.** `Reads / Writes / Flags` is exactly that
 spelling, spaces included.
 
-A sixth, **optional** `## Watch it` may sit between `Edge Cases` and `See also`, holding an
+A sixth, **optional** `## Try it` sits between `Edge Cases` and `See also`, holding an
 `<EntityDesigner>` — a Bible page renders the whole document body, so a live stage works
-here exactly as it does in a lesson. Add it when the instruction is a *motion* (a head
-jumping, a pointer walking, a daughter filling); skip it when the instruction is a fact.
-It is deliberately not called `Try it`: the opcode page already appends its own
-`<h3>Try it</h3>` from `INSTRPAGE` after the document body. See
-`templates/README.md` for that decision.
+here exactly as it does in a lesson.
+
+This section is now the **only** playground on an opcode page: the page used to append a
+hardcoded one from `INSTRPAGE`, which was the same ancestor soup on 27 of the 32 pages,
+and that is gone. A document authors its own demonstration or the page has none — so
+prefer to write one, and aim it at whatever `## Edge Cases` says is surprising. Skip it
+only when the instruction really is a fact rather than a motion.
 
 Section-by-section intent:
 
@@ -85,7 +87,7 @@ Section-by-section intent:
 - **Edge Cases** — the boundaries and the wrong models they create: a silent
   ring-buffer overwrite, a 70% threshold that still births a partial creature, an `E`
   flag cleared by a `nop` that does not undo the reaper's count. Where a boundary can be
-  *shown*, aim `## Watch it` at it rather than describing it.
+  *shown*, aim `## Try it` at it rather than describing it.
 - **See also** — two lines by convention: sibling opcodes first, then concepts. Links,
   not chips.
 

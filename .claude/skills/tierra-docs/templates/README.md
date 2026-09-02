@@ -57,7 +57,7 @@ rest are the reason a human is doing this.
       level (`references/voice.md`).
 - [ ] First sentence of `## Simple` stands alone — it is the Bible index card.
 - [ ] `## Edge Cases` covers the silences: no-fault wraps, thresholds that still
-      succeed, flags cleared without undoing a consequence — and aims `## Watch it` at a
+      succeed, flags cleared without undoing a consequence — and aims `## Try it` at a
       boundary wherever one can be shown rather than described.
 - [ ] `## See also` links resolve and lead somewhere a reader wants next.
 
@@ -77,46 +77,39 @@ rest are the reason a human is doing this.
 - [ ] Every verb used is unlocked by this lesson or a prerequisite.
 - [ ] `no` matches folder order; `requires` continues the chain unbroken.
 
-## Two decisions to make before the regeneration run
+## `## Try it` — the page's only playground
 
-Both are called out here rather than silently baked into the templates.
+The templates carry a `## Try it` section holding an `<EntityDesigner>`. This works
+because the manifest allows `EntityDesigner` at top level and the Bible page renders the
+whole document body, so a live stage in a reference page behaves exactly as it does in a
+lesson.
 
-### 1. `## Watch it` — a live stage inside a Bible page
+It is now the **only** playground on an opcode page. The page previously appended its own
+`<h3>Try it</h3>` built from `INSTRPAGE`, and that has been deleted — it was the same
+ancestor soup on 27 of the 32 pages (only the seed differed, plus one appended line on
+five of them), so it demonstrated the ancestor rather than the instruction. A
+population-scale tank on a page about "add one to box A" was the wrong tool.
 
-The templates include an optional `## Watch it` section holding an `<EntityDesigner>`.
-This works today: the manifest allows `EntityDesigner` at top level, and the Bible page
-renders the whole document body, so a stage in a Bible page renders like any other tag.
+The consequence to know while regenerating: **until a page authors a `## Try it`, it has
+no playground at all.** Write one. Aim it at whatever `## Edge Cases` calls surprising —
+a preset `<State>` one step from a boundary is the whole point.
 
-It is named `Watch it` and **not** `Try it` on purpose — the opcode page already appends
-its own `<h3>Try it</h3>` from `INSTRPAGE` after the document body, and two "Try it"
-headings on one page would be a mess. If decision 2 goes the obvious way, rename this to
-`## Try it` and delete the hardcoded one.
+## `INSTRPAGE` is still a second copy of three things
 
-`## Watch it` is optional and `docs:lint` does not require it. Add it when the
-instruction is a *motion* — a head jumping, a pointer walking, a daughter filling — and
-skip it when the instruction is a fact.
-
-### 2. `INSTRPAGE` is a second, drifting copy of the Bible
-
-`packages/content/src/instrpage.ts` holds an `AUTHORED` table with, for all 32 verbs:
-`summary`, `mistakes`, `seeAlso`, `prompt`, `targets`.
-
-Three of those are already in the Bible, authored twice:
+`packages/content/src/instrpage.ts` holds an `AUTHORED` table for all 32 verbs:
 
 | INSTRPAGE | Bible | State |
 |---|---|---|
 | `summary` | first sentence of `## Simple` | duplicated |
 | `mistakes` | `## Edge Cases` | **duplicated and already drifted — the bullet counts differ on all 32 pages** |
 | `seeAlso` | `## See also` | duplicated |
-| `prompt` + scenario | — | only in INSTRPAGE (the runnable playground) |
-| `targets` | — | only in INSTRPAGE (tooltip animation data) |
+| `prompt` + `scenarios` | `## Try it` | **no longer rendered anywhere** — dead since the playground moved into the document |
+| `targets` | — | still live: the tooltip animation data, which a document cannot express |
 
-The docs-are-the-source migration ended this duplication everywhere else; INSTRPAGE is
-what is left. The regeneration is the moment to finish it: fold `summary`, `mistakes`
-and `seeAlso` into the Bible pages (they are already there — the job is deleting the
-copies and repointing the readers), and leave INSTRPAGE holding only what a document
-cannot express, or move the scenario into `## Watch it` and leave it holding only
-`targets`.
+`OpcodeTooltip` and the reader's keyword linking still call `pageOf`, so the module stays;
+what is finished is the *opcode page's* dependency on it. Retiring `summary`, `mistakes`,
+`seeAlso` and the now-dead `scenarios` is the next consolidation — it touches
+`03-instrpage.test.ts` and `_invariants.test.ts`, which is why it is a separate job.
 
 Do **not** write a regenerated page from the INSTRPAGE copy. Where the two disagree
 today, neither has been checked against the engine.

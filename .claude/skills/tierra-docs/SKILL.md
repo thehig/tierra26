@@ -129,9 +129,12 @@ the second catches what fails to parse or contradicts the engine. Run both.
 ## Templates
 
 `templates/` holds one skeleton per kind, plus `templates/README.md` — the placeholder
-convention, the per-kind done-checklist, and two decisions to settle before regenerating
-the corpus (a live `<EntityDesigner>` stage inside a Bible page, and the `INSTRPAGE`
-table that is a second, already-drifted copy of every page's edge cases and See-also).
+convention, the per-kind done-checklist, and the state of the `INSTRPAGE` table that
+still duplicates every page's Simple summary, edge cases and See-also.
+
+Note for every regenerated opcode page: `## Try it` is now the page's **only**
+playground. The hardcoded `INSTRPAGE` one has been deleted, so a page without that
+section has no runnable demonstration at all.
 
 ## References
 

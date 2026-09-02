@@ -28,10 +28,10 @@ and `save-pile` all earn one. Delete the heading if it does not.»
 - «The zero case, the wrap case, the empty case, the exactly-at-the-boundary case.»
 - «What each boundary makes a reader wrongly conclude.»
 
-«Prefer showing a boundary to describing it: set the `## Watch it` stage up so it lands
+«Prefer showing a boundary to describing it: set the `## Try it` stage up so it lands
 on the edge case, rather than starting from a blank creature.»
 
-## Watch it
+## Try it
 «Optional. A stage earns its place when the idea is a change over time or a position in
 space — a head moving, a daughter filling, a search walking outward. Delete if the idea
 is a fact rather than a motion.»

@@ -38,10 +38,10 @@ zero case, the wrap case, the empty case, and exactly-at-the-threshold.»
 - «An interaction with another instruction that only bites in combination.»
 - «A wrong model a learner predictably brings to this instruction.»
 
-«Where an edge case can be shown rather than described, set `## Watch it` up to land on
+«Where an edge case can be shown rather than described, set `## Try it` up to land on
 it — a preset `<State>` that starts one step from the boundary beats a paragraph.»
 
-## Watch it
+## Try it
 <EntityDesigner soup="36">
   <Genome>
 «the smallest genome that shows the behaviour — three or four blocks»

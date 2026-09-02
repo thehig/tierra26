@@ -87,7 +87,7 @@ A good Edge Cases bullet is one of:
 Not an edge case: a restatement of Advanced, or a warning about something the engine
 prevents anyway.
 
-Where a boundary can be demonstrated, aim the `## Watch it` stage at it — a preset
+Where a boundary can be demonstrated, aim the `## Try it` stage at it — a preset
 `<State>` one step from the threshold teaches it in a way a sentence cannot.
 
 ## Examples
