@@ -4,13 +4,8 @@
 // plugin (packages/app/build/tierraContent.ts) from docs/**/*.md — already
 // parsed and already validated, so nothing here can fail at runtime. This module
 // is only the lookup surface every page shares.
-import { CONCEPT_DOCS, LESSON_DOCS, OPCODE_DOCS } from 'virtual:tierra-content';
-import type { LoadedDoc } from '@tierra26/content/docload.ts';
-
-/** A document as the PAGES see it: everything the parser produced, minus the raw
- *  markdown. Only the editor imports the sources, from their own module, so the
- *  main chunk never carries them. */
-export type CorpusDoc = Omit<LoadedDoc, 'source'>;
+import { getCorpus, type CorpusDoc } from './corpus.ts';
+export type { CorpusDoc };
 import { foldAt, resolveToken, sectionOf, splitInline } from '@tierra26/content/doclang.ts';
 import { isVerb, mnemonicToVerb, verbToMnemonic } from '@tierra26/genescript/vocab.ts';
 import { CONCEPT_BINDINGS, conceptBinding } from '../design/bindings.ts';
@@ -22,8 +17,9 @@ const TOKENS = {
   hasConcept: (s: string) => s in CONCEPT_BINDINGS,
 };
 
-const byMnemonic = new Map(OPCODE_DOCS.map((d) => [d.slug, d]));
-const byConcept = new Map(CONCEPT_DOCS.map((d) => [d.slug, d]));
+const corpus = getCorpus();
+const byMnemonic = new Map(corpus.OPCODE_DOCS.map((d) => [d.slug, d]));
+const byConcept = new Map(corpus.CONCEPT_DOCS.map((d) => [d.slug, d]));
 
 /** The Bible page for an instruction, named either by mnemonic or by gene. */
 export function opcodeDoc(nameOrMnemonic: string): CorpusDoc | undefined {
@@ -34,9 +30,9 @@ export function conceptDoc(slug: string): CorpusDoc | undefined {
   return byConcept.get(slug);
 }
 
-export const lessonDocs: readonly CorpusDoc[] = LESSON_DOCS;
-export const opcodeDocs: readonly CorpusDoc[] = OPCODE_DOCS;
-export const conceptDocs: readonly CorpusDoc[] = CONCEPT_DOCS;
+export const lessonDocs: readonly CorpusDoc[] = corpus.LESSON_DOCS;
+export const opcodeDocs: readonly CorpusDoc[] = corpus.OPCODE_DOCS;
+export const conceptDocs: readonly CorpusDoc[] = corpus.CONCEPT_DOCS;
 
 /** A frontmatter value as a string, or undefined. */
 export function fm(doc: CorpusDoc | undefined, key: string): string | undefined {

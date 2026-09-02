@@ -7,9 +7,9 @@
 //
 // Order comes from the filename prefix (`08-loops.md`), which the loader sorts —
 // so the curriculum reads in order on disk as well as in the app.
-import { LESSON_DOCS } from 'virtual:tierra-content';
+import { getCorpus } from '../doc/corpus.ts';
 import { splitInline } from '@tierra26/content/doclang.ts';
-import type { CorpusDoc } from '../doc/docs.ts';
+import type { CorpusDoc } from '../doc/corpus.ts';
 import type { DocNode } from '@tierra26/content/types.ts';
 import { entry, entryOfMnemonic } from '@tierra26/genescript/vocab.ts';
 import type { Chapter, ChapterPhase } from './chapters.ts';
@@ -63,7 +63,7 @@ function toChapter(doc: CorpusDoc): LessonChapter {
   };
 }
 
-export const CHAPTERS: readonly LessonChapter[] = LESSON_DOCS.map(toChapter);
+export const CHAPTERS: readonly LessonChapter[] = getCorpus().LESSON_DOCS.map(toChapter);
 
 // ---------------------------------------------------------------------------
 // Which chapter introduces an instruction — DERIVED from the documents.

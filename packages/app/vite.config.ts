@@ -52,7 +52,11 @@ export default defineConfig({
       extends: true,
       test: {
         environment: 'node',
-        include: ['test/**/*.test.ts']
+        include: ['test/**/*.test.ts'],
+        // The app reads its corpus at runtime now; tests have no server to read
+        // it from, so seed it from the compiled-in copy before anything imports
+        // doc/docs.ts (see test/setup-corpus.ts).
+        setupFiles: ['./test/setup-corpus.ts']
       }
     }, {
       extends: true,
@@ -64,6 +68,7 @@ export default defineConfig({
       })],
       test: {
         name: 'storybook',
+        setupFiles: ['./test/setup-corpus.ts'],
         browser: {
           enabled: true,
           headless: true,

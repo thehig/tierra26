@@ -22,9 +22,3 @@ declare module 'virtual:tierra-content' {
   /** Bible concept pages (soup, daughter, flags, ...). */
   export const CONCEPT_DOCS: readonly CorpusDoc[];
 }
-
-declare module 'virtual:tierra-content/sources' {
-  /** The markdown exactly as it is on disk, keyed by repo-relative path
-   *  (`LoadedDoc.file`). Its own module so only the editor pays for it. */
-  export const DOC_SOURCES: Readonly<Record<string, string>>;
-}

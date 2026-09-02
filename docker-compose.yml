@@ -5,4 +5,14 @@ services:
     container_name: tierra26
     ports:
       - "8026:80"
+    volumes:
+      # docs/ is the source of truth AND the store: "Edit this page" writes a
+      # markdown file here. Bind-mounting the repo's docs/ means an edit made in
+      # the running app lands in the working tree, shows up in `git diff`, and
+      # survives `docker compose down`. Drop this line and edits live only inside
+      # the container, so they die with it.
+      - ./docs:/app/docs
     restart: unless-stopped
+    # Uncomment to serve a read-only deployment (the app then hides the editor):
+    # environment:
+    #   TIERRA_READONLY: "1"

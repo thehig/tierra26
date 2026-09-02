@@ -1,18 +1,16 @@
 // The "Edit this page" affordance, and the only place that decides whether the
 // wiki surface exists at all.
 //
-// DEV ONLY, and dropped from a production build rather than merely hidden in
-// one. The save endpoint lives in the content plugin's `configureServer` hook,
-// which Vite runs only for the dev server — so in a build there is no route to
-// POST to, and a button would be a lie.
+// It appears whenever the SERVER says it can write — `editable` on the corpus
+// the app booted from. That is true for the dev server and for the production
+// server, and false for a plain static deployment where there is nothing to
+// POST to. Gating on the server's answer rather than on the build mode is what
+// makes editing work in production without pretending it works on a file host.
 //
-// `import.meta.env.DEV` is replaced with a literal `false` at build time, so the
-// ternary below is a dead branch Rollup removes along with everything only it
-// reaches: the editor component AND the ~85 KB of raw markdown behind
-// `virtual:tierra-content/sources`. Guarding inside the component instead would
-// still have emitted both as chunks — built, deployed, and never loaded.
-import { lazy, Suspense, useState, type ComponentType } from 'react';
-import type { CorpusDoc } from './docs.ts';
+// The editor itself and the document source are both fetched on demand, so a
+// reader who never clicks pays nothing.
+import { lazy, Suspense, useState } from 'react';
+import { getCorpus, type CorpusDoc } from './corpus.ts';
 
 interface EditorProps {
   doc: CorpusDoc;
@@ -20,21 +18,11 @@ interface EditorProps {
   onClose: () => void;
 }
 
-const LazyEditor: ComponentType<EditorProps> | null = import.meta.env.DEV
-  ? lazy(async () => {
-      const [{ DocEditor }, { DOC_SOURCES }] = await Promise.all([
-        import('./DocEditor.tsx'),
-        import('virtual:tierra-content/sources'),
-      ]);
-      return {
-        default: (p: EditorProps) => <DocEditor {...p} source={DOC_SOURCES[p.doc.file] ?? ''} />,
-      };
-    })
-  : null;
+const LazyEditor = lazy(async () => ({ default: (await import('./DocEditor.tsx')).DocEditor }));
 
 export function EditPageButton({ doc, dark }: { doc: CorpusDoc | undefined; dark: boolean }) {
   const [open, setOpen] = useState(false);
-  if (!LazyEditor || !doc) return null;
+  if (!doc || !getCorpus().editable) return null;
   return (
     <>
       <button className="btn ghost edit-page" onClick={() => setOpen(true)} title={doc.file}>

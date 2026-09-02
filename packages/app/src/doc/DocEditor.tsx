@@ -5,10 +5,9 @@
 // writes docs/<...>.md, and the file is the store — an edit is still there after
 // the server restarts, and `git diff` shows it like any other change.
 //
-// DEV ONLY, by construction rather than by a flag someone can forget: the save
-// endpoint lives in the content plugin's `configureServer` hook, which does not
-// run in `vite build`. A production bundle has no such route, so the button is
-// hidden there (see EditPageButton).
+// It works in production, not just in dev. The same docs API is mounted by the
+// Vite dev server and by the production server (server/docsApi.ts), so this
+// component knows nothing about which one it is talking to.
 //
 // Validation runs in the browser against the WHOLE corpus, not just the draft.
 // That matters: renaming a concept's slug turns {that-token} into an unknown
@@ -20,7 +19,8 @@ import { parseDoc, validateDoc, type DocResolver } from '@tierra26/content/docla
 import type { DocKind, Diagnostic } from '@tierra26/content/types.ts';
 import { isVerb, mnemonicToVerb } from '@tierra26/genescript/vocab.ts';
 import { STARTERS } from '@tierra26/content/lessons.ts';
-import { conceptDocs, lessonDocs, opcodeDocs, type CorpusDoc } from './docs.ts';
+import { conceptDocs, lessonDocs } from './docs.ts';
+import { loadCorpus, setCorpus, type CorpusDoc } from './corpus.ts';
 import { DocRenderer } from './DocRenderer.tsx';
 
 /** The resolver the validator needs, built from the corpus already in memory. */
@@ -43,17 +43,37 @@ function corpusResolver(): DocResolver {
 
 export interface DocEditorProps {
   doc: CorpusDoc;
-  source: string;
   dark: boolean;
   onClose: () => void;
 }
 
-export function DocEditor({ doc, source, dark, onClose }: DocEditorProps) {
-  const [draft, setDraft] = useState(source);
+export function DocEditor({ doc, dark, onClose }: DocEditorProps) {
+  // The source is fetched, not bundled: shipping 85 KB of markdown to every
+  // reader so that one of them might edit it is the wrong trade, and in
+  // production the file on the server is the only copy that is actually current.
+  const [source, setSource] = useState<string | null>(null);
+  const [draft, setDraft] = useState('');
   const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const resolver = useMemo(corpusResolver, []);
   const ta = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    void (async () => {
+      try {
+        const res = await fetch(`/api/doc?file=${encodeURIComponent(doc.file)}`);
+        const body = (await res.json()) as { ok: boolean; source?: string; error?: string };
+        if (!live) return;
+        if (!res.ok || !body.ok) return setServerError(body.error ?? `could not open (${res.status})`);
+        setSource(body.source ?? '');
+        setDraft(body.source ?? '');
+      } catch (e) {
+        if (live) setServerError(e instanceof Error ? e.message : String(e));
+      }
+    })();
+    return () => { live = false; };
+  }, [doc.file]);
 
   // Re-parsed every keystroke. `parseDoc` never throws and turns a malformed
   // block into an ErrorNode, so the preview keeps painting mid-typing.
@@ -65,7 +85,7 @@ export function DocEditor({ doc, source, dark, onClose }: DocEditorProps) {
   }, [draft, doc.kind, doc.slug, doc.file, resolver]);
 
   const errors = problems.filter((d) => d.severity === 'error');
-  const dirty = draft !== source;
+  const dirty = source !== null && draft !== source;
   const canSave = dirty && errors.length === 0 && !saving;
 
   // Escape closes, ctrl/cmd-S saves — the two things a wiki editor must have.
@@ -85,7 +105,7 @@ export function DocEditor({ doc, source, dark, onClose }: DocEditorProps) {
     setSaving(true);
     setServerError(null);
     try {
-      const res = await fetch('/__docs/save', {
+      const res = await fetch('/api/doc', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ file: doc.file, source: draft }),
@@ -95,10 +115,12 @@ export function DocEditor({ doc, source, dark, onClose }: DocEditorProps) {
         setServerError(body.error ?? `save failed (${res.status})`);
         return;
       }
-      // No local state to update: the write trips the dev watcher, the plugin
-      // invalidates the content modules, and the page behind this editor
-      // re-renders itself from the new file.
-      onClose();
+      // Re-read the corpus from the server and hard-reload, so what the page
+      // shows is what the server now holds. A dev-server HMR update would cover
+      // this in dev only; going through the API keeps dev and production
+      // identical, which is the whole point of this change.
+      setCorpus(await loadCorpus());
+      location.reload();
     } catch (e) {
       setServerError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -126,7 +148,8 @@ export function DocEditor({ doc, source, dark, onClose }: DocEditorProps) {
             ref={ta}
             className="de-src"
             spellCheck={false}
-            value={draft}
+            disabled={source === null}
+            value={source === null ? 'loading…' : draft}
             onChange={(e) => setDraft(e.target.value)}
             aria-label="Markdown source"
           />
