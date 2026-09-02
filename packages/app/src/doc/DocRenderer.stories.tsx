@@ -8,6 +8,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, within } from 'storybook/test';
 import { parseDoc, validateDoc, type DocResolver } from '@tierra26/content/doclang.ts';
 import { isVerb, mnemonicToVerb } from '@tierra26/genescript/vocab.ts';
+import { CONCEPT_BINDINGS } from '../design/bindings.ts';
 import { DocRenderer } from './DocRenderer.tsx';
 import { LanguageModeFixed } from '../design/languageMode.tsx';
 import { RouterProvider } from '../router/router.tsx';
@@ -16,7 +17,9 @@ import { RouterProvider } from '../router/router.tsx';
 // corpus; a story only needs the handful its documents name.
 const resolver: DocResolver = {
   isOpcode: (t) => isVerb(t) || mnemonicToVerb(t) !== undefined,
-  hasConcept: (s) => ['soup', 'template', 'daughter'].includes(s),
+  // The REAL concept registry, not a hand-listed subset: a fixture naming a
+  // concept the Bible has must validate here exactly as it does in the corpus.
+  hasConcept: (s) => s in CONCEPT_BINDINGS,
   hasGenome: (s) => s === 'ancestor',
   hasScenario: () => true,
   hasSubset: () => true,
@@ -119,6 +122,7 @@ export const TheWholeVocabulary: Story = {
   },
   play: async ({ canvasElement }) => {
     await expect(canvasElement.querySelector('.doc-diag')).toBeNull();
+    await expect(canvasElement.querySelector('[data-testid="problems"]')).toBeNull();
     // 2 opcodes + 4 registers + 3 flags + 4 concepts.
     const chips = [...canvasElement.querySelectorAll('.op-chip')];
     await expect(chips.length).toBe(13);
@@ -128,6 +132,115 @@ export const TheWholeVocabulary: Story = {
     }
     // Whatever it names, the markup is the same.
     for (const c of chips) await expect(c.className).toBe('op-chip');
+  },
+};
+
+// --- a concept, said in the lesson's own word ---------------------------------
+// A lesson teaches "signpost", the Bible files it under `template`. A token's
+// second word is what the sentence READS as, so the lesson keeps its vocabulary
+// and the chip still opens the page for what that word actually names. Without
+// this the word silently reverts to the slug and the lesson changes language
+// mid-sentence.
+export const ConceptSaidInAnotherWord: Story = {
+  args: {
+    source:
+      FRONT +
+      [
+        'Canonical: {template} {label} {soup} {daughter}',
+        '',
+        'As a lesson says them: {template signpost} {label landmark} {soup world} {daughter baby}',
+      ].join(NL),
+  },
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelector('[data-testid="problems"]')).toBeNull();
+    const names = [...canvasElement.querySelectorAll('.op-chip-name')].map((n) => n.textContent);
+    await expect(names).toStrictEqual([
+      'template',
+      'label',
+      'soup',
+      'daughter',
+      'signpost',
+      'landmark',
+      'world',
+      'baby',
+    ]);
+    // Same object either way: the synonym is a display word, not a second kind
+    // of chip — so it keeps the glyph and colour of the concept it names.
+    const chips = [...canvasElement.querySelectorAll('.op-chip')];
+    const glyph = (i: number) => chips[i]!.querySelector('.op-chip-emoji')?.textContent;
+    for (let i = 0; i < 4; i++) await expect(glyph(i + 4)).toBe(glyph(i));
+    // The accessible name leads with the word on screen (WCAG 2.5.3) and still
+    // says what it really is.
+    await expect(chips[4]!.getAttribute('aria-label')).toBe('signpost — template concept');
+  },
+};
+
+// --- tables ------------------------------------------------------------------
+// A GFM pipe table. Cells go through the same inline scanner as prose, so a
+// {token} in a cell is a chip and a `code span` is code — which is the reason
+// register.md can put the register palette in a table at all.
+export const Table: Story = {
+  args: {
+    source:
+      FRONT +
+      [
+        '| Reg | Role | Binds |',
+        '|-----|:----:|------:|',
+        '| {register-a} | address pointer | {incA} |',
+        '| {register-c} | counter — `reg[C] = (reg[C] + 1) | 0` | {incC} |',
+      ].join(NL),
+  },
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelector('[data-testid="problems"]')).toBeNull();
+    const table = canvasElement.querySelector('.mm-table')!;
+    await expect(table.querySelectorAll('thead th').length).toBe(3);
+    await expect(table.querySelectorAll('tbody tr').length).toBe(2);
+    // A pipe inside a code span is NOT a cell boundary — the row still has 3
+    // cells and the expression survives whole.
+    const row = table.querySelectorAll('tbody tr')[1]!;
+    await expect(row.querySelectorAll('td').length).toBe(3);
+    await expect(row.querySelectorAll('td')[1]!.textContent).toContain('(reg[C] + 1) | 0');
+    // Cells render the inline grammar: chips, not braces.
+    await expect(table.querySelectorAll('.op-chip').length).toBe(4);
+    await expect(table.textContent).not.toContain('{register-a}');
+    // Alignment comes from the delimiter row.
+    const th = table.querySelectorAll('thead th');
+    await expect((th[1] as HTMLElement).style.textAlign).toBe('center');
+    await expect((th[2] as HTMLElement).style.textAlign).toBe('right');
+    await expect((th[0] as HTMLElement).style.textAlign).toBe('');
+  },
+};
+
+// A ragged table cannot shift its columns, and a pipe in ordinary prose is not
+// a table — the delimiter row is what makes one.
+export const TableEdges: Story = {
+  args: {
+    source:
+      FRONT +
+      [
+        '| A | B | C |',
+        '|---|---|---|',
+        '| only one |',
+        '| one | two | three | four |',
+        '',
+        'Prose that mentions a | pipe stays prose.',
+        '',
+        '---',
+      ].join(NL),
+  },
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelector('[data-testid="problems"]')).toBeNull();
+    const rows = canvasElement.querySelectorAll('.mm-table tbody tr');
+    await expect(rows.length).toBe(2);
+    // Short row: padded to the header width. Long row: clipped to it.
+    await expect(rows[0]!.querySelectorAll('td').length).toBe(3);
+    await expect(rows[1]!.querySelectorAll('td').length).toBe(3);
+    await expect(rows[1]!.textContent).not.toContain('four');
+    // Exactly one table, and the pipe-bearing paragraph was left alone.
+    await expect(canvasElement.querySelectorAll('.mm-table').length).toBe(1);
+    const paras = [...canvasElement.querySelectorAll('p.prose')].map((n) => n.textContent);
+    await expect(paras).toContain('Prose that mentions a | pipe stays prose.');
+    await expect(canvasElement.querySelectorAll('.mm-rule').length).toBe(1);
   },
 };
 

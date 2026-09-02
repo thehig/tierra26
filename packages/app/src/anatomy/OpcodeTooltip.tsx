@@ -67,7 +67,7 @@ export function OpcodeTooltip({ gene, x, y, onEnter, onLeave }: { gene: string; 
         </>
       )}
       {watch && <div className="op-tip-watch"><b>!</b><span>{watch}</span></div>}
-      <div className="op-tip-more"><Link to={{ surface: 'wiki', verb: v.verb }}>Read the full page →</Link></div>
+      <div className="op-tip-more"><Link to={{ surface: 'bible', verb: v.verb }}>Read the full page →</Link></div>
     </div>
   );
 }

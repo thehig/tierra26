@@ -25,7 +25,7 @@ export function Prose({ spans }: { spans: ProseSpan[] }) {
           );
         }
         return (
-          <Link key={i} to={{ surface: 'wiki', verb: sp.verb }} className="instr-link">
+          <Link key={i} to={{ surface: 'bible', verb: sp.verb }} className="instr-link">
             {sp.verb}
           </Link>
         );

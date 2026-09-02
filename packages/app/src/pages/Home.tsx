@@ -26,7 +26,7 @@ export function Home() {
           )}
           <Link className="btn" to={{ surface: 'sandbox' }}>Free play</Link>
           <Link className="btn" to={{ surface: 'versus' }}>Versus</Link>
-          <Link className="btn" to={{ surface: 'wiki' }}>Instructions</Link>
+          <Link className="btn" to={{ surface: 'bible' }}>The Bible</Link>
         </div>
       </section>
 

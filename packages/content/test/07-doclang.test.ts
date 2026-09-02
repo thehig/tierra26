@@ -159,6 +159,32 @@ describe('DOCLANG · inline tokens', () => {
     assert.deepEqual(refs.map((x) => x.kind), ['token', 'token']);
   });
 
+  it('lets a concept be said in the word a lesson teaches in', () => {
+    // {template signpost} is the template chip reading `signpost`. This is the
+    // only way a lesson can keep its own vocabulary and still hang the right
+    // Bible card off it, so the target has to survive parse AND validation.
+    const seg = splitInline('a {template signpost} is a pattern').find((x) => x.kind === 'token');
+    assert.deepEqual(seg, { kind: 'token', token: 'template', target: 'signpost' });
+    const r = doc('The raw pieces a {template signpost} is built from.');
+    assert.deepEqual(
+      errors(validateDoc(r.ast, makeResolver({ hasConcept: (c) => c === 'template' }))),
+      [],
+    );
+  });
+
+  it('refuses a second word on a token that has nowhere to put it', () => {
+    // A register and a flag are already their own name. A target there used to
+    // be dropped in silence — the one failure an author cannot see in the page.
+    for (const src of ['{register-c notebook}', '{flag-e error}']) {
+      const ds = errors(validateDoc(doc(src).ast, makeResolver()));
+      assert.equal(ds.length, 1, src);
+      assert.equal(ds[0]!.code, 'unknown-token');
+      assert.match(ds[0]!.message, /takes no second word/);
+    }
+    // ...while the two kinds that CAN carry one stay clean.
+    assert.deepEqual(errors(validateDoc(doc('{jmpb top} {template signpost}').ast, makeResolver())), []);
+  });
+
   it('has no inline TAG form — a retired tag is an error, not silent text', () => {
     const r = doc('Press <Chip opcode="incA"/> now.');
     // It parses as prose (an unknown tag is not a block), so the check is on

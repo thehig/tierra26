@@ -571,7 +571,9 @@ function walk(
     if (node.kind === 'prose') {
       checkRetired(node.markdown, node.loc, out);
       for (const ref of node.refs) {
-        if (ref.kind === 'token' && !resolveToken(ref.token, resolver)) {
+        if (ref.kind !== 'token') continue;
+        const resolved = resolveToken(ref.token, resolver);
+        if (!resolved) {
           // An unresolvable token is an ERROR, not a warning: it would render as
           // nothing recognisable, and the author almost certainly meant something.
           out.push(
@@ -579,6 +581,23 @@ function walk(
               'unknown-token',
               'error',
               `{${ref.token}} does not name anything. A token is an instruction ({incA}, {grow-a}), a register ({register-a}), a flag ({flag-e}), or a concept with a Bible page ({soup}).`,
+              ref.loc,
+            ),
+          );
+          continue;
+        }
+        // A second word means something for exactly two kinds: the label an
+        // instruction points at ({jmpb top}) and the word a lesson says a
+        // concept in ({template signpost}). A register and a flag are already
+        // their own name, so a target there has nowhere to go — and a token
+        // that renders LESS than it says is the one failure an author cannot
+        // see. Refuse it rather than drop it.
+        if (ref.target !== undefined && (resolved.kind === 'register' || resolved.kind === 'flag')) {
+          out.push(
+            diag(
+              'unknown-token',
+              'error',
+              `{${ref.token} ${ref.target}} is not a thing: a ${resolved.kind} takes no second word. Write {${ref.token}} on its own.`,
               ref.loc,
             ),
           );

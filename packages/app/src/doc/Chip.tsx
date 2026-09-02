@@ -15,6 +15,7 @@
 //   <Chip register="A"/>             a register, in the register palette
 //   <Chip flag="Z"/>                 a CPU flag
 //   <Chip concept="soup"/>           a concept, linking to its Bible page
+//   <Chip concept="template">signpost</Chip>   ...said in the lesson's own word
 import { useRef, type KeyboardEvent, type ReactNode } from 'react';
 import { entry, entryOfMnemonic } from '@tierra26/genescript/vocab.ts';
 import { opcodeEmoji } from '../anatomy/opcodeEmoji.ts';
@@ -181,15 +182,24 @@ export function Chip({ opcode, register, flag, concept, children }: ChipProps) {
     // sharing one hue. Not a link: the card carries the link, matching opcodes.
     const b = conceptBinding(concept);
     const color = categoryVar(b?.category ?? 'concept');
+    const canonical = b?.name ?? concept;
     return (
       <Chipped
         color={color}
         emoji={conceptEmoji(concept)}
-        name={target ?? b?.name ?? concept}
-        label={`${b?.name ?? concept} — concept`}
+        name={target ?? canonical}
+        // A lesson may say the concept in its own word — `signpost` for the
+        // template. The accessible name then has to START with the word on
+        // screen (WCAG 2.5.3) and still say what it really is, so a screen
+        // reader hears "signpost — template concept".
+        label={
+          target && target !== canonical
+            ? `${target} — ${canonical} concept`
+            : `${canonical} — concept`
+        }
         card={(a, keep, release) => (
           <TokenTooltip
-            title={b?.name ?? concept}
+            title={canonical}
             color={color}
             slug={concept}
             anchor={a}

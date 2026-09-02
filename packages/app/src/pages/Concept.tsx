@@ -32,7 +32,7 @@ export function ConceptPage({ slug, dark }: { slug: string; dark: boolean }) {
   return (
     <div className="page concept-page">
       <div className="crumb">
-        <Link to={{ surface: 'wiki' }}>Instructions</Link> <span>/</span> concept
+        <Link to={{ surface: 'bible' }}>The Bible</Link> <span>/</span> concept
       </div>
       <h1 className="concept-title" style={{ color: categoryVar('concept') }}>{title}</h1>
 
@@ -47,7 +47,7 @@ export function ConceptPage({ slug, dark }: { slug: string; dark: boolean }) {
         </>
       )}
 
-      <Link className="btn" to={{ surface: 'wiki' }}>Browse the instructions →</Link>
+      <Link className="btn" to={{ surface: 'bible' }}>Browse the Bible →</Link>
     </div>
   );
 }

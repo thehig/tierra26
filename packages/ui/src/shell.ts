@@ -26,7 +26,7 @@ import { tankCommandToHost } from './protocol.ts';
 export type Route =
   | { surface: 'lesson'; lessonId: string; section?: string }
   | { surface: 'sandbox'; run?: RunLink }
-  | { surface: 'wiki'; verb?: string }
+  | { surface: 'bible'; verb?: string }
   | { surface: 'versus'; run?: RunLink };
 
 export type Surface = Route['surface'];
@@ -165,7 +165,10 @@ export function hydrate(blob: unknown): AppState {
     if (version > PERSIST_VERSION) return def; // from the future ⇒ safe default
 
     // v0 (unversioned legacy) and v1 share this field layout; validate each.
-    const route = isRoute(o.route) ? o.route : def.route;
+    // A route persisted under the surface's old name still names a real page,
+    // so migrate it rather than dropping the reader back to the default.
+    const raw = renameWikiSurface(o.route);
+    const route = isRoute(raw) ? raw : def.route;
     const theme = isTheme(o.theme) ? o.theme : def.theme;
     const reducedMotion = typeof o.reducedMotion === 'boolean' ? o.reducedMotion : def.reducedMotion;
     const completed = Array.isArray(o.completed)
@@ -177,6 +180,14 @@ export function hydrate(blob: unknown): AppState {
   } catch {
     return def; // defence in depth — hydrate never throws
   }
+}
+
+/** `{surface:'wiki'}` -> `{surface:'bible'}`. The surface was renamed when the
+ *  instruction wiki became the Bible; anything else passes through untouched. */
+function renameWikiSurface(x: unknown): unknown {
+  if (typeof x !== 'object' || x === null) return x;
+  const r = x as Record<string, unknown>;
+  return r.surface === 'wiki' ? { ...r, surface: 'bible' } : x;
 }
 
 // ---- Structural guards (pure) ----------------------------------------------
@@ -202,7 +213,7 @@ export function isRoute(x: unknown): x is Route {
   switch (r.surface) {
     case 'lesson':
       return typeof r.lessonId === 'string' && (r.section === undefined || typeof r.section === 'string');
-    case 'wiki':
+    case 'bible':
       return r.verb === undefined || typeof r.verb === 'string';
     case 'sandbox':
     case 'versus':
@@ -259,8 +270,8 @@ export function routeToPath(route: Route): string {
       const base = '/lesson/' + encodeURIComponent(route.lessonId);
       return route.section !== undefined ? base + '/' + encodeURIComponent(route.section) : base;
     }
-    case 'wiki':
-      return route.verb !== undefined ? '/wiki/' + encodeURIComponent(route.verb) : '/wiki';
+    case 'bible':
+      return route.verb !== undefined ? '/bible/' + encodeURIComponent(route.verb) : '/bible';
     case 'sandbox':
       return route.run !== undefined ? '/sandbox?' + serializeRunLink(route.run) : '/sandbox';
     case 'versus':
@@ -283,8 +294,11 @@ export function pathToRoute(path: string): Route | null {
           ? { surface: 'lesson', lessonId, section: decodeURIComponent(segs[2]) }
           : { surface: 'lesson', lessonId };
       }
+      // `wiki` is the old name for this surface; keep the path working so
+      // links people already have (or bookmarked) still land on the Bible.
+      case 'bible':
       case 'wiki':
-        return segs[1] !== undefined ? { surface: 'wiki', verb: decodeURIComponent(segs[1]) } : { surface: 'wiki' };
+        return segs[1] !== undefined ? { surface: 'bible', verb: decodeURIComponent(segs[1]) } : { surface: 'bible' };
       case 'sandbox': {
         const run = rawQuery.length > 0 ? parseRunLink(rawQuery) : null;
         return run !== null ? { surface: 'sandbox', run } : { surface: 'sandbox' };

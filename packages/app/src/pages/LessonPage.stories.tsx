@@ -1,7 +1,7 @@
 // One story per lesson of the long-form reader (the @tierra26/content corpus, ch01–ch10), in
 // curriculum order and named exactly as the lesson is named in the app (the CURRICULUM title the
 // page puts in its crumb). This is the surface behind /lesson/:id — still reachable from the
-// Instructions wiki's "Introduced in …" links — alongside the brick-by-brick chapters on the map.
+// the Bible's "Introduced in …" links — alongside the brick-by-brick chapters on the map.
 //
 // Every lesson must parse clean (no `.diag.error` nodes), title its crumb from the curriculum, and
 // mount its embedded playground (each lesson's goal rides on that playground block, not a separate

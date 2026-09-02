@@ -55,8 +55,8 @@ describe('App Shell & State (SHELL)', () => {
     const routes: Route[] = [
       { surface: 'lesson', lessonId: L0 },
       { surface: 'lesson', lessonId: L1, section: 'copy-loop' },
-      { surface: 'wiki' },
-      { surface: 'wiki', verb: 'divide' },
+      { surface: 'bible' },
+      { surface: 'bible', verb: 'divide' },
       { surface: 'sandbox' },
       { surface: 'sandbox', run: { scenarioId: 'soup', seed: 42, genomes: ['grow-a\ndivide'] } },
       { surface: 'versus', run: { scenarioId: 'arena', seed: 7, genomes: ['a', 'b & c = d'] } },
@@ -138,16 +138,26 @@ describe('App Shell & State (SHELL)', () => {
     assert.deepEqual(back.learner.completed, s.learner.completed);
   });
 
+  it('[SHELL-002] the old /wiki path still lands on the Bible', () => {
+    // The surface was renamed; a link someone already has must not 404.
+    assert.deepEqual(pathToRoute('/wiki'), { surface: 'bible' });
+    assert.deepEqual(pathToRoute('/wiki/divide'), { surface: 'bible', verb: 'divide' });
+    // The canonical spelling is the one routeToPath emits.
+    assert.equal(routeToPath({ surface: 'bible' }), '/bible');
+    assert.equal(routeToPath({ surface: 'bible', verb: 'divide' }), '/bible/divide');
+  });
+
   it('[SHELL-007] hydrate migrates an older PersistBlob version safely (or falls back)', () => {
     // A v0 (unversioned legacy) blob with the same field layout migrates cleanly.
     const legacy = {
-      route: { surface: 'wiki', verb: 'divide' },
+      route: { surface: 'wiki', verb: 'divide' }, // the surface's old name
       theme: 'light',
       reducedMotion: false,
       completed: [L0, L1],
     };
     const migrated = hydrate(legacy);
-    assert.deepEqual(migrated.route, { surface: 'wiki', verb: 'divide' });
+    // ...migrates to the renamed surface rather than falling back to default.
+    assert.deepEqual(migrated.route, { surface: 'bible', verb: 'divide' });
     assert.equal(migrated.theme, 'light');
     assert.deepEqual([...migrated.learner.completed].sort(), [L0, L1]);
 
@@ -258,7 +268,7 @@ describe('App Shell & State (SHELL)', () => {
     const routes: Route[] = [
       { surface: 'lesson', lessonId: 'ch01-landmarks' },
       { surface: 'sandbox' },
-      { surface: 'wiki', verb: 'copy-byte' },
+      { surface: 'bible', verb: 'copy-byte' },
       { surface: 'versus' },
     ];
     const surfaces = new Set<Route['surface']>();
@@ -272,6 +282,6 @@ describe('App Shell & State (SHELL)', () => {
       surfaces.add(route.surface);
     }
     // all four surfaces the app frame switches between are covered
-    assert.deepEqual([...surfaces].sort(), ['lesson', 'sandbox', 'versus', 'wiki']);
+    assert.deepEqual([...surfaces].sort(), ['bible', 'lesson', 'sandbox', 'versus']);
   });
 });

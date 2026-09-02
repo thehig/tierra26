@@ -6,8 +6,16 @@
 // is only the lookup surface every page shares.
 import { CONCEPT_DOCS, LESSON_DOCS, OPCODE_DOCS } from 'virtual:tierra-content';
 import type { LoadedDoc } from '@tierra26/content/docload.ts';
-import { foldAt, sectionOf } from '@tierra26/content/doclang.ts';
-import { verbToMnemonic } from '@tierra26/genescript/vocab.ts';
+import { foldAt, resolveToken, sectionOf, splitInline } from '@tierra26/content/doclang.ts';
+import { isVerb, mnemonicToVerb, verbToMnemonic } from '@tierra26/genescript/vocab.ts';
+import { CONCEPT_BINDINGS, conceptBinding } from '../design/bindings.ts';
+
+// The same two lookups MiniMark resolves a token with, so the card and the
+// sentence agree on what a token names.
+const TOKENS = {
+  isOpcode: (t: string) => isVerb(t) || mnemonicToVerb(t) !== undefined,
+  hasConcept: (s: string) => s in CONCEPT_BINDINGS,
+};
 
 const byMnemonic = new Map(OPCODE_DOCS.map((d) => [d.slug, d]));
 const byConcept = new Map(CONCEPT_DOCS.map((d) => [d.slug, d]));
@@ -44,18 +52,44 @@ export function tooltipMarkdown(doc: LoadedDoc | undefined, advanced: boolean): 
   return first && first.kind === 'prose' ? first.markdown : undefined;
 }
 
+/** A one-line gloss for an index entry, taken from the document ITSELF so the
+ *  Bible index never carries a second copy of a description that can drift:
+ *  the parenthetical in the page's `title` when it has one (concept pages read
+ *  `soup (the shared memory)`), else the first sentence of its Simple section. */
+export function glossOf(doc: LoadedDoc | undefined): string {
+  const paren = /\(([^)]+)\)\s*$/.exec(fm(doc, 'title') ?? '');
+  if (paren) return paren[1]!;
+  const simple = plainText(tooltipMarkdown(doc, false) ?? '');
+  return /^(.+?[.!?])(\s|$)/.exec(simple)?.[1] ?? simple;
+}
+
 /** Markdown reduced to one plain sentence-stream, for a hover card.
- *  Strips emphasis, inline code, {term} braces and inline <Chip/> tags, and
- *  collapses the wrapping — a card wants a paragraph, not a document. */
+ *  Strips emphasis and links and collapses the wrapping — a card wants a
+ *  paragraph, not a document.
+ *
+ *  Tokens go through the parser's OWN scanner rather than a brace regex, for the
+ *  same reason MiniMark does: a token is `{name}` or `{name target}`, and a
+ *  regex that knows only the first form leaves `{template signpost}` sitting in
+ *  a tooltip with its braces on. What a token flattens to is the word a reader
+ *  would have SEEN — the synonym for a concept written in one, the canonical
+ *  name otherwise, and `name target` for an instruction with a label. */
 export function plainText(markdown: string): string {
-  return markdown
-    .replace(/<Chip[^>]*?\/>/g, '')
-    .replace(/<Chip[^>]*?>([^<]*)<\/Chip>/g, '$1')
-    .replace(/`([^`]*)`/g, '$1')
+  let out = '';
+  for (const seg of splitInline(markdown)) {
+    if (seg.kind === 'text' || seg.kind === 'code') {
+      out += seg.text;
+      continue;
+    }
+    const r = resolveToken(seg.token, TOKENS);
+    if (!r) out += seg.target ? `${seg.token} ${seg.target}` : seg.token;
+    else if (r.kind === 'concept') out += seg.target ?? conceptBinding(r.slug)?.name ?? r.slug;
+    else if (r.kind === 'opcode') out += seg.target ? `${r.name} ${seg.target}` : r.name;
+    else out += r.id;
+  }
+  return out
     .replace(/\*\*([^*]*)\*\*/g, '$1')
     .replace(/\*([^*]*)\*/g, '$1')
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-    .replace(/\{([A-Za-z][\w-]*)\}/g, '$1')
     .replace(/\s+/g, ' ')
     .trim();
 }

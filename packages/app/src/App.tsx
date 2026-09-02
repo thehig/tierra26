@@ -5,7 +5,7 @@ import { PrefsProvider, usePrefs } from './store/prefs.tsx';
 import { LanguageModeProvider, useLanguageMode, useLanguageToggle } from './design/languageMode.tsx';
 import { Home } from './pages/Home.tsx';
 import { LessonPage } from './pages/LessonPage.tsx';
-import { WikiIndex, WikiPage } from './pages/Wiki.tsx';
+import { BibleIndex, OpcodePage } from './pages/Bible.tsx';
 import { SandboxPage } from './pages/Sandbox.tsx';
 import { VersusPage } from './pages/Versus.tsx';
 import { ConceptPage } from './pages/Concept.tsx';
@@ -18,7 +18,7 @@ function routeKey(r: AppRoute | null): string {
   switch (r.surface) {
     case 'lesson': return 'lesson:' + r.lessonId + (r.section ?? '');
     case 'learn': return 'learn:' + r.chapterId;
-    case 'wiki': return 'wiki:' + (r.verb ?? '');
+    case 'bible': return 'bible:' + (r.verb ?? '');
     case 'concept': return 'concept:' + r.slug;
     case 'sandbox': return 'sandbox:' + (r.run ? r.run.seed + r.run.genomes.join('|') : '');
     case 'versus': return 'versus:' + (r.run ? r.run.seed + r.run.genomes.join('|') : '');
@@ -30,7 +30,7 @@ function Surface({ route, dark }: { route: AppRoute | null; dark: boolean }) {
   if (!route) return <Home />;
   switch (route.surface) {
     case 'lesson': return <LessonPage lessonId={route.lessonId} dark={dark} />;
-    case 'wiki': return route.verb ? <WikiPage verb={route.verb} dark={dark} /> : <WikiIndex />;
+    case 'bible': return route.verb ? <OpcodePage verb={route.verb} dark={dark} /> : <BibleIndex />;
     case 'sandbox': return <SandboxPage dark={dark} />;
     case 'versus': return <VersusPage dark={dark} />;
     case 'concept': return <ConceptPage slug={route.slug} dark={dark} />;
@@ -53,7 +53,7 @@ function Chrome() {
         <Link to="home" className="brand"><span className="dot" /> tierra26</Link>
         <nav className="mainnav">
           <Link to={{ surface: 'sandbox' }}>Sandbox</Link>
-          <Link to={{ surface: 'wiki' }}>Instructions</Link>
+          <Link to={{ surface: 'bible' }}>Bible</Link>
           <Link to={{ surface: 'versus' }}>Versus</Link>
         </nav>
         <button className="btn ghost" onClick={toggleLang} title="friendly names vs real instruction code">
