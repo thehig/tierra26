@@ -112,25 +112,7 @@ describe('DOCLANG · casing', () => {
 });
 
 // ---------------------------------------------------------------------------
-describe('DOCLANG · inline tags', () => {
-  it('scans a <Chip> out of the middle of a sentence', () => {
-    const segs = splitInline('so <Chip opcode="incA"/> runs again');
-    assert.deepEqual(
-      segs.map((s) => s.kind),
-      ['text', 'tag', 'text'],
-    );
-    const tag = segs[1];
-    assert.equal(tag?.kind === 'tag' && tag.name, 'Chip');
-    assert.equal(tag?.kind === 'tag' && tag.attrs['opcode'], 'incA');
-  });
-
-  it('carries the label of a paired inline tag', () => {
-    const segs = splitInline('<Chip opcode="jmpb">top</Chip> sends it back');
-    const tag = segs[0];
-    assert.equal(tag?.kind === 'tag' && tag.text, 'top');
-    assert.equal(segs[1]?.kind === 'text' && segs[1].text, ' sends it back');
-  });
-
+describe('DOCLANG · inline tokens', () => {
   it('still reads {token} and `code`, and leaves an unterminated one as text', () => {
     const segs = splitInline('the {soup} holds `incA` but not {broken');
     assert.deepEqual(
@@ -171,16 +153,21 @@ describe('DOCLANG · inline tags', () => {
     assert.deepEqual(splitInline('use {0, 1} bits'), [{ kind: 'text', text: 'use {0, 1} bits' }]);
   });
 
-  it('indexes inline tags on the prose node so the validator can reach them', () => {
-    const r = doc('Press <Chip opcode="incA"/> twice.');
+  it('indexes tokens on the prose node so the validator can reach them', () => {
+    const r = doc('Press {incA} twice, then {register-a} holds 2.');
     const refs = prose(r.ast.body)[0]!.refs;
-    assert.equal(refs.length, 1);
-    assert.equal(refs[0]!.kind, 'tag');
+    assert.deepEqual(refs.map((x) => x.kind), ['token', 'token']);
   });
 
-  it('an inline tag alone on a line is prose, not a block', () => {
-    const r = doc('<Chip opcode="incA"/>');
+  it('has no inline TAG form — a retired tag is an error, not silent text', () => {
+    const r = doc('Press <Chip opcode="incA"/> now.');
+    // It parses as prose (an unknown tag is not a block), so the check is on
+    // the validator, which names the replacement.
     assert.equal(r.ast.body[0]?.kind, 'prose');
+    const ds = errors(validateDoc(r.ast, makeResolver()));
+    assert.equal(ds.length, 1);
+    assert.equal(ds[0]!.code, 'retired-tag');
+    assert.match(ds[0]!.message, /\{incA\}/);
   });
 });
 
@@ -292,22 +279,20 @@ describe('DOCLANG · validation', () => {
     assert.equal(ds[0]!.code, 'unknown-token');
   });
 
-  it('flags an opcode the engine does not have (C-CON-SOURCE)', () => {
-    const r = doc('Press <Chip opcode="nope"/> now.');
-    const ds = validateDoc(r.ast, makeResolver({ isOpcode: (s) => s === 'incA' }));
-    assert.equal(errors(ds).length, 1);
-    assert.match(errors(ds)[0]!.message, /not an instruction/);
+  it('accepts a token the resolver knows, in every namespace (C-CON-SOURCE)', () => {
+    const r = doc('Press {incA} so {register-a} grows; {flag-e} stays down in the {soup}.');
+    const ds = validateDoc(
+      r.ast,
+      makeResolver({ isOpcode: (s) => s === 'incA', hasConcept: (s) => s === 'soup' }),
+    );
+    assert.deepEqual(errors(ds), []);
   });
 
-  it('accepts an opcode the resolver knows', () => {
-    const r = doc('Press <Chip opcode="incA"/> now.');
-    assert.equal(errors(validateDoc(r.ast, makeResolver({ isOpcode: (s) => s === 'incA' }))).length, 0);
-  });
-
-  it('requires one of the Chip target attributes', () => {
-    const r = doc('A bare <Chip/> chip.');
-    const ds = errors(validateDoc(r.ast, makeResolver()));
-    assert.ok(ds.some((d) => /needs one of/.test(d.message)));
+  it('flags an instruction the engine does not have', () => {
+    const r = doc('Press {nope} now.');
+    const ds = errors(validateDoc(r.ast, makeResolver({ isOpcode: (s) => s === 'incA', hasConcept: () => false })));
+    assert.equal(ds.length, 1);
+    assert.equal(ds[0]!.code, 'unknown-token');
   });
 
   it('rejects a bad enum value and an unknown attribute', () => {

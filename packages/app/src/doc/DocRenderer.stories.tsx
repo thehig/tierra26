@@ -100,9 +100,9 @@ export const AdvancedNames: Story = {
 
 // --- every named thing gets the same treatment -------------------------------
 // An opcode, a register, a flag and a concept are all the same kind of object to
-// a reader: a named part of the machine. They therefore all render as a chip
-// with a glyph, a colour role and a hover card, and {term} is just a shorter way
-// of writing <Chip concept="...">.
+// a reader: a named part of the machine. So there is ONE way to write any of
+// them — a {token} — and they all render as a chip with a glyph, a colour role
+// and a hover card.
 export const TheWholeVocabulary: Story = {
   args: {
     source:
@@ -114,26 +114,20 @@ export const TheWholeVocabulary: Story = {
         '',
         'Flags: {flag-e} {flag-s} {flag-z}',
         '',
-        'Concepts: {save-pile} {age} {reading-head}',
-        '',
-        'And the explicit tag form, for a chip that stands alone:',
-        '<Chip concept="soup" />',
+        'Concepts: {save-pile} {age} {reading-head} {soup}',
       ].join(NL),
   },
   play: async ({ canvasElement }) => {
     await expect(canvasElement.querySelector('.doc-diag')).toBeNull();
-    // 2 opcodes + 4 registers + 3 flags + 3 concepts + 1 explicit <Chip> tag.
+    // 2 opcodes + 4 registers + 3 flags + 4 concepts.
     const chips = [...canvasElement.querySelectorAll('.op-chip')];
     await expect(chips.length).toBe(13);
     // Every one of them carries a glyph — that is the point of the unification.
     for (const c of chips) {
       await expect(c.querySelector('.op-chip-emoji')?.textContent?.length ?? 0).toBeGreaterThan(0);
     }
-    // {token} and the <Chip> tag produce the same markup.
-    const asToken = chips.find((c) => c.textContent?.includes('save-pile'));
-    const asTag = chips.find((c) => c.textContent?.includes('soup'));
-    await expect(asToken?.className).toBe('op-chip');
-    await expect(asTag?.className).toBe('op-chip');
+    // Whatever it names, the markup is the same.
+    for (const c of chips) await expect(c.className).toBe('op-chip');
   },
 };
 
@@ -305,6 +299,17 @@ export const Callouts: Story = {
   play: async ({ canvasElement }) => {
     await expect(canvasElement.querySelectorAll('.doc-callout').length).toBe(2);
     await expect(canvasElement.querySelector('.doc-callout-warning')).toBeTruthy();
+  },
+};
+
+// The retired tag has to fail loudly rather than render its angle brackets.
+export const RetiredChipTag: Story = {
+  args: { source: FRONT + 'Press <Chip opcode="incA"/> now.' },
+  play: async ({ canvasElement }) => {
+    const problems = canvasElement.querySelector('[data-testid="problems"]');
+    await expect(problems).toBeTruthy();
+    await expect(problems!.textContent).toContain('retired-tag');
+    await expect(problems!.textContent).toContain('{incA}');
   },
 };
 

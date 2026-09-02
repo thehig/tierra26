@@ -43,9 +43,6 @@ export interface TagSpec {
   attrs: Readonly<Record<string, AttrSpec>>;
   children: ChildRule;
   parents?: readonly string[]; // if set, the tag is only legal inside these
-  /** Inline tags live inside a sentence and are scanned out of prose;
-   *  block tags own a whole line and may contain children. */
-  inline?: boolean;
   /** At least one of these attribute groups must be satisfied (a one-of choice). */
   oneOf?: readonly (readonly string[])[];
   doc: string;
@@ -100,21 +97,6 @@ const t = (type: AttrType, doc: string, extra: Partial<AttrSpec> = {}): AttrSpec
 });
 
 export const MANIFEST: Readonly<Record<string, TagSpec>> = Object.freeze({
-  // -- the God Design: one chip for every token the language can name ---------
-  Chip: {
-    name: 'Chip',
-    doc: 'Explicit form of an inline {token}. Prefer the brace syntax in prose — {incA}, {jmpb top}, {register-a}, {flag-e}, {save-pile} — and reach for this tag only when a chip needs to stand alone as its own block.',
-    attrs: {
-      opcode: t('opcode', 'An engine mnemonic (incA) or its bound display name (grow-a).'),
-      register: t('register', 'A, B, C or D.', { values: ['A', 'B', 'C', 'D'] }),
-      flag: t('flag', 'E, S or Z.', { values: ['E', 'S', 'Z'] }),
-      concept: t('concept', 'A concept slug with a Bible page (soup, daughter, ...).'),
-    },
-    oneOf: [['opcode'], ['register'], ['flag'], ['concept']],
-    inline: true,
-    children: 'raw', // optional label/target text: <Chip opcode="jmpb">top</Chip>
-  },
-
   // -- scrollytelling ---------------------------------------------------------
   Scrolly: {
     name: 'Scrolly',
@@ -305,6 +287,16 @@ export function specOf(raw: string): TagSpec | undefined {
   const name = canonicalTag(raw);
   return name ? MANIFEST[name] : undefined;
 }
+
+/**
+ * Tags that used to exist. Naming a part of the machine is the {token} syntax's
+ * job and nothing else's, so <Chip> was retired — but an author who half-
+ * remembers it deserves a diagnostic pointing at the replacement rather than a
+ * page that renders the angle brackets as literal text.
+ */
+export const RETIRED_TAGS: Readonly<Record<string, string>> = Object.freeze({
+  Chip: 'Name it with a token instead: {incA}, {jmpb top}, {register-a}, {flag-e}, {soup}.',
+});
 
 /** Tags whose children are verbatim text — the parser must not descend into them. */
 export function isRawTag(name: string): boolean {

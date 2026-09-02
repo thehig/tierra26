@@ -10,7 +10,6 @@
 // can author but not render (or render but not author) fails the build.
 import type { DocComponent } from './types.ts';
 
-import { ChipTag } from './components/ChipTag.tsx';
 import { CalloutTag } from './components/CalloutTag.tsx';
 import { FoldTag } from './components/FoldTag.tsx';
 import { ScrollyTag, StageTag, WaypointTag } from './components/ScrollyTag.tsx';
@@ -21,7 +20,6 @@ import { SimulationTag } from './components/SimulationTag.tsx';
 export type { DocComponent, DocComponentProps, DocContext } from './types.ts';
 
 export const REGISTRY: Readonly<Record<string, DocComponent>> = Object.freeze({
-  Chip: ChipTag,
   Scrolly: ScrollyTag,
   Stage: StageTag,
   Waypoint: WaypointTag,

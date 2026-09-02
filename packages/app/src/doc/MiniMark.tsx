@@ -2,7 +2,7 @@
 //
 // Deliberately not a markdown library. Two reasons: the pure packages take no
 // dependencies, and the inline grammar is not standard markdown anyway — it
-// carries {term} keyword refs and inline <Chip/> components.
+// carries {token} references to every named part of the machine.
 //
 // The inline scan is NOT reimplemented here: it calls the parser's own
 // `splitInline`, which is also what the validator walks. So a construct that
@@ -116,18 +116,6 @@ export function Inline({ text, keyPrefix = '' }: { text: string; keyPrefix?: str
               </Chip>
             );
           }
-          case 'tag':
-            return (
-              <Chip
-                key={k}
-                opcode={typeof seg.attrs['opcode'] === 'string' ? seg.attrs['opcode'] : undefined}
-                register={typeof seg.attrs['register'] === 'string' ? seg.attrs['register'] : undefined}
-                flag={typeof seg.attrs['flag'] === 'string' ? seg.attrs['flag'] : undefined}
-                concept={typeof seg.attrs['concept'] === 'string' ? seg.attrs['concept'] : undefined}
-              >
-                {seg.text}
-              </Chip>
-            );
         }
       })}
     </>

@@ -6,12 +6,12 @@
 // format behind BOTH the Bible (opcode/concept definitions, which double as
 // hover tooltips) and the waypoint-guided lessons.
 //
-// Two levels, because the language needs both:
-//   BLOCK  tags own a whole line and may contain children:
+// Two forms, and only two:
+//   TAGS   own a whole line and may contain children:
 //            <Scrolly> <Stage> <Waypoint> <EntityDesigner> <Challenge> ...
-//   INLINE tags live inside a sentence:
-//            "<Chip opcode="jmpb">top</Chip> sends the reading head back"
-// Which is which comes from the manifest (`inline`), never from the parser.
+//   TOKENS name a part of the machine, inside a sentence:
+//            "{jmpb top} sends the reading head back to {register-a}"
+// Nothing is written both ways: a tag is a component, a token is a name.
 //
 // CONTRACTS
 //   C-CON-DATA  declarative only — the grammar admits prose, tags and refs,
@@ -60,6 +60,7 @@ import {
 import {
   GOAL_PARAMS,
   MANIFEST,
+  RETIRED_TAGS,
   canonicalTag,
   isRawTag,
   type TagSpec,
@@ -73,22 +74,14 @@ import {
 export type InlineSegment =
   | { kind: 'text'; text: string }
   | { kind: 'code'; text: string }
-  | { kind: 'token'; token: string; target?: string }
-  | { kind: 'tag'; name: string; attrs: Readonly<Record<string, PValue>>; text?: string };
-
-/** True when the manifest marks `name` as an inline tag. */
-export function isInlineTag(name: string): boolean {
-  return MANIFEST[name]?.inline === true;
-}
-
-const OPEN_TAG_RE = /^<([A-Za-z][A-Za-z0-9-]*)((?:\s[^>]*?)?)(\/?)>/;
+  | { kind: 'token'; token: string; target?: string };
 
 // {name} or {name target}. Anything else between braces is left as plain text,
 // so ordinary prose that happens to use a brace is not mangled.
 const TOKEN_RE = /^([A-Za-z][\w-]*)(?:\s+([A-Za-z0-9][\w-]*))?$/;
 
 /**
- * Split one run of prose into text / `code` / {term} / inline-tag segments.
+ * Split one run of prose into text / `code` / {token} segments.
  * Never throws; an unterminated construct is emitted as plain text.
  */
 export function splitInline(text: string): InlineSegment[] {
@@ -123,27 +116,6 @@ export function splitInline(text: string): InlineSegment[] {
               : { kind: 'token', token: m[1]!, target: m[2] },
           );
           i = j + 1;
-          continue;
-        }
-      }
-    } else if (c === '<') {
-      const m = OPEN_TAG_RE.exec(text.slice(i));
-      const canon = m ? canonicalTag(m[1]!) : undefined;
-      if (m && canon && isInlineTag(canon)) {
-        const attrs = readAttrs(m[2] ?? '');
-        if (m[3] === '/') {
-          flush();
-          out.push({ kind: 'tag', name: canon, attrs });
-          i += m[0].length;
-          continue;
-        }
-        // paired form: <Chip ...>label</Chip>
-        const rest = text.slice(i + m[0].length);
-        const close = rest.indexOf(`</${m[1]!}>`);
-        if (close >= 0) {
-          flush();
-          out.push({ kind: 'tag', name: canon, attrs, text: rest.slice(0, close) });
-          i += m[0].length + close + m[1]!.length + 3;
           continue;
         }
       }
@@ -362,8 +334,7 @@ function parseBlocks(
     const open = BLOCK_OPEN_RE.exec(line);
     const canon = open ? canonicalTag(open[2]!) : undefined;
 
-    // An inline tag alone on a line is still prose — the inline scanner owns it.
-    if (open && canon && !isInlineTag(canon)) {
+    if (open && canon) {
       flushProse(i);
       const res = readTag(lines, i, to, canon, open, diagnostics);
       out.push(res.node);
@@ -376,7 +347,7 @@ function parseBlocks(
     if (!open) {
       const any = ANY_OPEN_RE.exec(line);
       const c2 = any ? canonicalTag(any[1]!) : undefined;
-      if (c2 && !isInlineTag(c2) && !BLOCK_CLOSE_RE.test(line)) {
+      if (c2 && !BLOCK_CLOSE_RE.test(line)) {
         flushProse(i);
         const l = loc(i + 1, 1, line.length + 1);
         const node: DocErrorNode = {
@@ -511,9 +482,7 @@ function makeProse(slice: readonly string[], startLine: number): DocProseNode {
           ? seg.text.length
           : seg.kind === 'code'
             ? seg.text.length + 2
-            : seg.kind === 'token'
-              ? seg.token.length + (seg.target ? seg.target.length + 1 : 0) + 2
-              : 0;
+            : seg.token.length + (seg.target ? seg.target.length + 1 : 0) + 2;
       if (seg.kind === 'token') {
         refs.push(
           seg.target === undefined
@@ -523,19 +492,6 @@ function makeProse(slice: readonly string[], startLine: number): DocProseNode {
                 token: seg.token,
                 target: seg.target,
                 loc: loc(lineNo, col, col + width),
-              },
-        );
-      } else if (seg.kind === 'tag') {
-        // exactOptionalPropertyTypes: only carry `text` when the tag had a label.
-        refs.push(
-          seg.text === undefined
-            ? { kind: 'tag', name: seg.name, attrs: seg.attrs, loc: loc(lineNo, col, col + 1) }
-            : {
-                kind: 'tag',
-                name: seg.name,
-                attrs: seg.attrs,
-                text: seg.text,
-                loc: loc(lineNo, col, col + 1),
               },
         );
       }
@@ -613,10 +569,9 @@ function walk(
   for (const node of nodes) {
     if (node.kind === 'error') continue; // already diagnosed at parse time
     if (node.kind === 'prose') {
+      checkRetired(node.markdown, node.loc, out);
       for (const ref of node.refs) {
-        if (ref.kind === 'tag') {
-          checkTag(ref.name, ref.attrs, ref.loc, parent, out, resolver);
-        } else if (ref.kind === 'token' && !resolveToken(ref.token, resolver)) {
+        if (ref.kind === 'token' && !resolveToken(ref.token, resolver)) {
           // An unresolvable token is an ERROR, not a warning: it would render as
           // nothing recognisable, and the author almost certainly meant something.
           out.push(
@@ -671,6 +626,16 @@ function walk(
     }
 
     walk(node.children, node.name, out, resolver);
+  }
+}
+
+/** A tag the language used to have, left in prose where it now renders as
+ *  literal angle brackets. Name the replacement rather than letting it through. */
+function checkRetired(markdown: string, at: Loc, out: Diagnostic[]): void {
+  for (const [name, hint] of Object.entries(RETIRED_TAGS)) {
+    if (new RegExp(`<${name}\\b`).test(markdown)) {
+      out.push(diag('retired-tag', 'error', `<${name}> was removed. ${hint}`, at));
+    }
   }
 }
 

@@ -430,31 +430,10 @@ export type DocFrontmatter = Readonly<Record<string, PValue>>;
 
 export type DocKind = 'lesson' | 'opcode' | 'concept';
 
-/** An inline component tag lifted out of a prose run, so the validator can
- *  check <Chip opcode="nope"/> without the renderer having to re-parse. */
-export interface DocInlineTagRef {
-  kind: 'tag';
-  name: string;
-  attrs: Readonly<Record<string, PValue>>;
-  text?: string;
-  loc: Loc;
-}
-
-/** An inline {token}: the one way a document names a part of the machine.
- *  `token` is unresolved on purpose — which of the four namespaces it lands in
- *  is validate()'s job, through the caller's resolver (C-CON-SOURCE). */
-export interface DocTokenRef {
-  kind: 'token';
-  token: string;
-  /** The label a control instruction points at: `{jmpb top}`. */
-  target?: string;
-  loc: Loc;
-}
-
-export type DocInlineRef = DocTokenRef | CodeRef | DocInlineTagRef;
+export type DocInlineRef = DocTokenRef | CodeRef;
 
 /** A run of markdown prose. `markdown` is verbatim; `refs` indexes the inline
- *  {term} / `verb` / <Chip/> spans, as ProseNode does for the [01] format. */
+ *  {token} and `code` spans, as ProseNode does for the [01] format. */
 export interface DocProseNode {
   kind: 'prose';
   markdown: string;
