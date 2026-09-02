@@ -1,0 +1,70 @@
+# The gate. Until this existed, every guarantee in this repo was opt-in: the
+# corpus tests, the Bible<->engine bijection and `gen:bindings --check` only ran
+# when someone happened to type `npm test` locally, and the Dockerfile builds the
+# app without running any of them.
+#
+# That mattered more than it sounds. `packages/content/src/docload.ts` value-imports
+# genescript's VOCAB, which THROWS at module load if `bindings.generated.ts` is stale
+# — so a forgotten `npm run gen:bindings` does not degrade gracefully, it breaks the
+# docs loader (and therefore the build) at some later, unrelated moment.
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+# A newer push to the same branch makes an in-flight run pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node 22 to match the Dockerfile's build stage. The pure packages run under
+      # `node --experimental-strip-types`, which is 22+ only.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # The app's vitest has a `storybook` project that runs in a real browser
+      # (see packages/app/vite.config.ts). Without this, `npm test` fails at the
+      # browser project rather than at any assertion.
+      - name: Install the Chromium the storybook test project drives
+        run: npx playwright install --with-deps chromium
+
+      # Root `npm test` is `gen:bindings --check && npm test --workspaces`, so
+      # this one step covers: generated bindings match the Bible frontmatter, the
+      # whole corpus parses and validates with zero warnings, the Bible is a
+      # bijection with the engine's instruction dictionary, every inline <Genome>
+      # in a Bible page compiles and loads, and every lesson's <Solution> still
+      # reaches its goal in the real engine.
+      - name: Tests, and the generated bindings freshness check
+        run: npm test
+
+      # The authoring lints the corpus test cannot make — a token inside
+      # *emphasis* rendering its asterisks literally, a token in frontmatter
+      # printing its own braces, a dead cross-link. Every one of these has
+      # shipped at least once.
+      - name: Doc authoring lint
+        run: npm run docs:lint
+
+      # Proves the Vite content plugin can still turn docs/ into a bundle. A
+      # document that parses but breaks the build fails here.
+      - run: npm run build
+
+# NOT a gate yet, deliberately:
+#   - `tsc --noEmit` — the repo has pre-existing type errors (content.ts, goal.ts,
+#     play.ts, useSession.ts, Inspector.tsx, handlers.ts). Adding it today would
+#     make CI red on arrival and teach everyone to ignore it. Fix those, then add
+#     it as its own job.
+#   - the Docker image build — it is `npm ci` + `npm run build`, both already
+#     covered above, for several minutes of extra runtime.
