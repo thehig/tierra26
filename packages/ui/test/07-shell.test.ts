@@ -53,8 +53,6 @@ describe('App Shell & State (SHELL)', () => {
 
   it('[SHELL-002] routing is a pure value transition; every Route is serializable/deep-linkable', () => {
     const routes: Route[] = [
-      { surface: 'lesson', lessonId: L0 },
-      { surface: 'lesson', lessonId: L1, section: 'copy-loop' },
       { surface: 'bible' },
       { surface: 'bible', verb: 'divide' },
       { surface: 'sandbox' },
@@ -122,7 +120,7 @@ describe('App Shell & State (SHELL)', () => {
     let s = baseState();
     s = reduce(s, { type: 'setTheme', theme: 'dark' });
     s = reduce(s, { type: 'setReducedMotion', reducedMotion: true });
-    s = reduce(s, { type: 'navigate', route: { surface: 'lesson', lessonId: L1, section: 'intro' } });
+    s = reduce(s, { type: 'navigate', route: { surface: 'bible', verb: 'divide' } });
     s = reduce(s, { type: 'completeLesson', lessonId: L0 });
     s = reduce(s, { type: 'completeLesson', lessonId: L1 });
 
@@ -266,7 +264,6 @@ describe('App Shell & State (SHELL)', () => {
     // shell must expose for it: every surface is routable, round-trips through its path, and a
     // navigate action reaches each one (mirrors how sibling visual criteria test the substrate).
     const routes: Route[] = [
-      { surface: 'lesson', lessonId: 'ch01-landmarks' },
       { surface: 'sandbox' },
       { surface: 'bible', verb: 'copy-byte' },
       { surface: 'versus' },
@@ -282,6 +279,6 @@ describe('App Shell & State (SHELL)', () => {
       surfaces.add(route.surface);
     }
     // all four surfaces the app frame switches between are covered
-    assert.deepEqual([...surfaces].sort(), ['bible', 'lesson', 'sandbox', 'versus']);
+    assert.deepEqual([...surfaces].sort(), ['bible', 'sandbox', 'versus']);
   });
 });

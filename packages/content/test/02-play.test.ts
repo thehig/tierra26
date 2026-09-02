@@ -16,7 +16,8 @@ import {
 } from '../src/play.ts';
 import type { PlaygroundConfig, PlaygroundNode } from '../src/types.ts';
 import { parse } from '../src/content.ts';
-import { LESSONS, STARTERS } from '../src/lessons.ts';
+import { STARTERS } from '../src/lessons.ts';
+import { FIXTURE_LESSON, FIXTURE_LESSON_EVOLVE, FIXTURE_LESSON_ID } from './_fixture.ts';
 import { Engine, classic32, buildSubset } from '../../engine/src/index.ts';
 import { observe, makeTank } from '../../engine/src/stats.ts';
 import { disassemble } from '../../genescript/src/disasm.ts';
@@ -315,17 +316,16 @@ describe('Playground Component (PLAY)', () => {
     assert.deepEqual(a.state.goal, b.state.goal);
   });
 
-  it('[PLAY-015] the play bridge resolves the shipped lesson scenario ids: a real lesson playground config (soup-small) normalizes without throwing, and soup-evolve resolves mutation-on', () => {
-    const cfgOf = (id: string): PlaygroundConfig => {
-      const lesson = LESSONS.find((l) => l.id === id)!;
-      const pg = parse(lesson.source).ast.body.find((n) => n.kind === 'playground') as PlaygroundNode;
+  it('[PLAY-015] the play bridge resolves the shipped scenario ids: a lesson playground config (soup-small) normalizes without throwing, and soup-evolve resolves mutation-on', () => {
+    const cfgOf = (source: string): PlaygroundConfig => {
+      const pg = parse(source).ast.body.find((n) => n.kind === 'playground') as PlaygroundNode;
       // PLAY holds no starter registry (C-CON-SOURCE); resolve the shipped `ancestor` ref → its
       // GeneScript source exactly as [01]/[03] would, then hand PLAY a self-contained config.
       return { ...pg.config, starter: { kind: 'genescript', source: STARTERS.ancestor.source } };
     };
 
     // soup-small (design phase) resolves without throwing → mutation OFF.
-    const small = cfgOf('ch01-landmarks');
+    const small = cfgOf(FIXTURE_LESSON);
     assert.equal(small.scenario, 'soup-small');
     let normSmall!: ReturnType<typeof normalizePlayground>;
     assert.doesNotThrow(() => { normSmall = normalizePlayground(small); });
@@ -334,7 +334,7 @@ describe('Playground Component (PLAY)', () => {
     assert.equal(normSmall.scenario.mutation.cosmic, 0);
 
     // soup-evolve (emergence) resolves → mutation ON.
-    const evolve = cfgOf('ch07-mutation');
+    const evolve = cfgOf(FIXTURE_LESSON_EVOLVE);
     assert.equal(evolve.scenario, 'soup-evolve');
     const normEvolve = normalizePlayground(evolve);
     assert.equal(normEvolve.scenario.soupSize, 60000);

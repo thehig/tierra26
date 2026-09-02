@@ -18,18 +18,15 @@ import {
 } from '../src/reader.ts';
 import type { ProseSpan, RenderBlock } from '../src/reader.ts';
 import { parse } from '../../content/src/content.ts';
-import { LESSONS } from '../../content/src/lessons.ts';
+import { FIXTURE_LESSON } from '../../content/test/_fixture.ts';
 import { pageOf } from '../../content/src/instrpage.ts';
 import { KEYWORDS } from '../../content/src/keyword.ts';
 import type { ProseNode, PlaygroundNode, GoalNode } from '../../content/src/types.ts';
 
 // ---- helpers ---------------------------------------------------------------
-const lesson = (id: string) => {
-  const l = LESSONS.find((x) => x.id === id);
-  assert.ok(l, `shipped lesson '${id}' exists`);
-  return parse(l!.source).ast;
-};
-const ch01 = () => lesson('ch01-landmarks');
+// The [01] corpus is retired; these tests are about the reader, so they run on a
+// fixture in that format (see content/test/_fixture.ts).
+const ch01 = () => parse(FIXTURE_LESSON).ast;
 const keywordSpans = (spans: ProseSpan[]) =>
   spans.filter((s): s is Extract<ProseSpan, { kind: 'keyword' }> => s.kind === 'keyword');
 const linkSpans = (spans: ProseSpan[]) =>

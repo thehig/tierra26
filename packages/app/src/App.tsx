@@ -4,7 +4,6 @@ import { RouterProvider, useRouter, Link, type AppRoute } from './router/router.
 import { PrefsProvider, usePrefs } from './store/prefs.tsx';
 import { LanguageModeProvider, useLanguageMode, useLanguageToggle } from './design/languageMode.tsx';
 import { Home } from './pages/Home.tsx';
-import { LessonPage } from './pages/LessonPage.tsx';
 import { BibleIndex, OpcodePage } from './pages/Bible.tsx';
 import { SandboxPage } from './pages/Sandbox.tsx';
 import { VersusPage } from './pages/Versus.tsx';
@@ -16,7 +15,6 @@ import { ChapterPage } from './pages/Chapter.tsx';
 function routeKey(r: AppRoute | null): string {
   if (!r) return 'home';
   switch (r.surface) {
-    case 'lesson': return 'lesson:' + r.lessonId + (r.section ?? '');
     case 'learn': return 'learn:' + r.chapterId;
     case 'bible': return 'bible:' + (r.verb ?? '');
     case 'concept': return 'concept:' + r.slug;
@@ -29,7 +27,6 @@ function routeKey(r: AppRoute | null): string {
 function Surface({ route, dark }: { route: AppRoute | null; dark: boolean }) {
   if (!route) return <Home />;
   switch (route.surface) {
-    case 'lesson': return <LessonPage lessonId={route.lessonId} dark={dark} />;
     case 'bible': return route.verb ? <OpcodePage verb={route.verb} dark={dark} /> : <BibleIndex />;
     case 'sandbox': return <SandboxPage dark={dark} />;
     case 'versus': return <VersusPage dark={dark} />;

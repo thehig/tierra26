@@ -10,8 +10,7 @@ import { KEYWORDS, lookupKeyword, resolveKeywords } from '../src/keyword.ts';
 import { CURRICULUM, cumulativeUnlocks, introLessonOf } from '../src/progress.ts';
 import { checkGoal } from '../src/goal.ts';
 import { createPlayground } from '../src/play.ts';
-import { parse, validate } from '../src/content.ts';
-import { LESSONS, STARTERS, contentResolver } from '../src/lessons.ts';
+import { STARTERS } from '../src/lessons.ts';
 import type { Goal, PlaygroundConfig } from '../src/types.ts';
 
 import { allVerbs } from '../../genescript/src/vocab.ts';
@@ -44,20 +43,6 @@ describe('Content cross-layer invariants (CONTINV)', () => {
     for (const v of VERBS) {
       assert.ok(pageOf(v), `page for ${v}`);
       assert.ok(lookupKeyword(v, KEYWORDS), `keyword entry for ${v}`);
-    }
-  });
-
-  it('[CONTINV-VALID] every shipped lesson validates against the content schema', () => {
-    const resolver = contentResolver();
-    assert.ok(LESSONS.length > 0, 'a non-empty shipped corpus');
-    for (const lesson of LESSONS) {
-      const { ast, diagnostics } = parse(lesson.source);
-      // parse itself surfaces no errors (best-effort, but a clean lesson is clean)
-      assert.equal(hasErrors(diagnostics), false, `parse clean: ${lesson.id}`);
-      assert.equal(ast.frontmatter?.id, lesson.id, 'frontmatter id parsed');
-      const vd = validate(ast, resolver);
-      const errs = vd.filter((d) => d.severity === 'error');
-      assert.deepEqual(errs, [], `validate clean (${lesson.id}): ${errs.map((e) => e.code).join(',')}`);
     }
   });
 

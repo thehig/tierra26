@@ -24,7 +24,6 @@ import { tankCommandToHost } from './protocol.ts';
 
 // ---- Route: a pure, serializable, deep-linkable value ----------------------
 export type Route =
-  | { surface: 'lesson'; lessonId: string; section?: string }
   | { surface: 'sandbox'; run?: RunLink }
   | { surface: 'bible'; verb?: string }
   | { surface: 'versus'; run?: RunLink };
@@ -76,10 +75,11 @@ export const PERSIST_VERSION = 1;
 // Defaults — derived from CURRICULUM so there is no second source to drift.
 // ----------------------------------------------------------------------------
 
-/** The app's home route: the first lesson of the curriculum (fallback sandbox). */
+/** The app's home route. */
 export function defaultRoute(): Route {
-  const first = CURRICULUM.chapters[0]?.lessons[0];
-  return first !== undefined ? { surface: 'lesson', lessonId: first } : { surface: 'sandbox' };
+  // The lesson surface is gone with the retired TypeScript curriculum; chapters
+  // live at the app-level `learn` surface, which this shared shell does not model.
+  return { surface: 'sandbox' };
 }
 
 /** A valid, dependency-free default AppState (also the hydrate fall-back). */
@@ -211,8 +211,6 @@ export function isRoute(x: unknown): x is Route {
   if (typeof x !== 'object' || x === null) return false;
   const r = x as Record<string, unknown>;
   switch (r.surface) {
-    case 'lesson':
-      return typeof r.lessonId === 'string' && (r.section === undefined || typeof r.section === 'string');
     case 'bible':
       return r.verb === undefined || typeof r.verb === 'string';
     case 'sandbox':
@@ -266,10 +264,6 @@ export function parseRunLink(text: string): RunLink | null {
 // ----------------------------------------------------------------------------
 export function routeToPath(route: Route): string {
   switch (route.surface) {
-    case 'lesson': {
-      const base = '/lesson/' + encodeURIComponent(route.lessonId);
-      return route.section !== undefined ? base + '/' + encodeURIComponent(route.section) : base;
-    }
     case 'bible':
       return route.verb !== undefined ? '/bible/' + encodeURIComponent(route.verb) : '/bible';
     case 'sandbox':
@@ -287,13 +281,6 @@ export function pathToRoute(path: string): Route | null {
     const rawQuery = qIdx < 0 ? '' : path.slice(qIdx + 1);
     const segs = rawPath.split('/').filter((s) => s.length > 0);
     switch (segs[0]) {
-      case 'lesson': {
-        if (segs[1] === undefined) return null;
-        const lessonId = decodeURIComponent(segs[1]);
-        return segs[2] !== undefined
-          ? { surface: 'lesson', lessonId, section: decodeURIComponent(segs[2]) }
-          : { surface: 'lesson', lessonId };
-      }
       // `wiki` is the old name for this surface; keep the path working so
       // links people already have (or bookmarked) still land on the Bible.
       case 'bible':

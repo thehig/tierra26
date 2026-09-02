@@ -24,7 +24,7 @@ import { ANCESTOR_GS } from '../../genescript/src/ancestor.gs.ts';
 import { ANCESTOR_0080AAA as ANC } from '../../engine/test/fixtures/ancestor-0080aaa.ts';
 import { KEYWORDS, lookupKeyword } from '../../content/src/keyword.ts';
 import { parse as parseLesson } from '../../content/src/content.ts';
-import { LESSONS } from '../../content/src/lessons.ts';
+import { FIXTURE_LESSON } from '../../content/test/_fixture.ts';
 
 let seq = 0;
 const env = (extra: Record<string, unknown> = {}) => ({ sessionId: 's1', correlationId: `c${seq++}`, ...extra });
@@ -120,8 +120,7 @@ describe('UI cross-layer invariants (UIINV)', () => {
     assert.equal(comp!.category, growA.category, 'completion color role === VOCAB');
 
     // reader keyword color resolves to the content KEYWORDS registry category
-    const lesson = LESSONS[0]!; // ch01-landmarks references {soup}, {template}
-    const model = toRenderModel(parseLesson(lesson.source).ast);
+    const model = toRenderModel(parseLesson(FIXTURE_LESSON).ast); // references {soup}, {template}
     const spans = model.blocks.flatMap((b) => (b.kind === 'prose' ? b.spans : []));
     const kw = spans.find((s) => s.kind === 'keyword' && s.term === 'soup') as any;
     assert.ok(kw, 'soup is auto-linked in the lesson prose');

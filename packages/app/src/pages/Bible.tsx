@@ -17,7 +17,7 @@
 // so there is one place to author an instruction and one place to fix it.
 import type { LoadedDoc } from '@tierra26/content/docload.ts';
 import { entry, entryOfMnemonic } from '@tierra26/genescript/vocab.ts';
-import { CURRICULUM, introLessonOf } from '@tierra26/content/progress.ts';
+import { chapterById, introChapterOf } from '../learn/lessons.ts';
 import { DocRenderer } from '../doc/DocRenderer.tsx';
 import { conceptDocs, opcodeDocs, opcodeDoc, fm, glossOf } from '../doc/docs.ts';
 import { Chip } from '../doc/Chip.tsx';
@@ -160,8 +160,11 @@ export function OpcodePage({ verb, dark }: { verb: string; dark: boolean }) {
     );
   }
 
-  const introLesson = introLessonOf(v.verb);
-  const introTitle = introLesson ? CURRICULUM.lessons[introLesson]?.title : undefined;
+  // Derived from the documents: the first chapter that NAMES this instruction.
+  // Undefined for one no chapter teaches yet, and then the footer is simply not
+  // rendered — better than linking a learner at a page that never mentions it.
+  const introId = introChapterOf(v.verb);
+  const intro = introId ? chapterById(introId) : undefined;
 
   const display = advanced ? v.mnemonic : simpleName(v.verb);
   const other = advanced ? simpleName(v.verb) : v.mnemonic;
@@ -184,10 +187,10 @@ export function OpcodePage({ verb, dark }: { verb: string; dark: boolean }) {
           Cases, the runnable Try it stage, and See also, in the author's order. */}
       <DocRenderer body={doc.ast.body} dark={dark} skipLeadingHeading />
 
-      {introLesson && introTitle && (
+      {intro && (
         <div className="verb-foot">
           <div className="introlesson">
-            Introduced in <Link to={{ surface: 'lesson', lessonId: introLesson }}>{introTitle}</Link>
+            Introduced in <Link to={{ surface: 'learn', chapterId: intro.id }}>{intro.title}</Link>
           </div>
         </div>
       )}
