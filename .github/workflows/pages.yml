@@ -1,0 +1,82 @@
+# Publish the app to GitHub Pages.
+#
+# Pages is a static host, so this is the app's FALLBACK mode by design: with no
+# /api to fetch, it boots from the corpus compiled in at build time and hides
+# "Edit this page", because there is nothing there that could write a document.
+# A read-only copy of the Bible and the chapters is exactly what a public link
+# should be. Editing lives wherever the node server runs (see server/index.ts).
+#
+# Three things Pages needs that a normal build does not, all of them silent
+# failures if missed:
+#   1. a base path — a project site is served from /<repo>/, so every asset URL
+#      has to be prefixed. TIERRA_BASE feeds vite's `base`, and the router turns
+#      it into hrefs (packages/app/src/router/router.tsx).
+#   2. 404.html — Pages has no SPA rewrite, so a deep link like /bible/mal is a
+#      404. Pages serves 404.html for those, and a copy of index.html there
+#      boots the app, which then reads the URL and renders the right page.
+#   3. .nojekyll — Jekyll drops files and folders beginning with an underscore,
+#      and vite emits `_virtual_tierra-content-*.js`. Without this the corpus
+#      chunk 404s and the app renders nothing.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  # So it can be published from a branch before merging.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; never cancel a half-finished publish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - uses: actions/configure-pages@v5
+        id: pages
+
+      # `configure-pages` reports the real origin+path, so a user/org site
+      # (base '/') and a project site (base '/<repo>/') both come out right
+      # without hardcoding the repository name here.
+      - name: Build for ${{ steps.pages.outputs.base_url }}
+        env:
+          TIERRA_BASE: ${{ steps.pages.outputs.base_path }}/
+        run: npm run build
+
+      - name: Add the Pages-specific files
+        working-directory: packages/app/dist
+        run: |
+          cp index.html 404.html      # SPA fallback for deep links
+          touch .nojekyll             # keep _virtual_tierra-content-*.js
+          ls assets/index-*.js >/dev/null   # fail loudly if the build produced nothing
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: packages/app/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

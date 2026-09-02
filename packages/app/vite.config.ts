@@ -30,6 +30,10 @@ const alias = pkgs.flatMap(p => [{
   replacement: resolve(here, `../${p}/src`) + '/$1'
 }]);
 export default defineConfig({
+  // '/' everywhere except a GitHub Pages PROJECT site, which is served from
+  // https://<user>.github.io/<repo>/ and so needs every asset URL prefixed.
+  // The CI workflow sets this; nothing else does.
+  base: process.env['TIERRA_BASE'] ?? '/',
   plugins: [content(), react()],
   resolve: {
     alias

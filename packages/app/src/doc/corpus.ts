@@ -51,7 +51,12 @@ export function getCorpus(): Corpus {
  */
 export async function loadCorpus(): Promise<Corpus> {
   try {
-    const res = await fetch('/api/corpus', { headers: { accept: 'application/json' } });
+    // Relative to the deployed base, not the domain root: on a Pages project
+    // site the app lives under /<repo>/, and an absolute '/api/corpus' would ask
+    // the wrong origin path. (There is no API on Pages anyway — this just makes
+    // the miss fast and correct rather than accidental.)
+    const url = `${import.meta.env.BASE_URL || '/'}api/corpus`.replace('//api', '/api');
+    const res = await fetch(url, { headers: { accept: 'application/json' } });
     if (res.ok) {
       const body = (await res.json()) as Corpus;
       if (Array.isArray(body.OPCODE_DOCS) && body.OPCODE_DOCS.length) return body;

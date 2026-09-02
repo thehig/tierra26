@@ -41,6 +41,9 @@ function corpusResolver(): DocResolver {
   };
 }
 
+/** The docs API, relative to the deployed base (see corpus.ts). */
+const API = `${import.meta.env.BASE_URL || '/'}api/`.replace('//api/', '/api/');
+
 export interface DocEditorProps {
   doc: CorpusDoc;
   dark: boolean;
@@ -62,7 +65,7 @@ export function DocEditor({ doc, dark, onClose }: DocEditorProps) {
     let live = true;
     void (async () => {
       try {
-        const res = await fetch(`/api/doc?file=${encodeURIComponent(doc.file)}`);
+        const res = await fetch(`${API}doc?file=${encodeURIComponent(doc.file)}`);
         const body = (await res.json()) as { ok: boolean; source?: string; error?: string };
         if (!live) return;
         if (!res.ok || !body.ok) return setServerError(body.error ?? `could not open (${res.status})`);
@@ -105,7 +108,7 @@ export function DocEditor({ doc, dark, onClose }: DocEditorProps) {
     setSaving(true);
     setServerError(null);
     try {
-      const res = await fetch('/api/doc', {
+      const res = await fetch(`${API}doc`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ file: doc.file, source: draft }),
