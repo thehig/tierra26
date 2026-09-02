@@ -71,9 +71,9 @@ Two corollaries:
   where readers' models go wrong.
 - **Bold the load-bearing word**, not the whole clause — and never around a chip.
 
-## Gotchas are a design surface, not a leftover
+## Edge Cases are a design surface, not a leftover
 
-A good Gotcha is one of:
+A good Edge Cases bullet is one of:
 
 1. **A learner's predictable wrong model.** "It guards exactly **one** instruction, not
    a block."
@@ -84,10 +84,13 @@ A good Gotcha is one of:
    broken/partial creature."
 4. **An interaction with another opcode.** "`divide` with no prior `mal` raises E."
 
-Not a Gotcha: a restatement of Advanced, or a warning about something the engine
+Not an edge case: a restatement of Advanced, or a warning about something the engine
 prevents anyway.
 
-## Examples and edge cases
+Where a boundary can be demonstrated, aim the `## Watch it` stage at it — a preset
+`<State>` one step from the threshold teaches it in a way a sentence cannot.
+
+## Examples
 
 An example earns its place by being **runnable and minimal**. In the Bible, a `<Genome>`
 inside an `<EntityDesigner>` beats three sentences of description — the reader can step
@@ -98,9 +101,9 @@ it. Prefer:
   interesting half (an empty template → miss → `{flag-e}`);
 - `<State>` to set up the interesting case directly rather than a preamble of `incA`s.
 
-For edge cases, cover in Advanced or Gotchas: the zero case, the wrap case (the soup is
-circular; a signed 32-bit register goes negative), the empty case (a zero-length
-template finds nothing), the boundary (exactly at the threshold), and the
+The boundaries worth covering, in Advanced or in `## Edge Cases`: the zero case, the
+wrap case (the soup is circular; a signed 32-bit register goes negative), the empty case
+(a zero-length template finds nothing), the boundary (exactly at the threshold), and the
 already-in-that-state case (`mal` when a daughter already exists frees the old one).
 
 ## Visual explainers

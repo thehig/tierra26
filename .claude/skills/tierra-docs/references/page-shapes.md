@@ -20,6 +20,8 @@ So:
 
 ## An opcode page — `docs/bible/opcodes/<mnemonic>.md`
 
+> Template: `.claude\skills\tierra-docs\templates\opcode.md`
+
 ```markdown
 ---
 mnemonic: mal
@@ -48,8 +50,8 @@ does on failure. `code` for engine identifiers and expressions.
 - Writes: {register-a} (daughter start address) on success; sets the creature's {daughter} block.
 - Flags: {flag-e} if size is out of range, exceeds 3× the mother, or no room can be found. No {flag-s}/{flag-z}.
 
-## Gotchas
-- One bullet per way a learner gets this wrong, or one per surprising engine detail.
+## Edge Cases
+- One bullet per boundary the engine actually has, and the wrong model it creates.
 
 ## See also
 - [movii](movii.md), [divide](divide.md)
@@ -63,6 +65,14 @@ disk and in the repo browser.
 **All five `##` sections are required.** `Reads / Writes / Flags` is exactly that
 spelling, spaces included.
 
+A sixth, **optional** `## Watch it` may sit between `Edge Cases` and `See also`, holding an
+`<EntityDesigner>` — a Bible page renders the whole document body, so a live stage works
+here exactly as it does in a lesson. Add it when the instruction is a *motion* (a head
+jumping, a pointer walking, a daughter filling); skip it when the instruction is a fact.
+It is deliberately not called `Try it`: the opcode page already appends its own
+`<h3>Try it</h3>` from `INSTRPAGE` after the document body. See
+`templates/README.md` for that decision.
+
 Section-by-section intent:
 
 - **Simple** — what it does, in the world the lessons have built ("box A", "the counting
@@ -72,13 +82,16 @@ Section-by-section intent:
 - **Reads / Writes / Flags** — the three bullets, always in that order, always naming
   registers and flags as tokens. If it sets no flags say so explicitly ("Flags: none")
   rather than omitting the bullet.
-- **Gotchas** — the ones a learner will actually hit, plus engine behaviour that
-  surprises: silent ring-buffer overwrite, a 70% threshold that still births a partial
-  creature, an `E` flag cleared by a `nop` that does not undo the reaper's count.
+- **Edge Cases** — the boundaries and the wrong models they create: a silent
+  ring-buffer overwrite, a 70% threshold that still births a partial creature, an `E`
+  flag cleared by a `nop` that does not undo the reaper's count. Where a boundary can be
+  *shown*, aim `## Watch it` at it rather than describing it.
 - **See also** — two lines by convention: sibling opcodes first, then concepts. Links,
   not chips.
 
 ## A concept page — `docs/bible/concepts/<slug>.md`
+
+> Template: > Template: `.claude\skills\tierra-docs\templates\concept.md`
 
 ```markdown
 ---
@@ -101,8 +114,8 @@ The precise model, with engine identifiers and the constants that matter.
 - [mal](../opcodes/mal.md)
 ```
 
-`Reads / Writes / Flags` and `Gotchas` are not required here, but add them when the
-concept has real edge cases — `gates`, `mutation` and `reaper` all earn a Gotchas
+`Reads / Writes / Flags` and `Edge Cases` are not required here, but add them when the
+concept has real boundaries — `gates`, `mutation` and `reaper` all earn an Edge Cases
 section.
 
 **A concept page chips its own subject.** "A {label} is a friendly name for a spot in
@@ -111,6 +124,8 @@ already there, and the chip carries the glyph and colour that make the term reco
 in every other sentence in the corpus.
 
 ## A lesson — `docs/lessons/<NN>-<id>.md`
+
+> Template: `.claude\skills\tierra-docs\templates\lesson.md`
 
 ```markdown
 ---

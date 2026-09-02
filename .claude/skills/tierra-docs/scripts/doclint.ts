@@ -18,13 +18,16 @@
 // and a token that renders as its own braces is precisely what we are hunting.
 //
 // Run from the repo root:
-//   node --experimental-strip-types .claude/skills/tierra-docs/scripts/doclint.ts vocab
-//   node --experimental-strip-types .claude/skills/tierra-docs/scripts/doclint.ts check [path...]
+//   npm run docs:vocab                       what {tokens} and <Tags> resolve
+//   npm run docs:lint  [-- path... --all]     the authoring checks
+//   ... doclint.ts facts <mnemonic>           the engine's own truth for one opcode
+//   ... doclint.ts new <kind> <slug>          scaffold a page from templates/
 // ============================================================================
 import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { resolveToken } from '../../../../packages/content/src/doclang.ts';
+import { DICTIONARY } from '../../../../packages/engine/src/isa.ts';
 import {
   MANIFEST,
   REGISTER_IDS,
@@ -202,9 +205,12 @@ function checkDoc(rel: string, kind: 'opcode' | 'concept' | 'lesson', src: strin
       const shape = TOKEN_SHAPE.exec(inner);
       if (!shape) {
         // The parser leaves an unparseable brace group as plain text, so this
-        // is silent on the page. Only flag it when it LOOKS like an attempt.
-        const first = inner.trim().split(/\s+/)[0] ?? '';
-        if (resolveToken(first, TOKENS) || /^[a-z][\w-]*$/.test(first)) {
+        // is silent on the page. Only flag it when it LOOKS like an attempt —
+        // matched on the LEADING word rather than the first whitespace-split
+        // one, so `{register-c/d}` is caught too: the slash is what breaks it,
+        // and splitting on spaces would never have noticed.
+        const lead = /^[A-Za-z][\w-]*/.exec(inner.trim())?.[0] ?? '';
+        if (resolveToken(lead, TOKENS) || /^[a-z][\w-]*$/.test(lead)) {
           add(rel, lineNo, 'error', 'TOKEN-SHAPE',
             `{${inner}} is not a token — it renders as literal text. A token is {name} or {name one-word-target}`);
         }
@@ -220,6 +226,18 @@ function checkDoc(rel: string, kind: 'opcode' | 'concept' | 'lesson', src: strin
       if (target !== undefined && (r.kind === 'register' || r.kind === 'flag')) {
         add(rel, lineNo, 'error', 'TOKEN-TARGET',
           `a ${r.kind} takes no second word — write {${name}}`);
+      }
+      // A cross-wired synonym is the one token error nothing else can see: both
+      // halves are individually valid, so it resolves, renders and validates —
+      // and then shows the reader `signpost` while opening the `label` card.
+      if (target !== undefined && r.kind === 'concept') {
+        const owner = Object.entries(SYNONYMS).find(([, words]) =>
+          words.some((w) => w.toLowerCase() === target.toLowerCase()),
+        );
+        if (owner && owner[0] !== r.slug) {
+          add(rel, lineNo, 'warn', 'TOKEN-SYNONYM',
+            `"${target}" is {${owner[0]}}'s word, not {${r.slug}}'s — this reads "${target}" and opens the ${r.slug} card`);
+        }
       }
     }
 
@@ -319,13 +337,19 @@ function checkDoc(rel: string, kind: 'opcode' | 'concept' | 'lesson', src: strin
   // -- the Bible's fixed page shape ----------------------------------------
   if (kind !== 'lesson') {
     const headings = [...body.matchAll(/^##\s+(.+)$/gm)].map((m) => m[1]!.trim());
-    const wanted =
+    // `Edge Cases` is the name the templates use; `Gotchas` is what the pages
+    // written before the rename say. Both are accepted so the corpus can
+    // migrate a page at a time instead of in one sweep — drop 'Gotchas' from
+    // this pair once no page uses it (`grep -rl '^## Gotchas' docs/bible`).
+    const wanted: (string | readonly string[])[] =
       kind === 'opcode'
-        ? ['Simple', 'Advanced', 'Reads / Writes / Flags', 'Gotchas', 'See also']
+        ? ['Simple', 'Advanced', 'Reads / Writes / Flags', ['Edge Cases', 'Gotchas'], 'See also']
         : ['Simple', 'Advanced', 'See also'];
     for (const w of wanted) {
-      if (!headings.includes(w)) {
-        add(rel, 1, 'warn', 'SECTIONS', `no "## ${w}" section — the Bible's page shape is ${wanted.join(' / ')}`);
+      const names = typeof w === 'string' ? [w] : w;
+      if (!names.some((n) => headings.includes(n))) {
+        add(rel, 1, 'warn', 'SECTIONS',
+          `no "## ${names[0]}" section — the Bible's page shape is ${wanted.map((x) => (typeof x === 'string' ? x : x[0])).join(' / ')}`);
       }
     }
     // A cross-link that points at nothing is a dead end in the reference.
@@ -345,6 +369,92 @@ function checkDoc(rel: string, kind: 'opcode' | 'concept' | 'lesson', src: strin
       }
     }
   }
+}
+
+
+// ---------------------------------------------------------------------------
+// facts — the engine's own truth for one opcode, for the accuracy pass.
+//
+// Read this, not a sibling Bible page, before writing a word about an
+// instruction. It prints what is DERIVABLE (the dictionary row) and points at
+// what is not (the handler body), because guessing reads/writes/flags from a
+// mnemonic is exactly how a page goes subtly wrong.
+// ---------------------------------------------------------------------------
+const TARGET_KINDS = ['ADR', 'JMP', 'CALL'];
+const DIRECTION = ['outward (forward wins ties)', 'forward only', 'backward only'];
+const REG = ['A', 'B', 'C', 'D'];
+
+function facts(mnemonic: string) {
+  const e = DICTIONARY.find((d) => d.mnemonic === mnemonic || d.gene === mnemonic);
+  if (!e) {
+    console.error(`no such instruction: ${mnemonic}`);
+    process.exitCode = 1;
+    return;
+  }
+  const takesTarget = TARGET_KINDS.includes(e.kind);
+  console.log(`${e.mnemonic}  (gene: ${e.gene})   packages/engine/src/isa.ts`);
+  console.log(`  id            ${e.id}`);
+  console.log(`  decode kind   ${e.kind}`);
+  console.log(`  handler       handlers.ts -> ${e.exec}()   <- READ THIS for reads/writes/flags`);
+  console.log(`  registers     ${e.binding.length ? e.binding.map((i) => REG[i]).join(', ') : '(none bound)'}`);
+  if (takesTarget) console.log(`  search dir    ${DIRECTION[e.dir] ?? e.dir}`);
+  console.log('');
+  console.log('  frontmatter these imply:');
+  console.log(`    takes_target: ${takesTarget}`);
+  console.log(`    bytes: ${takesTarget ? '1 + template' : '1'}`);
+  console.log('');
+  console.log('  NOT derivable — read the handler and write them down:');
+  console.log('    reads:  writes:  flags_set:  can_error:');
+  console.log('');
+  console.log(`  grep -n "  ${e.exec}(" packages/engine/src/handlers.ts`);
+}
+
+// ---------------------------------------------------------------------------
+// new — scaffold a page from templates/, with the machine facts pre-filled.
+//
+// The point is that nothing derivable is ever hand-typed. An existing page's
+// authored choices (emoji, colour role) are carried forward, because
+// regenerating a page should not silently restyle every chip that names it.
+// ---------------------------------------------------------------------------
+function scaffold(kind: string, slug: string) {
+  const tpl = path.join(ROOT, '.claude/skills/tierra-docs/templates', `${kind}.md`);
+  let out: string;
+  try {
+    out = readFileSync(tpl, 'utf8');
+  } catch {
+    console.error(`no template for kind "${kind}" (opcode | concept | lesson)`);
+    process.exitCode = 1;
+    return;
+  }
+
+  if (kind === 'opcode') {
+    const e = DICTIONARY.find((d) => d.mnemonic === slug);
+    if (!e) {
+      console.error(`"${slug}" is not an engine mnemonic`);
+      process.exitCode = 1;
+      return;
+    }
+    const takesTarget = TARGET_KINDS.includes(e.kind);
+    const existing = opcodePages.find((o) => o.slug === slug);
+    out = out
+      .replace(/«mnemonic»/g, e.mnemonic)
+      .replace(/«display-name»/g, e.gene)
+      .replace('«glyph»', existing?.emoji || '«glyph»')
+      .replace('«action | register | marker | control | value»', existing?.category || '«action | register | marker | control | value»')
+      .replace('«true | false»', String(takesTarget))
+      .replace('«1 | 1 + template»', takesTarget ? '1 + template' : '1');
+    console.log(`# scaffolded from the dictionary row for ${e.mnemonic} — now run:`);
+    console.log(`#   doclint.ts facts ${e.mnemonic}`);
+  } else if (kind === 'concept') {
+    out = out.replace(/«slug»/g, slug);
+  } else {
+    out = out.replace(/«id»/g, slug);
+  }
+
+  const dir = kind === 'lesson' ? 'docs/lessons' : `docs/bible/${kind}s`;
+  console.log(`# write to ${dir}/${slug}.md, then fill every «placeholder»
+`);
+  console.log(out);
 }
 
 // ---------------------------------------------------------------------------
@@ -427,7 +537,12 @@ function check(argv: string[]) {
 const cmd = process.argv[2];
 if (cmd === 'vocab') vocab();
 else if (cmd === 'check') check(process.argv.slice(3).filter((a) => !a.startsWith('--')));
+else if (cmd === 'facts' && process.argv[3]) facts(process.argv[3]);
+else if (cmd === 'new' && process.argv[3] && process.argv[4]) scaffold(process.argv[3], process.argv[4]);
 else {
-  console.log('usage: doclint.ts vocab | check [path...] [--all]');
+  console.log('usage: doclint.ts vocab');
+  console.log('       doclint.ts check [path...] [--all]');
+  console.log('       doclint.ts facts <mnemonic>');
+  console.log('       doclint.ts new opcode|concept|lesson <slug>');
   process.exitCode = 2;
 }

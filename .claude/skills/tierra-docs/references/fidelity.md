@@ -142,8 +142,8 @@ For each of the 32, in this order:
    the do-nothing-on-failure cases.
 5. Check `## Simple` against the *one test*: is every sentence still true at the
    Advanced level? (`references/voice.md`)
-6. Check `## Gotchas` for the silences — no-fault wraps, thresholds that still succeed,
-   flags cleared without undoing a consequence.
+6. Check `## Edge Cases` for the silences — no-fault wraps, thresholds that still
+   succeed, flags cleared without undoing a consequence.
 7. Check `## See also` links resolve and point somewhere a reader would actually want
    next.
 8. `doclint check <path>` and `npm test`.

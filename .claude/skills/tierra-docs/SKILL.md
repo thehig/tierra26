@@ -98,6 +98,12 @@ dense reference prose does not want a wall of chips.
 
 ## Workflow
 
+0. Starting a page from scratch, or regenerating one? Scaffold it, so nothing derivable
+   is hand-typed — `templates/README.md` has the done-checklist:
+   ```bash
+   node --experimental-strip-types .claude/skills/tierra-docs/scripts/doclint.ts new opcode subCAB
+   node --experimental-strip-types .claude/skills/tierra-docs/scripts/doclint.ts facts  subCAB
+   ```
 1. `npm run docs:vocab` — see what resolves right now.
 2. Write or edit the document. Follow the page shape for its kind
    (`references/page-shapes.md`) and the Simple/Advanced voice (`references/voice.md`).
@@ -114,9 +120,18 @@ dense reference prose does not want a wall of chips.
    solution genome still compiles and solves.
 6. If you touched an opcode/concept page's `name`, `emoji` or `category`, run
    `npm run gen:bindings` — those frontmatter fields are codegen input.
+7. `grep -rn '«' docs/` — must be empty. A template placeholder is never a token or a
+   tag, so nothing else will catch one left behind.
 
 `npm run docs:lint` and `npm test` do not overlap: the first catches what renders wrong,
 the second catches what fails to parse or contradicts the engine. Run both.
+
+## Templates
+
+`templates/` holds one skeleton per kind, plus `templates/README.md` — the placeholder
+convention, the per-kind done-checklist, and two decisions to settle before regenerating
+the corpus (a live `<EntityDesigner>` stage inside a Bible page, and the `INSTRPAGE`
+table that is a second, already-drifted copy of every page's edge cases and See-also).
 
 ## References
 
