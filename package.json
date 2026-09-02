@@ -9,6 +9,8 @@
   "scripts": {
     "test": "npm run gen:bindings -- --check && npm test --workspaces --if-present",
     "gen:bindings": "node --experimental-strip-types scripts/gen-bindings.ts",
+    "docs:lint": "node --experimental-strip-types .claude/skills/tierra-docs/scripts/doclint.ts check",
+    "docs:vocab": "node --experimental-strip-types .claude/skills/tierra-docs/scripts/doclint.ts vocab",
     "build": "npm run build --workspace @tierra26/app",
     "dev": "npm run dev --workspace @tierra26/app",
     "docker:build": "docker build -t tierra26 .",
